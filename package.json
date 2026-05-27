@@ -1,0 +1,9 @@
+{
+  "name": "coworking-sens-com",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Site de réservation L'Atelier du Coworking Sens",
+  "dependencies": {
+    "stripe": "^17.4.0"
+  }
+}

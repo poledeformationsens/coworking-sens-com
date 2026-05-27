@@ -299,7 +299,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 
     <div class="actions-nav">
       <button class="btn btn-ghost" onclick="goStep(2)">← Retour</button>
-      <button class="btn" onclick="goStep(4)">Payer & confirmer →</button>
+      <button class="btn" id="btn-pay" onclick="payAndConfirm()">Payer & confirmer →</button>
     </div>
   </div>
 
@@ -596,6 +596,77 @@ async function fetchSiret(siret){
     siretInput.classList.remove('search-state');
   }
 }
+
+// ============================================
+// STRIPE CHECKOUT — Branchement paiement
+// ============================================
+async function payAndConfirm(){
+  const btn = document.getElementById('btn-pay');
+  const originalText = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Redirection vers Stripe…';
+  btn.style.opacity = '0.7';
+  try {
+    let email, name;
+    if(selectedClientType === 'pro'){
+      email = document.getElementById('pro-mail').value;
+      name = (document.getElementById('pro-contact-prenom').value + ' ' + document.getElementById('pro-contact-nom').value).trim();
+    } else {
+      email = document.getElementById('p-mail').value;
+      name = (document.getElementById('p-prenom').value + ' ' + document.getElementById('p-nom').value).trim();
+    }
+    if(!email || !email.includes('@')){
+      alert('Merci de renseigner un email valide');
+      btn.disabled = false; btn.textContent = originalText; btn.style.opacity = '';
+      return;
+    }
+    const company = selectedClientType === 'pro' ? document.getElementById('pro-societe').value : '';
+    const dateInput = document.getElementById('resa-date').value;
+    let hourFrom = '', hourTo = '';
+    if(selectedSlot === 'hour'){
+      hourFrom = document.getElementById('hour-from').value;
+      hourTo = document.getElementById('hour-to').value;
+    }
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        space: NAMES[selectedSpace],
+        slot: selectedSlot,
+        date: dateInput,
+        hourFrom, hourTo,
+        amountTTC: computeCurrentPriceTTC(),
+        email, clientType: selectedClientType, name, company,
+      }),
+    });
+    if(!res.ok){
+      const err = await res.json().catch(()=>({error:'Erreur inconnue'}));
+      throw new Error(err.error || 'Erreur de paiement');
+    }
+    const data = await res.json();
+    if(data.url){ window.location.href = data.url; }
+    else { throw new Error('URL Stripe manquante'); }
+  } catch(err){
+    console.error(err);
+    alert('Erreur de paiement : ' + err.message + '\nMerci de réessayer ou nous contacter au 06.23.88.05.03.');
+    btn.disabled = false;
+    btn.textContent = originalText;
+    btn.style.opacity = '';
+  }
+}
+
+// Retour de Stripe (succès ou annulation)
+(function checkReturnFromStripe(){
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('status');
+  if(status === 'success'){
+    setTimeout(()=>goStep(4), 50);
+    history.replaceState({}, '', window.location.pathname);
+  } else if(status === 'cancelled'){
+    setTimeout(()=>{ goStep(3); alert('Le paiement a été annulé. Vous pouvez réessayer.'); }, 50);
+    history.replaceState({}, '', window.location.pathname);
+  }
+})();
 
 goStep(1);
 </script>
