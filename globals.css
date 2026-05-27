@@ -1,0 +1,45 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  --color-navy: #03234D;
+  --color-cream: #F8F7F4;
+  --color-gold: #C9B584;
+  --color-gold-dark: #8E764A;
+  --color-slate: #3D4861;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--color-navy);
+  color: #FFFFFF;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-weight: 400;
+}
+
+.acw-bg {
+  position: fixed;
+  inset: 0;
+  background-image: url('https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/Photo%20principale.jpg');
+  background-size: cover;
+  background-position: center;
+  opacity: 0.22;
+  z-index: -2;
+}
+
+.acw-overlay {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(3,35,77,.80) 0%, rgba(3,35,77,.94) 100%);
+  z-index: -1;
+}
