@@ -1,31 +1,58 @@
-# coworking-sens.com
+# coworking-sens.com — Site de réservation
 
-Site officiel de **L'Atelier du Coworking Sens** — 20 rue Pasteur, 89100 Sens.
+L'Atelier du Coworking Sens — 20 rue Pasteur, 89100 Sens.
 
-## État actuel
+## Stack
 
-Page « Bientôt disponible » statique, en attendant le développement du système de réservation complet.
-
-## Pile technique
-
-- HTML/CSS statiques
-- Google Fonts (Italiana, Cormorant Garamond, Inter)
+- Next.js 15 (App Router)
+- React 19
+- TypeScript
+- Tailwind CSS
 - Déployé sur Vercel
-- Domaine : [coworking-sens.com](https://coworking-sens.com)
+- Backend FastAPI sur `pole-iad-sens.fr` (à brancher)
 
-## À venir
+## Structure
 
-- Widget de réservation (Next.js)
-- Paiement Stripe
-- Génération PIN d'accès Igloohome
-- Espace client + magic link
-- Devis pour événements
-- Intégration outil de facturation
+```
+app/
+  page.tsx                          Home avec hero + cards d'espaces
+  reserver/page.tsx                 Tunnel de réservation 3 étapes
+  reservation/confirmation/page.tsx Page après paiement
+  devis-privatisation/page.tsx      Formulaire de devis pour privatisation
+  layout.tsx
+  globals.css
+components/
+  Header.tsx
+  Footer.tsx
+lib/
+  spaces.ts                         Catalogue espaces + tarifs
+```
 
-## Architecture cible
+## Lancer en local
 
-Voir le document de plan complet dans `Téléchargements/Logo ACW 24 mai 26/plan-resa-atelier-coworking.md`.
+```bash
+npm install
+npm run dev
+```
 
-## Contact
+Ouvre http://localhost:3000
 
-`ateliercoworking89@gmail.com` (à terme `contact@coworking-sens.com`)
+## Déployer sur Vercel
+
+Push sur la branche `main` du repo `poledeformationsens/coworking-sens-com` →
+Vercel redéploie automatiquement.
+
+## Variables d'environnement à ajouter sur Vercel
+
+```
+NEXT_PUBLIC_API_URL=https://pole-iad-sens.fr/api/v1
+```
+
+## À faire
+
+- [ ] Brancher les endpoints FastAPI dans `/reserver` et `/devis-privatisation`
+- [ ] Intégrer Stripe Checkout
+- [ ] Ajouter page `/mon-espace` (espace client avec historique)
+- [ ] Auth magic-link
+- [ ] Composant Calendar avec disponibilités en temps réel
+- [ ] SIRET autocomplete via API Recherche Entreprises
