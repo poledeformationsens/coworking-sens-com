@@ -308,7 +308,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
     <h1 class="h1">Privatisation de l'atelier</h1>
     <p class="h2-pill">Demande de devis sur mesure</p>
     <div class="rule"></div>
-    <p style="text-align:center;color:rgba(255,255,255,.78);font-size:14px;line-height:1.7;max-width:520px;margin:0 auto 22px">L'atelier complet pour vos formations, séminaires, soirées d'entreprise ou shootings. On vous prépare un devis personnalisé selon votre besoin (jauge, équipement, restauration).</p>
+    <p style="text-align:center;color:rgba(255,255,255,.78);font-size:14px;line-height:1.7;max-width:520px;margin:0 auto 22px">L'atelier complet pour vos formations, séminaires, soirées d'entreprise ou shootings. On vous prépare un devis personnalisé selon votre besoin (jauge, équipement, configuration).<br><span style="font-size:12px;color:rgba(255,255,255,.55);font-style:italic">Machine à café et thé inclus · Restauration non assurée sur place</span></p>
     <div class="field-grid">
       <div><label class="label">Prénom</label><input class="input" placeholder="Sophie" /></div>
       <div><label class="label">Nom</label><input class="input" placeholder="Martin" /></div>
@@ -322,7 +322,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
       <div><label class="label">Date envisagée</label><input class="input" type="date" /></div>
       <div><label class="label">Nombre de personnes</label><input class="input" type="number" min="1" placeholder="ex. 20" /></div>
     </div>
-    <div style="margin-bottom:14px"><label class="label">Votre projet en quelques mots</label><textarea class="input" rows="3" placeholder="Formation d'une journée pour 15 personnes, avec pause café..."></textarea></div>
+    <div style="margin-bottom:14px"><label class="label">Votre projet en quelques mots</label><textarea class="input" rows="3" placeholder="Formation d'une journée pour 15 personnes, configuration en U, vidéoprojecteur..."></textarea></div>
     <div class="actions-nav">
       <button class="btn btn-ghost" onclick="goStep(1)">← Retour</button>
       <button class="btn" onclick="alert('Demande de devis envoyée — réponse sous 24 h')">Envoyer la demande</button>
@@ -474,32 +474,49 @@ function updateRecap(){
 }
 
 function updateConfirmation(){
+  // Si on a un snapshot localStorage (retour de Stripe), on l'utilise comme source de vérité
+  const snap = lastBookingSnapshot;
   const dateInput = document.getElementById('resa-date');
-  const d = dateInput.value ? new Date(dateInput.value) : new Date();
+  const dateVal = (snap && snap.date) ? snap.date : dateInput.value;
+  const d = dateVal ? new Date(dateVal) : new Date();
   const longDate = d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   let horaire = '';
   let startH = '08', endH = '18';
-  if(selectedSlot === 'morning'){horaire='8 h 00 → 12 h 00'; startH='08'; endH='12'}
-  else if(selectedSlot === 'afternoon'){horaire='14 h 00 → 18 h 00'; startH='14'; endH='18'}
-  else if(selectedSlot === 'day'){horaire='8 h 00 → 18 h 00'; startH='08'; endH='18'}
-  else if(selectedSlot === 'hour'){
-    const {from,to} = getHourFromTo();
+  const slotForConf = (snap && snap.slot) ? snap.slot : selectedSlot;
+  const spaceForConf = (snap && snap.space) ? snap.space : selectedSpace;
+  if(slotForConf === 'morning'){horaire='8 h 00 → 12 h 00'; startH='08'; endH='12'}
+  else if(slotForConf === 'afternoon'){horaire='14 h 00 → 18 h 00'; startH='14'; endH='18'}
+  else if(slotForConf === 'day'){horaire='8 h 00 → 18 h 00'; startH='08'; endH='18'}
+  else if(slotForConf === 'hour'){
+    const from = (snap && snap.hourFrom) ? snap.hourFrom : (document.getElementById('hour-from')||{value:'09:00'}).value;
+    const to = (snap && snap.hourTo) ? snap.hourTo : (document.getElementById('hour-to')||{value:'17:00'}).value;
     horaire = from + ' → ' + to;
     startH = from.split(':')[0];
     endH = to.split(':')[0];
   }
-  const mail = (selectedClientType === 'pro' ? document.getElementById('pro-mail').value : document.getElementById('p-mail').value) || 'sophie@exemple.fr';
-  document.getElementById('conf-space').textContent = NAMES[selectedSpace];
+  const mail = (snap && snap.email) ? snap.email : ((selectedClientType === 'pro' ? document.getElementById('pro-mail').value : document.getElementById('p-mail').value) || 'sophie@exemple.fr');
+  const amount = (snap && typeof snap.amountTTC === 'number') ? snap.amountTTC : computeCurrentPriceTTC();
+  const reference = (snap && snap.ref) ? snap.ref : ('RES-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000));
+
+  document.getElementById('conf-space').textContent = NAMES[spaceForConf];
   document.getElementById('conf-date').textContent = longDate;
   document.getElementById('conf-horaire').textContent = horaire;
-  document.getElementById('conf-prix').textContent = fmt(computeCurrentPriceTTC()) + ' TTC';
+  document.getElementById('conf-prix').textContent = fmt(amount) + ' TTC';
   document.getElementById('conf-mail').textContent = mail;
   document.getElementById('conf-mail2').textContent = mail;
+  // Met à jour la référence affichée
+  const refPills = document.querySelectorAll('#step4 .h2-pill');
+  refPills.forEach(el => { if(el.textContent.includes('Référence')) el.textContent = 'Référence ' + reference; });
+  // Met à jour aussi la facture mentionnée dans le footer (FAC-XXXX-YYYY)
+  const facMatches = document.querySelectorAll('#step4 .foot .mail');
+  facMatches.forEach(el => {
+    if(el.textContent.includes('FAC-')) el.textContent = reference.replace('RES-', 'FAC-');
+  });
 
   const startISO = d.toISOString().split('T')[0].replace(/-/g,'');
-  const title = encodeURIComponent('Réservation ' + NAMES[selectedSpace] + ' — L\'Atelier du Coworking');
+  const title = encodeURIComponent('Réservation ' + NAMES[spaceForConf] + ' — L\'Atelier du Coworking');
   const loc = encodeURIComponent('20 rue Pasteur, 89100 Sens');
-  const details = encodeURIComponent('Référence RES-2026-0042. Code d\'accès envoyé par e-mail. Wifi : Coworkingsens / Cowork2023@@. Contact : 06 23 88 05 03.');
+  const details = encodeURIComponent('Référence ' + reference + '. Code d\'accès envoyé par e-mail. Wifi : Coworkingsens / Cowork2023@@. Contact : 06 23 88 05 03.');
   const gcalUrl = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + title + '&dates=' + startISO + 'T' + startH + '0000/' + startISO + 'T' + endH + '0000&details=' + details + '&location=' + loc;
   document.getElementById('btn-agenda').href = gcalUrl;
 }
@@ -628,6 +645,20 @@ async function payAndConfirm(){
       hourFrom = document.getElementById('hour-from').value;
       hourTo = document.getElementById('hour-to').value;
     }
+    // Sauvegarde des infos de réservation pour la page de confirmation après retour Stripe
+    const refNum = 'RES-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000);
+    const bookingSnapshot = {
+      ref: refNum,
+      space: selectedSpace,
+      slot: selectedSlot,
+      date: dateInput,
+      hourFrom, hourTo,
+      amountTTC: computeCurrentPriceTTC(),
+      email, name, clientType: selectedClientType, company,
+      ts: Date.now(),
+    };
+    try { localStorage.setItem('acw_last_booking', JSON.stringify(bookingSnapshot)); } catch(e){}
+
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
@@ -638,6 +669,7 @@ async function payAndConfirm(){
         hourFrom, hourTo,
         amountTTC: computeCurrentPriceTTC(),
         email, clientType: selectedClientType, name, company,
+        reference: refNum,
       }),
     });
     if(!res.ok){
@@ -656,11 +688,40 @@ async function payAndConfirm(){
   }
 }
 
-// Retour de Stripe (succès ou annulation)
+// Retour de Stripe (succès ou annulation) — restaure la réservation depuis localStorage
+let lastBookingSnapshot = null;
 (function checkReturnFromStripe(){
   const params = new URLSearchParams(window.location.search);
   const status = params.get('status');
   if(status === 'success'){
+    try {
+      const raw = localStorage.getItem('acw_last_booking');
+      if(raw){
+        const snap = JSON.parse(raw);
+        // Restaure les variables globales depuis le snapshot
+        selectedSpace = snap.space || selectedSpace;
+        selectedSlot = snap.slot || selectedSlot;
+        selectedClientType = snap.clientType || selectedClientType;
+        lastBookingSnapshot = snap;
+        // Restaure la date sélectionnée dans le champ date
+        if(snap.date) document.getElementById('resa-date').value = snap.date;
+        // Restaure les horaires custom si slot='hour'
+        if(snap.slot === 'hour' && snap.hourFrom && snap.hourTo){
+          const hf = document.getElementById('hour-from');
+          const ht = document.getElementById('hour-to');
+          if(hf) hf.value = snap.hourFrom;
+          if(ht) ht.value = snap.hourTo;
+        }
+        // Restaure l'email du client pour l'afficher
+        if(snap.clientType === 'pro'){
+          const el = document.getElementById('pro-mail');
+          if(el) el.value = snap.email || '';
+        } else {
+          const el = document.getElementById('p-mail');
+          if(el) el.value = snap.email || '';
+        }
+      }
+    } catch(e){ console.warn('Snapshot restore failed', e); }
     setTimeout(()=>goStep(4), 50);
     history.replaceState({}, '', window.location.pathname);
   } else if(status === 'cancelled'){
