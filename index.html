@@ -474,6 +474,7 @@ function updateSlotPrices(){
 }
 
 // Suggère le créneau le plus avantageux quand le client est en "À l'heure"
+// Ne suggère que les créneaux qui couvrent réellement la plage horaire choisie
 function updateSavingsHint(){
   const hintEl = document.getElementById('savings-hint');
   if(!hintEl) return;
@@ -482,28 +483,36 @@ function updateSavingsHint(){
     return;
   }
   const prices = PRICES_HT[selectedSpace];
-  const h = getCurrentDurationHours();
+  const {from, to} = getHourFromTo();
+  const fromH = parseInt(from.split(':')[0]);
+  const toH = parseInt(to.split(':')[0]);
+  const h = Math.max(toH - fromH, 0);
   if(h <= 0){ hintEl.classList.remove('show'); return; }
   const customHT = h * prices.hour;
-  let bestSlot = null;
-  let bestSlotHT = customHT;
-  // Compare avec Matinée (4h)
-  if(h >= 4 && prices.morning < bestSlotHT){ bestSlot = 'morning'; bestSlotHT = prices.morning; }
-  // Compare avec Journée (8h-18h)
-  if(prices.day < bestSlotHT){ bestSlot = 'day'; bestSlotHT = prices.day; }
-  if(!bestSlot){ hintEl.classList.remove('show'); return; }
-  const savings = (customHT - bestSlotHT) * TVA;
+  // Définition des plages horaires des créneaux pré-définis
+  const slotsRanges = [
+    {key: 'morning',   label: 'Matinée (8h-12h)',    nameOnly: 'Matinée',    fromH: 8,  toH: 12, priceHT: prices.morning},
+    {key: 'afternoon', label: 'Après-midi (14h-18h)', nameOnly: 'Après-midi', fromH: 14, toH: 18, priceHT: prices.afternoon},
+    {key: 'day',       label: 'Journée (8h-18h)',    nameOnly: 'Journée',    fromH: 8,  toH: 18, priceHT: prices.day},
+  ];
+  // Filtre : créneau doit couvrir la plage du client ET être moins cher que le tarif horaire
+  const candidates = slotsRanges.filter(s =>
+    fromH >= s.fromH && toH <= s.toH && s.priceHT < customHT
+  );
+  if(candidates.length === 0){ hintEl.classList.remove('show'); return; }
+  // Prend le moins cher parmi les candidats
+  candidates.sort((a,b) => a.priceHT - b.priceHT);
+  const best = candidates[0];
+  const savings = (customHT - best.priceHT) * TVA;
   const customTTC = customHT * TVA;
-  const bestSlotTTC = bestSlotHT * TVA;
-  const slotLabel = bestSlot === 'morning' ? 'Matinée (8h-12h)' : 'Journée (8h-18h)';
-  const slotNameOnly = bestSlot === 'morning' ? 'Matinée' : 'Journée';
+  const bestSlotTTC = best.priceHT * TVA;
   document.getElementById('savings-hint-text').innerHTML =
-    "vos horaires reviennent moins chers en <strong>" + slotLabel + "</strong> : " +
+    "vos horaires reviennent moins chers en <strong>" + best.label + "</strong> : " +
     fmt(bestSlotTTC) + " au lieu de " + fmt(customTTC) +
     " — économisez <strong>" + fmt(savings) + "</strong>";
   const btn = document.getElementById('savings-hint-btn');
-  btn.textContent = 'Choisir ' + slotNameOnly;
-  btn.dataset.targetSlot = bestSlot;
+  btn.textContent = 'Choisir ' + best.nameOnly;
+  btn.dataset.targetSlot = best.key;
   hintEl.classList.add('show');
 }
 
