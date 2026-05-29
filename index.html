@@ -80,6 +80,15 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 .custom-hour-row.show{display:block}
 .custom-hour-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 
+.savings-hint{display:none;background:#FFF7E0;border:1px solid var(--gold);border-left:4px solid var(--gold);border-radius:6px;padding:12px 14px;margin-top:10px;color:#03234D}
+.savings-hint.show{display:block}
+.savings-hint-inner{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.savings-hint-icon{font-size:20px;flex-shrink:0}
+.savings-hint-body{flex:1;min-width:200px;font-size:13px;line-height:1.5;color:#03234D}
+.savings-hint-body strong{color:#03234D;font-weight:600}
+.savings-hint-btn{background:#03234D;color:#FFFFFF;border:none;padding:7px 16px;border-radius:4px;font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;font-weight:500;flex-shrink:0}
+.savings-hint-btn:hover{background:#0A3B7A}
+
 .toggle-type{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
 .toggle-card{position:relative;background:var(--cream);border:2px solid transparent;border-radius:8px;padding:16px;cursor:pointer;text-align:center;color:var(--navy);transition:.15s}
 .toggle-card:hover{border-color:var(--gold)}
@@ -226,6 +235,14 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
         </div>
       </div>
       <span class="hint">Tarif calculé automatiquement selon la durée</span>
+    </div>
+
+    <div class="savings-hint" id="savings-hint">
+      <div class="savings-hint-inner">
+        <span class="savings-hint-icon">💡</span>
+        <div class="savings-hint-body"><strong>Bon plan</strong> — <span id="savings-hint-text"></span></div>
+        <button class="savings-hint-btn" id="savings-hint-btn" type="button">Choisir</button>
+      </div>
     </div>
 
     <div class="actions-nav">
@@ -408,7 +425,7 @@ function goStep(n){
   });
   const urls = ['/reserver','/reserver/creneau','/reserver/paiement','/reservation/confirmation'];
   document.getElementById('page-url').textContent = 'coworking-sens.com' + urls[n-1];
-  if(n===2) updateSlotPrices();
+  if(n===2) { updateSlotPrices(); updateSavingsHint(); }
   if(n===3) updateRecap();
   if(n===4) updateConfirmation();
   window.scrollTo({top:0,behavior:'smooth'});
@@ -454,6 +471,52 @@ function updateSlotPrices(){
   document.getElementById('price-afternoon').textContent = fmt(p.afternoon * TVA);
   document.getElementById('price-day').textContent = fmt(p.day * TVA);
   document.getElementById('price-hour').textContent = fmt(p.hour * TVA).replace('€','') + '€/h';
+}
+
+// Suggère le créneau le plus avantageux quand le client est en "À l'heure"
+function updateSavingsHint(){
+  const hintEl = document.getElementById('savings-hint');
+  if(!hintEl) return;
+  if(selectedSlot !== 'hour' || selectedSpace === 'privatisation' || !PRICES_HT[selectedSpace]){
+    hintEl.classList.remove('show');
+    return;
+  }
+  const prices = PRICES_HT[selectedSpace];
+  const h = getCurrentDurationHours();
+  if(h <= 0){ hintEl.classList.remove('show'); return; }
+  const customHT = h * prices.hour;
+  let bestSlot = null;
+  let bestSlotHT = customHT;
+  // Compare avec Matinée (4h)
+  if(h >= 4 && prices.morning < bestSlotHT){ bestSlot = 'morning'; bestSlotHT = prices.morning; }
+  // Compare avec Journée (8h-18h)
+  if(prices.day < bestSlotHT){ bestSlot = 'day'; bestSlotHT = prices.day; }
+  if(!bestSlot){ hintEl.classList.remove('show'); return; }
+  const savings = (customHT - bestSlotHT) * TVA;
+  const customTTC = customHT * TVA;
+  const bestSlotTTC = bestSlotHT * TVA;
+  const slotLabel = bestSlot === 'morning' ? 'Matinée (8h-12h)' : 'Journée (8h-18h)';
+  const slotNameOnly = bestSlot === 'morning' ? 'Matinée' : 'Journée';
+  document.getElementById('savings-hint-text').innerHTML =
+    "vos horaires reviennent moins chers en <strong>" + slotLabel + "</strong> : " +
+    fmt(bestSlotTTC) + " au lieu de " + fmt(customTTC) +
+    " — économisez <strong>" + fmt(savings) + "</strong>";
+  const btn = document.getElementById('savings-hint-btn');
+  btn.textContent = 'Choisir ' + slotNameOnly;
+  btn.dataset.targetSlot = bestSlot;
+  hintEl.classList.add('show');
+}
+
+function applySavingsSuggestion(){
+  const btn = document.getElementById('savings-hint-btn');
+  const targetSlot = btn.dataset.targetSlot;
+  if(!targetSlot) return;
+  document.querySelectorAll('.slot-card').forEach(x=>x.classList.remove('selected'));
+  const target = document.querySelector('.slot-card[data-slot="' + targetSlot + '"]');
+  if(target) target.classList.add('selected');
+  selectedSlot = targetSlot;
+  document.getElementById('custom-hours').classList.remove('show');
+  document.getElementById('savings-hint').classList.remove('show');
 }
 
 function updateRecap(){
@@ -542,8 +605,19 @@ document.querySelectorAll('.slot-card').forEach(s=>{
     selectedSlot = s.dataset.slot;
     const custom = document.getElementById('custom-hours');
     if(selectedSlot === 'hour') custom.classList.add('show'); else custom.classList.remove('show');
+    updateSavingsHint();
   });
 });
+
+// Re-calcul du conseil quand les heures changent
+['hour-from','hour-to'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('change', updateSavingsHint);
+});
+
+// Bouton "Choisir Matinée/Journée"
+const savingsBtn = document.getElementById('savings-hint-btn');
+if(savingsBtn) savingsBtn.addEventListener('click', applySavingsSuggestion);
 
 document.querySelectorAll('.toggle-card').forEach(t=>{
   t.addEventListener('click',()=>{
