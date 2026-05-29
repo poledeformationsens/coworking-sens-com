@@ -440,7 +440,7 @@ function computeCurrentPriceTTC(){
     const h = getCurrentDurationHours();
     const hourly = PRICES_HT[selectedSpace].hour;
     let bestHT = h * hourly;
-    if(h >= 4) bestHT = Math.min(bestHT, PRICES_HT[selectedSpace].morning);
+    // Cap uniquement au prix journée à partir de 8h
     if(h >= 8) bestHT = Math.min(bestHT, PRICES_HT[selectedSpace].day);
     return bestHT * TVA;
   }
