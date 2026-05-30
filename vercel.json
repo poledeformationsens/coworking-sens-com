@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/facture/:sid.pdf",
+      "destination": "https://pole-iad-sens.fr/api/coworking/invoice/:sid.pdf"
+    }
+  ]
+}
