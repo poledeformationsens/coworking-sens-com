@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prototype — Réservation L'Atelier du Coworking</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.40.0/tabler-icons.min.css">
 <style>
 :root{--navy:#03234D;--cream:#F8F7F4;--gold:#C9B584;--gold-soft:rgba(201,181,132,.5);--slate:#3D4861}
@@ -20,13 +20,13 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 .dot{width:9px;height:9px;border-radius:50%}
 .url{margin-left:10px;font-size:11px;color:#6B5E4A;font-family:'SF Mono',Menlo,monospace;flex:1}
 .content{padding:28px 26px 32px}
-.serif{font-family:'Cormorant Garamond',serif;font-weight:400}
-.h1{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:30px;letter-spacing:.01em;line-height:1.2;margin:0 0 6px;color:#FFFFFF;text-align:center}
-.h2-pill{font-family:'Cormorant Garamond',serif;font-weight:400;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);text-align:center;margin:0}
+.serif{font-family:'Playfair Display',serif;font-weight:500}
+.h1{font-family:'Playfair Display',serif;font-weight:500;font-size:30px;letter-spacing:.01em;line-height:1.2;margin:0 0 6px;color:#FFFFFF;text-align:center}
+.h2-pill{font-family:'Inter',sans-serif;font-weight:400;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);text-align:center;margin:0}
 .rule{height:1px;background:rgba(201,181,132,.3);width:60px;margin:18px auto}
 .logo{display:block;margin:0 auto 4px;width:84px;height:auto}
 
-.progress{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:22px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.4);font-family:'Cormorant Garamond',serif}
+.progress{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:22px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.4);font-family:'Inter',sans-serif}
 .pill{display:flex;align-items:center;gap:7px}
 .pill.active{color:#FFFFFF}
 .pill.done{color:var(--gold)}
@@ -47,12 +47,12 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 .card.selected::after{content:'\ea5e';font-family:'tabler-icons';position:absolute;top:10px;right:10px;color:var(--navy);font-size:18px;background:#FFFFFF;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;z-index:2}
 .card-photo{width:100%;height:120px;background-size:cover;background-position:center;background-color:#03234D}
 .card-body{padding:14px 16px 16px}
-.card-name{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--navy);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+.card-name{font-family:'Inter',sans-serif;font-size:16px;color:var(--navy);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;font-weight:500}
 .card-sub{font-size:12px;color:#6E7A93;margin-bottom:10px;line-height:1.5}
-.card-price{font-family:'Cormorant Garamond',serif;font-size:14px;color:#A38A4A;letter-spacing:.05em}
+.card-price{font-family:'Inter',sans-serif;font-size:14px;color:#A38A4A;letter-spacing:.05em}
 
 .section{background:rgba(248,247,244,0.05);border:1px solid rgba(201,181,132,.18);border-radius:8px;padding:18px 20px;margin-bottom:12px}
-.section-label{font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.section-label{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 12px;display:flex;align-items:center;gap:8px}
 .row{display:flex;justify-content:space-between;align-items:flex-start;font-size:14px;padding:5px 0}
 .row .lbl{color:rgba(255,255,255,.62)}
 .row .val{color:#FFFFFF;text-align:right}
@@ -61,7 +61,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 .input{width:100%;padding:11px 13px;background:var(--cream);border:1px solid #E5DDCB;border-radius:5px;font-size:14px;color:var(--navy);font-family:'Inter',sans-serif}
 .input.search-state{background:#FFF9E6;border-color:var(--gold)}
 .input.ok-state{background:#EAF3DE;border-color:#639922}
-.label{font-size:10px;color:var(--gold);letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px;display:block;font-family:'Cormorant Garamond',serif}
+.label{font-size:10px;color:var(--gold);letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px;display:block;font-family:'Inter',sans-serif}
 .field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 .field-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
 
@@ -72,9 +72,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 .slot-card.selected .slot-hours{color:rgba(3,35,77,.75)}
 .slot-card.selected .slot-price{color:var(--navy);font-weight:500}
 .slot-card.selected::after{content:'\ea5e';font-family:'tabler-icons';position:absolute;top:8px;right:8px;color:var(--navy);font-size:14px;background:#FFFFFF;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold}
-.slot-name{font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--navy);margin-bottom:4px}
+.slot-name{font-family:'Inter',sans-serif;font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--navy);margin-bottom:4px}
 .slot-hours{font-size:12px;color:#6E7A93;margin-bottom:6px}
-.slot-price{font-family:'Cormorant Garamond',serif;font-size:14px;color:#A38A4A}
+.slot-price{font-family:'Inter',sans-serif;font-size:14px;color:#A38A4A}
 
 .custom-hour-row{background:var(--cream);border:1px solid #E5DDCB;border-radius:6px;padding:12px;margin-top:8px;display:none}
 .custom-hour-row.show{display:block}
@@ -86,7 +86,7 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 .savings-hint-icon{font-size:20px;flex-shrink:0}
 .savings-hint-body{flex:1;min-width:200px;font-size:13px;line-height:1.5;color:#03234D}
 .savings-hint-body strong{color:#03234D;font-weight:600}
-.savings-hint-btn{background:#03234D;color:#FFFFFF;border:none;padding:7px 16px;border-radius:4px;font-family:'Cormorant Garamond',serif;font-size:11px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;font-weight:500;flex-shrink:0}
+.savings-hint-btn{background:#03234D;color:#FFFFFF;border:none;padding:7px 16px;border-radius:4px;font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;font-weight:500;flex-shrink:0}
 .savings-hint-btn:hover{background:#0A3B7A}
 
 .toggle-type{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
@@ -97,25 +97,25 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 .toggle-card.selected .toggle-card-sub{color:rgba(3,35,77,.7)}
 .toggle-card.selected::after{content:'\ea5e';font-family:'tabler-icons';position:absolute;top:8px;right:8px;color:var(--navy);font-size:14px;background:#FFFFFF;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold}
 .toggle-card i{font-size:22px;color:#A38A4A;margin-bottom:6px;display:block}
-.toggle-card-name{font-family:'Cormorant Garamond',serif;font-size:14px;letter-spacing:.15em;text-transform:uppercase;color:var(--navy);font-weight:500;margin-bottom:3px}
+.toggle-card-name{font-family:'Inter',sans-serif;font-size:14px;letter-spacing:.15em;text-transform:uppercase;color:var(--navy);font-weight:500;margin-bottom:3px}
 .toggle-card-sub{font-size:11px;color:#6E7A93}
 
 .actions-nav{display:flex;justify-content:space-between;margin-top:22px;gap:10px}
-.btn{font-family:'Cormorant Garamond',serif;background:var(--gold);color:var(--navy);border:none;padding:13px 24px;border-radius:5px;font-size:13px;letter-spacing:.18em;text-transform:uppercase;cursor:pointer;font-weight:500}
+.btn{font-family:'Inter',sans-serif;background:var(--gold);color:var(--navy);border:none;padding:13px 24px;border-radius:5px;font-size:12px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;font-weight:600}
 .btn:hover{background:#B89D6D}
 .btn-ghost{background:transparent;color:#FFFFFF;border:1px solid rgba(255,255,255,.4)}
 .btn-ghost:hover{border-color:var(--gold);color:var(--gold);background:transparent}
 
 .recap{background:var(--cream);border-radius:6px;padding:18px;color:var(--navy);margin-top:14px}
-.recap-label{font-family:'Cormorant Garamond',serif;letter-spacing:.18em;text-transform:uppercase;font-size:11px;color:#A38A4A;margin-bottom:10px}
+.recap-label{font-family:'Inter',sans-serif;letter-spacing:.18em;text-transform:uppercase;font-size:11px;color:#A38A4A;margin-bottom:10px}
 .recap-row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px}
 .recap-row.sep{border-top:0.5px dashed var(--gold);margin-top:10px;padding-top:14px}
-.recap-row.total{font-family:'Cormorant Garamond',serif;font-size:20px}
+.recap-row.total{font-family:'Playfair Display',serif;font-weight:500;font-size:20px}
 
 .checkring{width:54px;height:54px;border-radius:50%;border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
 .checkring i{color:var(--gold);font-size:26px}
 .actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
-.action{background:transparent;color:#FFFFFF;border:1px solid rgba(201,181,132,.5);border-radius:6px;padding:11px 14px;font-family:'Cormorant Garamond',serif;font-size:13px;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:400;text-decoration:none}
+.action{background:transparent;color:#FFFFFF;border:1px solid rgba(201,181,132,.5);border-radius:6px;padding:11px 14px;font-family:'Inter',sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;text-decoration:none}
 .action:hover{background:rgba(201,181,132,.1);border-color:var(--gold)}
 .action i{font-size:16px;color:var(--gold)}
 .foot{text-align:center;font-size:12px;color:rgba(255,255,255,.55);margin-top:18px;line-height:1.7}
@@ -379,8 +379,6 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
     </div>
 
     <div style="text-align:center"><button class="btn" onclick="goStep(1)">Faire une autre réservation</button></div>
-
-    <p class="foot">Une facture <span class="mail">FAC-2026-0042</span> vous sera envoyée à <span class="mail" id="conf-mail2">sophie@exemple.fr</span>.</p>
   </div>
 
 </div>
@@ -579,11 +577,6 @@ function updateConfirmation(){
   // Met à jour la référence affichée
   const refPills = document.querySelectorAll('#step4 .h2-pill');
   refPills.forEach(el => { if(el.textContent.includes('Référence')) el.textContent = 'Référence ' + reference; });
-  // Met à jour aussi la facture mentionnée dans le footer (FAC-XXXX-YYYY)
-  const facMatches = document.querySelectorAll('#step4 .foot .mail');
-  facMatches.forEach(el => {
-    if(el.textContent.includes('FAC-')) el.textContent = reference.replace('RES-', 'FAC-');
-  });
 
   const startISO = d.toISOString().split('T')[0].replace(/-/g,'');
   const title = encodeURIComponent('Réservation ' + NAMES[spaceForConf] + ' — L\'Atelier du Coworking');
