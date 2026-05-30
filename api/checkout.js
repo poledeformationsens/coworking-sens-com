@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { space, slot, date, hourFrom, hourTo, amountTTC, email, clientType, name, company } = req.body || {};
+    const { space, slot, date, hourFrom, hourTo, amountTTC, email, clientType, name, company, reference } = req.body || {};
 
     if (!space || !amountTTC || !email) {
       return res.status(400).json({ error: "Données manquantes (space, amountTTC, email requis)" });
@@ -65,6 +65,7 @@ export default async function handler(req, res) {
         client_type: clientType || "particulier",
         client_name: name || "",
         company: company || "",
+        reference: reference || "",
       },
       success_url: `${origin}/?status=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}/?status=cancelled`,
