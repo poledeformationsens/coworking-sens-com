@@ -217,9 +217,38 @@
 </head>
 <body>
 
+<!-- Login screen -->
+<div id="login-screen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--navy);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:white;padding:40px 36px;border-radius:8px;width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <h2 style="margin:0 0 8px;font-family:'Cormorant Garamond',Georgia,serif;color:var(--navy);font-size:24px;text-align:center;">L'Atelier du Coworking</h2>
+    <p style="margin:0 0 28px;text-align:center;font-size:11px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;">Dashboard admin</p>
+    <form onsubmit="doLogin(event)">
+      <label style="display:block;font-size:11px;color:var(--slate);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;font-weight:600;">Email</label>
+      <input id="login-email" type="email" required autocomplete="email" style="width:100%;padding:11px 14px;border:1px solid var(--light);border-radius:4px;font-size:14px;margin-bottom:16px;font-family:inherit;color:var(--navy);">
+
+      <label style="display:block;font-size:11px;color:var(--slate);letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;font-weight:600;">Mot de passe</label>
+      <input id="login-password" type="password" required autocomplete="current-password" style="width:100%;padding:11px 14px;border:1px solid var(--light);border-radius:4px;font-size:14px;margin-bottom:8px;font-family:inherit;color:var(--navy);">
+
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--slate);margin:14px 0 18px;cursor:pointer;">
+        <input id="login-remember" type="checkbox" checked style="margin:0;">
+        Rester connecté pendant 7 jours
+      </label>
+
+      <button type="submit" style="width:100%;padding:13px;background:var(--navy);color:white;border:0;border-radius:4px;font-weight:600;font-size:14px;cursor:pointer;letter-spacing:0.5px;">Se connecter</button>
+      <p id="login-error" style="margin:14px 0 0;text-align:center;color:var(--coral);font-size:13px;display:none;"></p>
+    </form>
+  </div>
+</div>
+
+<!-- Main app (hidden until logged in) -->
+<div id="main-app" style="display:none;">
+
 <header>
   <h1>L'Atelier du Coworking · Dashboard Devis</h1>
-  <span class="user">David Landry · Admin</span>
+  <span class="user">
+    <span id="user-email">—</span> ·
+    <a href="#" onclick="doLogout(event)" style="color:var(--gold);text-decoration:none;">Déconnexion</a>
+  </span>
 </header>
 
 <div class="container">
@@ -379,24 +408,92 @@
   </div>
 </div>
 
+</div><!-- /main-app -->
+
 <script>
 // =====================================
 // Config
 // =====================================
-// URL relative — Vercel proxy vers pole-iad-sens.fr en arrière-plan
-// (cf. vercel.json rewrite /api/coworking/* → pole-iad-sens.fr/api/coworking/*)
-// Avantage : pas de souci CORS, et zéro fuite de pole-iad-sens.fr côté client
 const API_BASE = '/api/coworking';
-const COWORKING_ADMIN_TOKEN = localStorage.getItem('cw_admin_token') || prompt('Token admin coworking ?');
-if (COWORKING_ADMIN_TOKEN) localStorage.setItem('cw_admin_token', COWORKING_ADMIN_TOKEN);
 
-const HEADERS = {
-  'Content-Type': 'application/json',
-  'Authorization': `Bearer ${COWORKING_ADMIN_TOKEN}`,
-};
-
+let COWORKING_ADMIN_TOKEN = null;
+let HEADERS = {'Content-Type': 'application/json'};
 let currentFilter = null;
 let allDevis = [];
+
+// =====================================
+// Auth flow
+// =====================================
+const STORAGE_KEY = 'cw_admin_session';
+const SESSION_DURATION_MS = 7 * 24 * 3600 * 1000;  // 7 jours
+
+function getStoredSession() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (s.expires && s.expires < Date.now()) {
+      localStorage.removeItem(STORAGE_KEY);
+      return null;
+    }
+    return s;
+  } catch (e) { return null; }
+}
+
+function saveSession(token, email, remember) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    token, email,
+    expires: remember ? Date.now() + SESSION_DURATION_MS : null,
+  }));
+}
+
+function activateApp(token, email) {
+  COWORKING_ADMIN_TOKEN = token;
+  HEADERS = {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`};
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('user-email').textContent = email;
+  loadDevis();
+}
+
+function showLogin() {
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  setTimeout(() => document.getElementById('login-email').focus(), 100);
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const remember = document.getElementById('login-remember').checked;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(`${API_BASE}/admin/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password}),
+    });
+    if (!r.ok) {
+      const err = await r.json().catch(() => ({}));
+      throw new Error(err.detail || 'Email ou mot de passe incorrect');
+    }
+    const data = await r.json();
+    saveSession(data.token, data.email, remember);
+    activateApp(data.token, data.email);
+  } catch (e) {
+    errEl.textContent = e.message;
+    errEl.style.display = 'block';
+  }
+}
+
+function doLogout(e) {
+  if (e) e.preventDefault();
+  localStorage.removeItem(STORAGE_KEY);
+  COWORKING_ADMIN_TOKEN = null;
+  showLogin();
+}
 
 // =====================================
 // Helpers
@@ -583,7 +680,7 @@ function addItem() {
   tr.dataset.id = itemId;
   tr.innerHTML = `
     <td><input name="item_desc_${itemId}" placeholder="Description" required></td>
-    <td><input name="item_qty_${itemId}" type="number" min="0.01" step="0.01" value="1" style="width:60px"></td>
+    <td><input name="item_qty_${itemId}" type="number" min="0.5" step="1" value="1" style="width:60px"></td>
     <td><input name="item_pu_${itemId}" type="number" min="0" step="0.01" placeholder="0,00" required style="width:90px"></td>
     <td>
       <select name="item_tva_${itemId}">
@@ -641,8 +738,13 @@ async function submitNewDevis(e) {
   loadDevis();
 }
 
-// Initial load
-loadDevis();
+// Initial : auto-login si session valide, sinon affiche le login
+const existing = getStoredSession();
+if (existing) {
+  activateApp(existing.token, existing.email);
+} else {
+  showLogin();
+}
 </script>
 
 </body>
