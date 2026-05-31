@@ -383,10 +383,10 @@
 // =====================================
 // Config
 // =====================================
-const API_BASE = 'https://pole-iad-sens.fr/api/coworking';
-// Note : le dashboard utilise pole-iad-sens.fr (le backend Render).
-// Les liens clients (PDF devis dans emails) passent par coworking-sens.com
-// via la rewrite Vercel — pas de fuite de pole-iad-sens.fr côté client.
+// URL relative — Vercel proxy vers pole-iad-sens.fr en arrière-plan
+// (cf. vercel.json rewrite /api/coworking/* → pole-iad-sens.fr/api/coworking/*)
+// Avantage : pas de souci CORS, et zéro fuite de pole-iad-sens.fr côté client
+const API_BASE = '/api/coworking';
 const COWORKING_ADMIN_TOKEN = localStorage.getItem('cw_admin_token') || prompt('Token admin coworking ?');
 if (COWORKING_ADMIN_TOKEN) localStorage.setItem('cw_admin_token', COWORKING_ADMIN_TOKEN);
 
