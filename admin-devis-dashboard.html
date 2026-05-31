@@ -276,6 +276,7 @@
 <!-- Login screen -->
 <div id="login-screen" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:var(--navy);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:white;padding:40px 36px;border-radius:8px;width:380px;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+    <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-navy.png" alt="ACW" width="80" height="80" style="display:block;margin:0 auto 14px;">
     <h2 style="margin:0 0 8px;font-family:'Cormorant Garamond',Georgia,serif;color:var(--navy);font-size:24px;text-align:center;">L'Atelier du Coworking</h2>
     <p style="margin:0 0 28px;text-align:center;font-size:11px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;">Dashboard admin</p>
     <form onsubmit="doLogin(event)">
@@ -300,12 +301,15 @@
 <div id="main-app" style="display:none;">
 
 <header>
-  <div>
-    <h1>L'Atelier du Coworking</h1>
-    <nav style="display:flex;gap:12px;margin-top:6px;">
-      <a href="admin-devis-dashboard.html" style="background:var(--gold);color:var(--navy);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;font-weight:600;">📋 Devis</a>
-      <a href="admin-calendar.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">📅 Calendrier</a>
-    </nav>
+  <div style="display:flex;align-items:center;gap:18px;">
+    <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="48" height="48" style="display:block;">
+    <div>
+      <h1>L'Atelier du Coworking</h1>
+      <nav style="display:flex;gap:12px;margin-top:6px;">
+        <a href="admin-devis-dashboard.html" style="background:var(--gold);color:var(--navy);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;font-weight:600;">📋 Devis</a>
+        <a href="admin-calendar.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">📅 Calendrier</a>
+      </nav>
+    </div>
   </div>
   <span class="user">
     <div class="test-toggle" id="test-toggle" onclick="toggleTestMode()">
@@ -830,7 +834,7 @@ function addItemFromPricing() {
   const fullDesc = p.description ? `${p.name} — ${p.description}` : p.name;
   tr.innerHTML = `
     <td><input name="item_desc_${itemId}" value="${fullDesc.replace(/"/g,'&quot;')}" required></td>
-    <td><input name="item_qty_${itemId}" type="number" min="0.5" step="1" value="1" style="width:60px"></td>
+    <td><input name="item_qty_${itemId}" type="number" min="1" step="1" value="1" style="width:60px"></td>
     <td><input name="item_pu_${itemId}" type="number" min="0" step="0.01" value="${p.unit_price_ht}" required style="width:90px"></td>
     <td>
       <select name="item_tva_${itemId}">
@@ -906,7 +910,7 @@ function addItem() {
   tr.dataset.id = itemId;
   tr.innerHTML = `
     <td><input name="item_desc_${itemId}" placeholder="Description" required></td>
-    <td><input name="item_qty_${itemId}" type="number" min="0.5" step="1" value="1" style="width:60px"></td>
+    <td><input name="item_qty_${itemId}" type="number" min="1" step="1" value="1" style="width:60px"></td>
     <td><input name="item_pu_${itemId}" type="number" min="0" step="0.01" placeholder="0,00" required style="width:90px"></td>
     <td>
       <select name="item_tva_${itemId}">

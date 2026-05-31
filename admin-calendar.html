@@ -155,6 +155,7 @@
 <!-- Login -->
 <div id="login-screen">
   <div>
+    <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-navy.png" alt="ACW" width="80" height="80" style="display:block;margin:0 auto 14px;">
     <h2>L'Atelier du Coworking</h2>
     <p style="margin:0 0 28px;text-align:center;font-size:11px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;">Calendrier admin</p>
     <form onsubmit="doLogin(event)">
@@ -176,12 +177,15 @@
 <div id="main-app" style="display:none;">
 
 <header>
-  <div>
-    <h1>L'Atelier du Coworking</h1>
-    <nav>
-      <a href="admin-devis-dashboard.html">📋 Devis</a>
-      <a href="admin-calendar.html" class="active">📅 Calendrier</a>
-    </nav>
+  <div style="display:flex;align-items:center;gap:18px;">
+    <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="48" height="48" style="display:block;">
+    <div>
+      <h1>L'Atelier du Coworking</h1>
+      <nav>
+        <a href="admin-devis-dashboard.html">📋 Devis</a>
+        <a href="admin-calendar.html" class="active">📅 Calendrier</a>
+      </nav>
+    </div>
   </div>
   <span class="user">
     <div class="test-toggle" id="test-toggle" onclick="toggleTestMode()">
