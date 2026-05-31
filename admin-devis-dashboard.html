@@ -484,6 +484,11 @@
       <label>Notes internes (non visibles client)</label>
       <textarea name="admin_notes" rows="2"></textarea>
 
+      <label style="display:flex;align-items:center;gap:8px;margin-top:14px;cursor:pointer;font-size:13px;color:var(--slate);text-transform:none;letter-spacing:0;font-weight:400;">
+        <input type="checkbox" name="force_create" style="width:auto;margin:0;">
+        <span><b style="color:var(--coral)">Forcer la création</b> — Bypass des règles de capacité et privatisation. Pour cas exceptionnels (override admin).</span>
+      </label>
+
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeNewDevisModal()">Annuler</button>
         <button type="submit" class="btn btn-primary">Créer le devis (brouillon)</button>
@@ -690,13 +695,15 @@ function renderList() {
 
 function actionButtons(d) {
   const id = d.id;
+  const ref = d.devis_reference || '?';
   const dupBtn = `<button class="btn btn-secondary" onclick="duplicateDevis('${id}')" title="Dupliquer ce devis">⧉</button>`;
+  const delBtn = `<button class="btn btn-danger" onclick="deleteDevis('${id}', '${ref}')" title="Supprimer définitivement">🗑</button>`;
   switch(d.devis_status) {
     case 'draft':
       return `
         <button class="btn btn-primary" onclick="sendDevis('${id}')">Envoyer</button>
         <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
-        ${dupBtn}
+        ${dupBtn} ${delBtn}
       `;
     case 'sent':
       return `
@@ -705,6 +712,7 @@ function actionButtons(d) {
         <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
         ${dupBtn}
         <button class="btn btn-danger" onclick="cancelDevis('${id}')">×</button>
+        ${delBtn}
       `;
     case 'validated':
       return `
@@ -712,22 +720,23 @@ function actionButtons(d) {
         <button class="btn btn-success" onclick="markTotal('${id}')">Total reçu</button>
         ${dupBtn}
         <button class="btn btn-danger" onclick="cancelDevis('${id}')">×</button>
+        ${delBtn}
       `;
     case 'acompte_paid':
       return `
         <button class="btn btn-success" onclick="markSolde('${id}')">Solde reçu</button>
-        ${dupBtn}
+        ${dupBtn} ${delBtn}
       `;
     case 'fully_paid':
       return `
         <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
-        ${dupBtn}
+        ${dupBtn} ${delBtn}
       `;
     case 'cancelled':
     case 'expired':
-      return dupBtn;
+      return `${dupBtn} ${delBtn}`;
     default:
-      return dupBtn;
+      return `${dupBtn} ${delBtn}`;
   }
 }
 
@@ -776,6 +785,13 @@ async function cancelDevis(id) {
   await callApi(`/devis/${id}/cancel`);
   loadDevis();
 }
+async function deleteDevis(id, ref) {
+  if (!confirm(`⚠️ Supprimer DÉFINITIVEMENT le devis ${ref} ?\n\nCette action est irréversible (préfère "Annuler" si tu veux garder une trace).`)) return;
+  const r = await fetch(`${API_BASE}/devis/${id}`, {method: 'DELETE', headers: HEADERS});
+  if (!r.ok) { const err = await r.text(); alert(`Erreur : ${err}`); return; }
+  loadDevis();
+}
+
 async function duplicateDevis(id) {
   const newDate = prompt('Nouvelle date pour le devis dupliqué ? (format YYYY-MM-DD)\nLaisse vide pour garder la même date.', '');
   if (newDate === null) return;  // user cliqué annuler
@@ -1061,6 +1077,7 @@ async function submitNewDevis(e) {
     hour_to: fd.get('hour_to'),
     space: fd.get('space'),
     space_unit: fd.get('space_unit') || null,
+    force_create: fd.get('force_create') === 'on',
     items: items,
     acompte_ratio: parseFloat(fd.get('acompte_ratio')) / 100,
     validity_days: parseInt(fd.get('validity_days')),
