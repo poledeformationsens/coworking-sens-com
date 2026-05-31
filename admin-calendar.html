@@ -353,7 +353,27 @@ function initCalendar() {
     eventClick: onEventClick,
     dateClick: onDateClick,
     eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
-    displayEventEnd: true,
+    displayEventEnd: false,  // Plus compact, pas besoin de répéter "00:00 - 18:00"
+    // Affichage compact + repliage automatique
+    dayMaxEvents: 3,                  // Max 3 événements/jour, le reste → "+X autres"
+    moreLinkText: count => `+${count} autres`,
+    moreLinkClick: 'popover',         // Au clic, popover qui liste tous les events du jour
+    eventDisplay: 'block',
+    eventDidMount: function(info) {
+      // Tooltip natif sur hover (HTML title=)
+      const p = info.event.extendedProps || {};
+      const lines = [
+        info.event.title,
+        info.event.start && info.event.end
+          ? `${info.event.start.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})} → ${info.event.end.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})}`
+          : '',
+        p.reference ? `Réf. ${p.reference}` : '',
+        p.amount_ttc != null ? `${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(p.amount_ttc)} TTC` : '',
+        p.payment_mode ? `Paiement : ${p.payment_mode}` : '',
+        p.devis_status ? `Statut : ${p.devis_status}` : '',
+      ].filter(Boolean);
+      info.el.setAttribute('title', lines.join('\n'));
+    },
   });
   calendar.render();
 }
