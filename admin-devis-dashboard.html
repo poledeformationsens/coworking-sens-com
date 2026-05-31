@@ -610,8 +610,8 @@ function toggleTestMode() {
   const newVal = !isTestMode();
   localStorage.setItem(TEST_MODE_KEY, newVal ? '1' : '0');
   applyTestModeUI();
-  // Si on a déjà des devis chargés, on les recharge pour mettre à jour les badges
-  if (allDevis.length) loadDevis();
+  // Toujours recharger la liste (même si vide, car le filtre test_mode change)
+  loadDevis();
 }
 
 // =====================================
