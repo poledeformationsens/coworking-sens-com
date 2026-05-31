@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard Devis — L'Atelier du Coworking</title>
+<style>
+  :root {
+    --navy: #03234D;
+    --gold: #C9B584;
+    --cream: #F8F7F4;
+    --slate: #5A6A85;
+    --light: #E5DDCB;
+    --coral: #EA584A;
+    --green: #1D9E75;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    background: var(--cream);
+    color: var(--navy);
+  }
+  header {
+    background: var(--navy);
+    color: white;
+    padding: 20px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  header h1 { margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 600; }
+  header .user { font-size: 13px; color: var(--gold); }
+
+  .container { max-width: 1400px; margin: 32px auto; padding: 0 24px; }
+
+  .actions-bar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+  }
+  .btn {
+    padding: 10px 18px;
+    border-radius: 4px;
+    border: 0;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--light); }
+  .btn-danger { background: var(--coral); color: white; }
+  .btn-success { background: var(--green); color: white; }
+  .btn:hover { opacity: 0.9; }
+
+  .filters {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+  .filter-chip {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1px solid var(--light);
+    background: white;
+    color: var(--slate);
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .filter-chip.active { background: var(--navy); color: white; border-color: var(--navy); }
+
+  table {
+    width: 100%;
+    background: white;
+    border-collapse: collapse;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  thead th {
+    background: var(--cream);
+    text-align: left;
+    padding: 14px 16px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--slate);
+    border-bottom: 1px solid var(--light);
+  }
+  tbody td {
+    padding: 14px 16px;
+    border-bottom: 0.5px solid var(--light);
+    font-size: 13px;
+  }
+  tbody tr:hover { background: #FAFAFA; }
+  tbody tr.expired { opacity: 0.5; }
+
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .badge-draft { background: #E5E5E5; color: #555; }
+  .badge-sent { background: #FFF8E6; color: #B88800; border: 1px solid var(--gold); }
+  .badge-validated { background: #E3EBF6; color: var(--navy); border: 1px solid var(--navy); }
+  .badge-acompte_paid { background: #D5EFE3; color: #0E7A52; border: 1px solid var(--green); }
+  .badge-fully_paid { background: var(--green); color: white; }
+  .badge-expired { background: #F0F0F0; color: #999; border: 1px solid #DDD; }
+  .badge-cancelled { background: #FCE6E3; color: var(--coral); border: 1px solid var(--coral); }
+
+  .actions-cell { white-space: nowrap; }
+  .actions-cell .btn { padding: 6px 12px; font-size: 11px; margin-right: 4px; }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(3, 35, 77, 0.4);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: white;
+    max-width: 720px;
+    width: 90%;
+    border-radius: 8px;
+    padding: 32px;
+    max-height: 90vh;
+    overflow-y: auto;
+  }
+  .modal h2 {
+    margin: 0 0 24px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--navy);
+    font-size: 22px;
+  }
+  .modal label {
+    display: block;
+    font-size: 12px;
+    color: var(--slate);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    font-weight: 600;
+  }
+  .modal input, .modal select, .modal textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--light);
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 16px;
+    font-family: inherit;
+    color: var(--navy);
+  }
+  .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal .items-table { margin: 16px 0; }
+  .modal .items-table table { box-shadow: none; }
+  .modal .modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid var(--light);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--slate);
+  }
+  .empty-state h3 { font-family: 'Cormorant Garamond', Georgia, serif; }
+
+  .summary-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .card {
+    background: white;
+    padding: 16px 20px;
+    border-radius: 6px;
+    border-left: 3px solid var(--gold);
+  }
+  .card .card-label {
+    font-size: 10px;
+    color: var(--slate);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .card .card-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-top: 4px;
+  }
+  .card.gold { border-color: var(--gold); }
+  .card.green { border-color: var(--green); }
+  .card.coral { border-color: var(--coral); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>L'Atelier du Coworking · Dashboard Devis</h1>
+  <span class="user">David Landry · Admin</span>
+</header>
+
+<div class="container">
+
+  <!-- Cards résumé -->
+  <div class="summary-cards">
+    <div class="card gold">
+      <div class="card-label">Devis envoyés</div>
+      <div class="card-value" id="card-sent">—</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Validés (attente acompte)</div>
+      <div class="card-value" id="card-validated">—</div>
+    </div>
+    <div class="card green">
+      <div class="card-label">Acompte reçu</div>
+      <div class="card-value" id="card-acompte">—</div>
+    </div>
+    <div class="card coral">
+      <div class="card-label">Expirés</div>
+      <div class="card-value" id="card-expired">—</div>
+    </div>
+  </div>
+
+  <!-- Action bar -->
+  <div class="actions-bar">
+    <button class="btn btn-primary" onclick="openNewDevisModal()">+ Nouveau devis</button>
+    <button class="btn btn-secondary" onclick="loadDevis()">↻ Rafraîchir</button>
+  </div>
+
+  <!-- Filtres -->
+  <div class="filters">
+    <span style="font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-right:8px">Filtrer :</span>
+    <button class="filter-chip active" onclick="setFilter(null)">Tous</button>
+    <button class="filter-chip" onclick="setFilter('draft')">Brouillons</button>
+    <button class="filter-chip" onclick="setFilter('sent')">Envoyés</button>
+    <button class="filter-chip" onclick="setFilter('validated')">Validés</button>
+    <button class="filter-chip" onclick="setFilter('acompte_paid')">Acompte reçu</button>
+    <button class="filter-chip" onclick="setFilter('fully_paid')">Soldés</button>
+    <button class="filter-chip" onclick="setFilter('expired')">Expirés</button>
+  </div>
+
+  <!-- Table -->
+  <div id="devis-list">
+    <p style="color:var(--slate);text-align:center;padding:40px;">Chargement...</p>
+  </div>
+
+</div>
+
+<!-- Modal Nouveau Devis -->
+<div class="modal-bg" id="modal-new">
+  <div class="modal">
+    <h2>Nouveau devis</h2>
+    <form id="form-new-devis" onsubmit="submitNewDevis(event)">
+
+      <div class="modal-grid">
+        <div>
+          <label>Nom du client</label>
+          <input type="text" name="client_name" required>
+        </div>
+        <div>
+          <label>Email</label>
+          <input type="email" name="client_email" required>
+        </div>
+        <div>
+          <label>Téléphone</label>
+          <input type="tel" name="client_phone">
+        </div>
+        <div>
+          <label>Type</label>
+          <select name="client_type">
+            <option value="perso">Particulier</option>
+            <option value="pro">Professionnel</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="pro-fields" style="display:none">
+        <div class="modal-grid">
+          <div>
+            <label>Société</label>
+            <input type="text" name="company">
+          </div>
+          <div>
+            <label>SIRET</label>
+            <input type="text" name="company_siret">
+          </div>
+        </div>
+        <label>Adresse société</label>
+        <input type="text" name="company_address">
+      </div>
+
+      <div class="modal-grid">
+        <div>
+          <label>Espace</label>
+          <select name="space" required>
+            <option value="coworking">Coworking</option>
+            <option value="bureau">Bureau</option>
+            <option value="salle-reunion">Salle de réunion</option>
+            <option value="privatisation">Privatisation</option>
+          </select>
+        </div>
+        <div>
+          <label>Date prestation</label>
+          <input type="date" name="date" required>
+        </div>
+        <div>
+          <label>Heure début</label>
+          <input type="time" name="hour_from" required>
+        </div>
+        <div>
+          <label>Heure fin</label>
+          <input type="time" name="hour_to" required>
+        </div>
+      </div>
+
+      <!-- Items -->
+      <label>Lignes de prestation</label>
+      <div class="items-table">
+        <table>
+          <thead>
+            <tr>
+              <th>Description</th>
+              <th>Qté</th>
+              <th>PU HT</th>
+              <th>TVA</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="items-tbody">
+            <!-- inséré par JS -->
+          </tbody>
+        </table>
+        <button type="button" class="btn btn-secondary" onclick="addItem()" style="margin-top:8px;font-size:11px;padding:6px 12px;">+ Ajouter une ligne</button>
+      </div>
+
+      <div class="modal-grid">
+        <div>
+          <label>Acompte (%)</label>
+          <input type="number" name="acompte_ratio" min="0" max="100" value="30" step="5">
+        </div>
+        <div>
+          <label>Validité (jours)</label>
+          <input type="number" name="validity_days" min="1" max="60" value="7">
+        </div>
+      </div>
+
+      <label>Notes internes (non visibles client)</label>
+      <textarea name="admin_notes" rows="2"></textarea>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeNewDevisModal()">Annuler</button>
+        <button type="submit" class="btn btn-primary">Créer le devis (brouillon)</button>
+      </div>
+
+    </form>
+  </div>
+</div>
+
+<script>
+// =====================================
+// Config
+// =====================================
+const API_BASE = 'https://pole-iad-sens.fr/api/coworking';
+// Note : le dashboard utilise pole-iad-sens.fr (le backend Render).
+// Les liens clients (PDF devis dans emails) passent par coworking-sens.com
+// via la rewrite Vercel — pas de fuite de pole-iad-sens.fr côté client.
+const COWORKING_ADMIN_TOKEN = localStorage.getItem('cw_admin_token') || prompt('Token admin coworking ?');
+if (COWORKING_ADMIN_TOKEN) localStorage.setItem('cw_admin_token', COWORKING_ADMIN_TOKEN);
+
+const HEADERS = {
+  'Content-Type': 'application/json',
+  'Authorization': `Bearer ${COWORKING_ADMIN_TOKEN}`,
+};
+
+let currentFilter = null;
+let allDevis = [];
+
+// =====================================
+// Helpers
+// =====================================
+function formatMoney(amount) {
+  if (amount == null) return '—';
+  return new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR'}).format(amount);
+}
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('fr-FR', {day:'2-digit',month:'short',year:'numeric'});
+}
+function statusLabel(s) {
+  return {
+    draft: 'Brouillon',
+    sent: 'Envoyé',
+    validated: 'Validé',
+    acompte_paid: 'Acompte reçu',
+    fully_paid: 'Soldé',
+    expired: 'Expiré',
+    cancelled: 'Annulé',
+  }[s] || s;
+}
+
+// =====================================
+// Chargement liste
+// =====================================
+async function loadDevis() {
+  document.getElementById('devis-list').innerHTML = '<p style="color:var(--slate);text-align:center;padding:40px;">Chargement...</p>';
+  try {
+    const url = currentFilter ? `${API_BASE}/devis?status=${currentFilter}` : `${API_BASE}/devis`;
+    const r = await fetch(url, {headers: HEADERS});
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    allDevis = data.devis || [];
+    renderList();
+    updateCards();
+  } catch (e) {
+    document.getElementById('devis-list').innerHTML = `<p style="color:var(--coral);text-align:center;padding:40px;">Erreur : ${e.message}</p>`;
+  }
+}
+
+function updateCards() {
+  document.getElementById('card-sent').textContent = allDevis.filter(d => d.devis_status === 'sent').length;
+  document.getElementById('card-validated').textContent = allDevis.filter(d => d.devis_status === 'validated').length;
+  document.getElementById('card-acompte').textContent = allDevis.filter(d => d.devis_status === 'acompte_paid').length;
+  document.getElementById('card-expired').textContent = allDevis.filter(d => d.devis_status === 'expired').length;
+}
+
+function renderList() {
+  if (allDevis.length === 0) {
+    document.getElementById('devis-list').innerHTML = `
+      <div class="empty-state">
+        <h3>Aucun devis pour ce filtre</h3>
+        <p>Crée un nouveau devis avec le bouton ci-dessus.</p>
+      </div>`;
+    return;
+  }
+  const rows = allDevis.map(d => {
+    const expired = d.devis_validity_until && new Date(d.devis_validity_until) < new Date() && d.devis_status === 'sent';
+    return `
+      <tr class="${expired ? 'expired' : ''}">
+        <td><b>${d.devis_reference}</b></td>
+        <td>${d.name || '—'}<br><small style="color:var(--slate)">${d.email}</small></td>
+        <td>${d.space}<br><small style="color:var(--slate)">${formatDate(d.date)} · ${d.hour_from}-${d.hour_to}</small></td>
+        <td><b>${formatMoney(d.amount_total_ttc)}</b><br><small style="color:var(--slate)">Acompte ${formatMoney(d.amount_acompte_ttc)}</small></td>
+        <td><span class="badge badge-${d.devis_status}">${statusLabel(d.devis_status)}</span></td>
+        <td><small style="color:var(--slate)">${formatDate(d.devis_sent_at) || formatDate(d.created_at)}</small></td>
+        <td class="actions-cell">${actionButtons(d)}</td>
+      </tr>
+    `;
+  }).join('');
+  document.getElementById('devis-list').innerHTML = `
+    <table>
+      <thead><tr><th>Réf</th><th>Client</th><th>Prestation</th><th>Montant</th><th>Statut</th><th>Date</th><th>Actions</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
+function actionButtons(d) {
+  const id = d.id;
+  switch(d.devis_status) {
+    case 'draft':
+      return `
+        <button class="btn btn-primary" onclick="sendDevis('${id}')">Envoyer</button>
+        <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
+      `;
+    case 'sent':
+      return `
+        <button class="btn btn-primary" onclick="validateDevis('${id}')">Valider devis</button>
+        <button class="btn btn-success" onclick="markTotal('${id}')">Total reçu</button>
+        <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
+        <button class="btn btn-danger" onclick="cancelDevis('${id}')">×</button>
+      `;
+    case 'validated':
+      return `
+        <button class="btn btn-success" onclick="markAcompte('${id}')">Acompte reçu</button>
+        <button class="btn btn-success" onclick="markTotal('${id}')">Total reçu</button>
+        <button class="btn btn-danger" onclick="cancelDevis('${id}')">×</button>
+      `;
+    case 'acompte_paid':
+      return `
+        <button class="btn btn-success" onclick="markSolde('${id}')">Solde reçu</button>
+      `;
+    case 'fully_paid':
+      return `<a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>`;
+    default:
+      return '';
+  }
+}
+
+// =====================================
+// Actions
+// =====================================
+async function callApi(path, method='POST', body=null) {
+  const opts = {method, headers: HEADERS};
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`${API_BASE}${path}`, opts);
+  if (!r.ok) {
+    const err = await r.text();
+    alert(`Erreur : ${err}`);
+    throw new Error(err);
+  }
+  return r.json();
+}
+
+async function sendDevis(id) {
+  if (!confirm('Envoyer ce devis au client ?')) return;
+  await callApi(`/devis/${id}/send`);
+  loadDevis();
+}
+async function validateDevis(id) {
+  if (!confirm('Valider ce devis ? Le créneau sera bloqué et la facture d\'acompte envoyée.')) return;
+  await callApi(`/devis/${id}/validate`);
+  loadDevis();
+}
+async function markAcompte(id) {
+  if (!confirm('Marquer l\'acompte reçu ? Le PIN sera généré et envoyé au client.')) return;
+  await callApi(`/devis/${id}/mark-acompte`);
+  loadDevis();
+}
+async function markSolde(id) {
+  if (!confirm('Marquer le solde reçu ? La facture de solde sera envoyée.')) return;
+  await callApi(`/devis/${id}/mark-solde`);
+  loadDevis();
+}
+async function markTotal(id) {
+  if (!confirm('Marquer le total reçu ? Génère facture totale + PIN + email.')) return;
+  await callApi(`/devis/${id}/mark-total`);
+  loadDevis();
+}
+async function cancelDevis(id) {
+  if (!confirm('Annuler ce devis ? Le créneau sera libéré.')) return;
+  await callApi(`/devis/${id}/cancel`);
+  loadDevis();
+}
+
+// =====================================
+// Filtres
+// =====================================
+function setFilter(s) {
+  currentFilter = s;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  loadDevis();
+}
+
+// =====================================
+// Modal nouveau devis
+// =====================================
+function openNewDevisModal() {
+  document.getElementById('items-tbody').innerHTML = '';
+  addItem();
+  document.getElementById('modal-new').classList.add('open');
+}
+function closeNewDevisModal() {
+  document.getElementById('modal-new').classList.remove('open');
+}
+let itemId = 0;
+function addItem() {
+  itemId++;
+  const tr = document.createElement('tr');
+  tr.dataset.id = itemId;
+  tr.innerHTML = `
+    <td><input name="item_desc_${itemId}" placeholder="Description" required></td>
+    <td><input name="item_qty_${itemId}" type="number" min="0.01" step="0.01" value="1" style="width:60px"></td>
+    <td><input name="item_pu_${itemId}" type="number" min="0" step="0.01" placeholder="0,00" required style="width:90px"></td>
+    <td>
+      <select name="item_tva_${itemId}">
+        <option value="20">20%</option>
+        <option value="10">10%</option>
+        <option value="5.5">5,5%</option>
+        <option value="0">0%</option>
+      </select>
+    </td>
+    <td><button type="button" class="btn btn-danger" style="padding:4px 10px" onclick="this.closest('tr').remove()">×</button></td>
+  `;
+  document.getElementById('items-tbody').appendChild(tr);
+}
+
+document.querySelector('select[name="client_type"]').addEventListener('change', e => {
+  document.getElementById('pro-fields').style.display = e.target.value === 'pro' ? 'block' : 'none';
+});
+
+async function submitNewDevis(e) {
+  e.preventDefault();
+  const form = e.target;
+  const fd = new FormData(form);
+
+  const items = [];
+  document.querySelectorAll('#items-tbody tr').forEach(tr => {
+    const id = tr.dataset.id;
+    items.push({
+      description: fd.get(`item_desc_${id}`),
+      quantity: parseFloat(fd.get(`item_qty_${id}`)),
+      unit_price_ht: parseFloat(fd.get(`item_pu_${id}`)),
+      tva_rate: parseFloat(fd.get(`item_tva_${id}`)),
+    });
+  });
+
+  const body = {
+    client_name: fd.get('client_name'),
+    client_email: fd.get('client_email'),
+    client_phone: fd.get('client_phone') || null,
+    client_type: fd.get('client_type'),
+    company: fd.get('company') || null,
+    company_siret: fd.get('company_siret') || null,
+    company_address: fd.get('company_address') || null,
+    date: fd.get('date'),
+    hour_from: fd.get('hour_from'),
+    hour_to: fd.get('hour_to'),
+    space: fd.get('space'),
+    items: items,
+    acompte_ratio: parseFloat(fd.get('acompte_ratio')) / 100,
+    validity_days: parseInt(fd.get('validity_days')),
+    admin_notes: fd.get('admin_notes') || null,
+  };
+
+  await callApi('/devis', 'POST', body);
+  closeNewDevisModal();
+  loadDevis();
+}
+
+// Initial load
+loadDevis();
+</script>
+
+</body>
+</html>
