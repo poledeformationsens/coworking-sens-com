@@ -686,33 +686,44 @@ function renderList() {
 
 function actionButtons(d) {
   const id = d.id;
+  const dupBtn = `<button class="btn btn-secondary" onclick="duplicateDevis('${id}')" title="Dupliquer ce devis">⧉</button>`;
   switch(d.devis_status) {
     case 'draft':
       return `
         <button class="btn btn-primary" onclick="sendDevis('${id}')">Envoyer</button>
         <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
+        ${dupBtn}
       `;
     case 'sent':
       return `
         <button class="btn btn-primary" onclick="validateDevis('${id}')">Valider devis</button>
         <button class="btn btn-success" onclick="markTotal('${id}')">Total reçu</button>
         <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
+        ${dupBtn}
         <button class="btn btn-danger" onclick="cancelDevis('${id}')">×</button>
       `;
     case 'validated':
       return `
         <button class="btn btn-success" onclick="markAcompte('${id}')">Acompte reçu</button>
         <button class="btn btn-success" onclick="markTotal('${id}')">Total reçu</button>
+        ${dupBtn}
         <button class="btn btn-danger" onclick="cancelDevis('${id}')">×</button>
       `;
     case 'acompte_paid':
       return `
         <button class="btn btn-success" onclick="markSolde('${id}')">Solde reçu</button>
+        ${dupBtn}
       `;
     case 'fully_paid':
-      return `<a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>`;
+      return `
+        <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
+        ${dupBtn}
+      `;
+    case 'cancelled':
+    case 'expired':
+      return dupBtn;
     default:
-      return '';
+      return dupBtn;
   }
 }
 
@@ -759,6 +770,15 @@ async function markTotal(id) {
 async function cancelDevis(id) {
   if (!confirm('Annuler ce devis ? Le créneau sera libéré.')) return;
   await callApi(`/devis/${id}/cancel`);
+  loadDevis();
+}
+async function duplicateDevis(id) {
+  const newDate = prompt('Nouvelle date pour le devis dupliqué ? (format YYYY-MM-DD)\nLaisse vide pour garder la même date.', '');
+  if (newDate === null) return;  // user cliqué annuler
+  let qs = '';
+  if (newDate.trim()) qs = `?new_date=${encodeURIComponent(newDate.trim())}`;
+  const result = await callApi(`/devis/${id}/duplicate${qs}`);
+  alert(`✓ Devis dupliqué : ${result.devis_reference}`);
   loadDevis();
 }
 
