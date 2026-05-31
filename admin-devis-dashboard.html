@@ -419,12 +419,16 @@
       <div class="modal-grid">
         <div>
           <label>Espace</label>
-          <select name="space" required>
+          <select name="space" required onchange="updateUnitField()">
             <option value="coworking">Coworking</option>
             <option value="bureau">Bureau</option>
             <option value="salle-reunion">Salle de réunion</option>
             <option value="privatisation">Privatisation</option>
           </select>
+        </div>
+        <div id="unit-field-container" style="display:none">
+          <label>Unité <span id="unit-required-star" style="color:var(--coral);display:none;">*</span></label>
+          <select name="space_unit"></select>
         </div>
         <div>
           <label>Date prestation</label>
@@ -432,11 +436,11 @@
         </div>
         <div>
           <label>Heure début</label>
-          <input type="time" name="hour_from" required>
+          <input type="time" name="hour_from" required onchange="syncQtyFromHours()">
         </div>
         <div>
           <label>Heure fin</label>
-          <input type="time" name="hour_to" required>
+          <input type="time" name="hour_to" required onchange="syncQtyFromHours()">
         </div>
       </div>
 
@@ -841,6 +845,25 @@ function refreshPricingDropdown() {
   });
 }
 
+function durationHours() {
+  const hf = document.querySelector('input[name="hour_from"]').value;
+  const ht = document.querySelector('input[name="hour_to"]').value;
+  if (!hf || !ht) return 0;
+  return Math.max(0, (hmToMinutes(ht) - hmToMinutes(hf)) / 60);
+}
+
+function syncQtyFromHours() {
+  // Pour chaque ligne dont le slot d'origine est "hour", synchronise qty = durée en heures
+  const dur = durationHours();
+  if (dur <= 0) return;
+  document.querySelectorAll('#items-tbody tr').forEach(tr => {
+    if (tr.dataset.slotType === 'hour') {
+      const qtyInput = tr.querySelector('input[name^="item_qty_"]');
+      if (qtyInput) qtyInput.value = Math.round(dur * 10) / 10;  // arrondi à 0.1h
+    }
+  });
+}
+
 function addItemFromPricing() {
   const sel = document.getElementById('pricing-picker');
   const id = sel.value;
@@ -850,11 +873,19 @@ function addItemFromPricing() {
   itemId++;
   const tr = document.createElement('tr');
   tr.dataset.id = itemId;
+  tr.dataset.slotType = p.slot_type;  // utilisé par syncQtyFromHours
+  // Pour les tarifs "hour", la qté = durée actuelle
+  const isHourly = p.slot_type === 'hour';
+  let initialQty = 1;
+  if (isHourly) {
+    const dur = durationHours();
+    if (dur > 0) initialQty = Math.round(dur * 10) / 10;
+  }
   // Description : nom + description si présente
   const fullDesc = p.description ? `${p.name} — ${p.description}` : p.name;
   tr.innerHTML = `
     <td><input name="item_desc_${itemId}" value="${fullDesc.replace(/"/g,'&quot;')}" required></td>
-    <td><input name="item_qty_${itemId}" type="number" min="1" step="1" value="1" style="width:60px"></td>
+    <td><input name="item_qty_${itemId}" type="number" min="0.5" step="0.5" value="${initialQty}" style="width:60px"></td>
     <td><input name="item_pu_${itemId}" type="number" min="0" step="0.01" value="${p.unit_price_ht}" required style="width:90px"></td>
     <td>
       <select name="item_tva_${itemId}">
@@ -878,6 +909,43 @@ function addItemFromPricing() {
 
   // Reset dropdown
   sel.value = '';
+}
+
+function updateUnitField() {
+  const space = document.querySelector('select[name="space"]').value;
+  const container = document.getElementById('unit-field-container');
+  const select = container.querySelector('select[name="space_unit"]');
+  const star = document.getElementById('unit-required-star');
+  select.innerHTML = '';
+  if (space === 'bureau') {
+    container.style.display = '';
+    star.style.display = '';
+    select.required = true;
+    const optEmpty = document.createElement('option');
+    optEmpty.value = ''; optEmpty.textContent = '— Choisir un bureau —';
+    select.appendChild(optEmpty);
+    ['Bureau 1', 'Bureau 2'].forEach(u => {
+      const opt = document.createElement('option');
+      opt.value = u; opt.textContent = u;
+      select.appendChild(opt);
+    });
+  } else if (space === 'coworking') {
+    container.style.display = '';
+    star.style.display = 'none';
+    select.required = false;
+    const optEmpty = document.createElement('option');
+    optEmpty.value = ''; optEmpty.textContent = 'Pas de poste spécifique';
+    select.appendChild(optEmpty);
+    for (let i = 1; i <= 6; i++) {
+      const opt = document.createElement('option');
+      opt.value = `Poste ${i}`; opt.textContent = `Poste ${i}`;
+      select.appendChild(opt);
+    }
+  } else {
+    container.style.display = 'none';
+    star.style.display = 'none';
+    select.required = false;
+  }
 }
 
 async function lookupClient(email) {
@@ -992,6 +1060,7 @@ async function submitNewDevis(e) {
     hour_from: fd.get('hour_from'),
     hour_to: fd.get('hour_to'),
     space: fd.get('space'),
+    space_unit: fd.get('space_unit') || null,
     items: items,
     acompte_ratio: parseFloat(fd.get('acompte_ratio')) / 100,
     validity_days: parseInt(fd.get('validity_days')),
