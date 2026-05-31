@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mon espace — L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --navy: #03234D;
+    --gold: #C9B584;
+    --cream: #F8F7F4;
+    --slate: #5A6A85;
+    --light: #E5DDCB;
+    --coral: #EA584A;
+    --green: #1D9E75;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: var(--cream);
+    color: var(--navy);
+    line-height: 1.5;
+  }
+  .hero {
+    background: var(--navy);
+    color: white;
+    padding: 40px 24px 80px;
+    text-align: center;
+  }
+  .hero img {
+    width: 80px; height: 80px;
+    margin: 0 auto 12px;
+    display: block;
+  }
+  .hero h1 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 32px;
+    margin: 0 0 6px;
+    font-weight: 600;
+  }
+  .hero .subtitle {
+    color: var(--gold);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-size: 11px;
+    margin: 0;
+  }
+  .hero .greeting {
+    margin: 20px 0 0;
+    font-size: 16px;
+    color: rgba(255,255,255,0.85);
+  }
+
+  .container {
+    max-width: 920px;
+    margin: -50px auto 40px;
+    padding: 0 20px;
+    position: relative;
+  }
+  .card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+    padding: 24px 28px;
+    margin-bottom: 20px;
+  }
+  .card h2 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--navy);
+    font-size: 22px;
+    margin: 0 0 16px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .card h2 .count {
+    background: var(--cream);
+    color: var(--slate);
+    font-family: 'Inter', sans-serif;
+    font-weight: 600;
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 12px;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    background: white;
+    border-radius: 8px;
+    padding: 18px 20px;
+    border-left: 3px solid var(--gold);
+  }
+  .stat-card .stat-label {
+    font-size: 10px;
+    color: var(--slate);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .stat-card .stat-value {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--navy);
+    margin-top: 4px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+  }
+
+  .reservation-item {
+    border: 1px solid var(--light);
+    border-radius: 6px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    transition: box-shadow 0.2s;
+  }
+  .reservation-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
+  .reservation-item .row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .reservation-item .ref {
+    font-size: 11px;
+    color: var(--slate);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .reservation-item .date {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 4px;
+    line-height: 1.2;
+  }
+  .reservation-item .meta {
+    font-size: 13px;
+    color: var(--slate);
+  }
+  .reservation-item .amount {
+    text-align: right;
+    font-weight: 700;
+    color: var(--navy);
+    font-size: 18px;
+  }
+  .reservation-item .amount .ttc {
+    font-size: 10px;
+    color: var(--slate);
+    font-weight: 400;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .badge-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: white;
+  }
+  .reservation-item .actions {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--light);
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .reservation-item .actions a, .reservation-item .actions button {
+    background: var(--navy);
+    color: white;
+    text-decoration: none;
+    padding: 6px 14px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    border: 0;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+  }
+  .reservation-item .actions a.secondary {
+    background: white;
+    color: var(--navy);
+    border: 1px solid var(--light);
+  }
+  .pin-box {
+    margin-top: 14px;
+    padding: 14px 16px;
+    background: var(--cream);
+    border: 1px dashed var(--gold);
+    border-radius: 4px;
+    text-align: center;
+  }
+  .pin-box .pin-label {
+    font-size: 9px;
+    color: var(--slate);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    font-weight: 700;
+  }
+  .pin-box .pin-code {
+    font-family: 'Courier New', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: 6px;
+    margin-top: 6px;
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 30px 20px;
+    color: var(--slate);
+    font-size: 14px;
+  }
+
+  .footer {
+    text-align: center;
+    padding: 24px 20px 40px;
+    color: var(--slate);
+    font-size: 13px;
+  }
+  .footer a { color: var(--gold); text-decoration: none; font-weight: 600; }
+
+  #error-screen {
+    display: none;
+    text-align: center;
+    padding: 80px 20px;
+  }
+  #error-screen h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; }
+  #error-screen p { color: var(--slate); }
+
+  @media (max-width: 600px) {
+    .hero h1 { font-size: 26px; }
+    .reservation-item .row { flex-direction: column; }
+    .reservation-item .amount { text-align: left; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading" style="text-align:center;padding:80px 20px;color:var(--slate);">Chargement de votre espace…</div>
+
+<div id="error-screen">
+  <h1>Lien invalide ou expiré</h1>
+  <p>Ce lien n'est pas reconnu. Si vous pensez qu'il s'agit d'une erreur, contactez-nous au <a id="error-phone" href="tel:+33623880503">06 23 88 05 03</a> ou par email à <a id="error-email" href="mailto:contact@coworking-sens.com">contact@coworking-sens.com</a>.</p>
+</div>
+
+<div id="main" style="display:none;">
+
+<div class="hero">
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW">
+  <h1>L'Atelier du Coworking</h1>
+  <p class="subtitle">Mon espace personnel</p>
+  <p class="greeting" id="greeting">Bonjour, votre espace personnel</p>
+</div>
+
+<div class="container">
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-label">Réservations à venir</div>
+      <div class="stat-value" id="stat-upcoming">—</div>
+    </div>
+    <div class="stat-card" style="border-left-color:var(--green)">
+      <div class="stat-label">Total réservations</div>
+      <div class="stat-value" id="stat-total">—</div>
+    </div>
+    <div class="stat-card" style="border-left-color:var(--slate)">
+      <div class="stat-label">Client depuis</div>
+      <div class="stat-value" id="stat-since" style="font-size:16px;">—</div>
+    </div>
+  </div>
+
+  <!-- Réservations à venir -->
+  <div class="card">
+    <h2>À venir <span class="count" id="count-upcoming">0</span></h2>
+    <div id="upcoming-list"></div>
+  </div>
+
+  <!-- Historique -->
+  <div class="card">
+    <h2>Historique <span class="count" id="count-past">0</span></h2>
+    <div id="past-list"></div>
+  </div>
+
+  <!-- Contact -->
+  <div class="card">
+    <h2>Une question ?</h2>
+    <p style="margin:0;font-size:14px;color:var(--slate);line-height:1.7">
+      Notre équipe est joignable au <a href="tel:+33623880503" style="color:var(--navy);font-weight:600;text-decoration:none;">06 23 88 05 03</a>
+      ou par email à <a href="mailto:contact@coworking-sens.com" style="color:var(--navy);font-weight:600;text-decoration:none;">contact@coworking-sens.com</a>.
+    </p>
+    <p style="margin:10px 0 0;font-size:13px;color:var(--slate);">
+      📍 20 rue Pasteur · 89100 Sens
+    </p>
+  </div>
+
+</div>
+
+<div class="footer">
+  L'Atelier du Coworking Sens · <a href="https://coworking-sens.com">coworking-sens.com</a>
+</div>
+
+</div><!-- /main -->
+
+<script>
+const API_BASE = '/api/coworking';
+
+// Récupère le token depuis l'URL (path: /mon-espace/{token} → ?token={token} via rewrite)
+function getToken() {
+  const urlParams = new URLSearchParams(window.location.search);
+  let t = urlParams.get('token');
+  if (t) return t;
+  // Fallback : essaie d'extraire du path /mon-espace/{uuid}
+  const m = window.location.pathname.match(/\/mon-espace\/([0-9a-f-]+)/i);
+  if (m) return m[1];
+  return null;
+}
+
+function formatMoney(amount) {
+  if (amount == null) return '—';
+  return new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR'}).format(amount);
+}
+
+function formatDate(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+}
+
+function formatMonthYear(iso) {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
+}
+
+function spaceLabel(slug) {
+  return {
+    'coworking': 'Espace coworking',
+    'bureau': 'Bureau privé',
+    'salle-reunion': 'Salle de réunion',
+    'privatisation': 'Privatisation atelier',
+  }[slug] || slug;
+}
+
+function renderReservation(r) {
+  const dateStr = formatDate(r.date);
+  const hours = (r.hour_from && r.hour_to) ? `${r.hour_from} → ${r.hour_to}` : '';
+  const space = spaceLabel(r.space);
+  const unit = r.space_unit ? ` · ${r.space_unit}` : '';
+  let pinBlock = '';
+  if (r.pin_code && r.is_active) {
+    pinBlock = `
+      <div class="pin-box">
+        <div class="pin-label">Votre code d'accès</div>
+        <div class="pin-code">${r.pin_code}</div>
+      </div>
+    `;
+  }
+  let invoiceBtn = '';
+  if (r.invoice_url) {
+    invoiceBtn = `<a href="${r.invoice_url}" target="_blank">Télécharger la facture</a>`;
+  }
+  let amountBlock = '';
+  if (r.amount_ttc != null) {
+    amountBlock = `<div class="amount">${formatMoney(r.amount_ttc)} <span class="ttc">TTC</span></div>`;
+  }
+  return `
+    <div class="reservation-item">
+      <div class="row">
+        <div>
+          <div class="ref">${r.reference}</div>
+          <div class="date">${dateStr}</div>
+          <div class="meta">${hours} · ${space}${unit}</div>
+        </div>
+        <div>
+          <span class="badge-status" style="background:${r.status_color}">${r.status_label}</span>
+          ${amountBlock}
+        </div>
+      </div>
+      ${pinBlock}
+      ${invoiceBtn ? `<div class="actions">${invoiceBtn}</div>` : ''}
+    </div>
+  `;
+}
+
+async function loadPortal() {
+  const token = getToken();
+  if (!token) {
+    showError();
+    return;
+  }
+  try {
+    const r = await fetch(`${API_BASE}/mon-espace/${token}`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    renderPortal(data);
+  } catch (e) {
+    console.error(e);
+    showError();
+  }
+}
+
+function renderPortal(data) {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('main').style.display = 'block';
+
+  // Greeting
+  const firstName = (data.customer.name || '').split(' ')[0] || '';
+  document.getElementById('greeting').textContent = firstName
+    ? `Bonjour ${firstName}, votre espace personnel`
+    : 'Votre espace personnel';
+
+  // Stats
+  document.getElementById('stat-upcoming').textContent = data.stats.upcoming_count;
+  document.getElementById('stat-total').textContent = data.stats.total_count;
+  document.getElementById('stat-since').textContent = data.customer.first_booking_at
+    ? formatMonthYear(data.customer.first_booking_at)
+    : '—';
+
+  // Upcoming
+  const upcomingEl = document.getElementById('upcoming-list');
+  document.getElementById('count-upcoming').textContent = data.reservations.upcoming.length;
+  if (data.reservations.upcoming.length === 0) {
+    upcomingEl.innerHTML = `<div class="empty-state">Aucune réservation à venir.<br>
+      <a href="https://coworking-sens.com" style="color:var(--navy);font-weight:600;text-decoration:none;">Réservez votre prochaine venue →</a></div>`;
+  } else {
+    upcomingEl.innerHTML = data.reservations.upcoming.map(renderReservation).join('');
+  }
+
+  // Past
+  const pastEl = document.getElementById('past-list');
+  document.getElementById('count-past').textContent = data.reservations.past.length;
+  if (data.reservations.past.length === 0) {
+    pastEl.innerHTML = `<div class="empty-state">Pas encore d'historique.</div>`;
+  } else {
+    pastEl.innerHTML = data.reservations.past.map(renderReservation).join('');
+  }
+}
+
+function showError() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('error-screen').style.display = 'block';
+}
+
+loadPortal();
+</script>
+
+</body>
+</html>
