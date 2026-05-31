@@ -23,39 +23,165 @@
     color: var(--navy);
     line-height: 1.5;
   }
+
+  /* === Auth screens === */
+  .auth-bg {
+    min-height: 100vh;
+    background: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .auth-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+    padding: 40px 36px;
+    width: 100%;
+    max-width: 420px;
+  }
+  .auth-card .logo {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+  .auth-card .logo img { width: 100px; height: 100px; }
+  .auth-card h1 {
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-size: 24px;
+    margin: 0 0 6px;
+    text-align: center;
+    color: var(--navy);
+  }
+  .auth-card .subtitle {
+    margin: 0 0 28px;
+    text-align: center;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  .auth-card label {
+    display: block;
+    font-size: 11px;
+    color: var(--slate);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+  .auth-card input, .auth-card select {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1px solid var(--light);
+    border-radius: 4px;
+    font-size: 14px;
+    margin-bottom: 14px;
+    font-family: inherit;
+    color: var(--navy);
+  }
+  .auth-card button.primary {
+    width: 100%;
+    padding: 13px;
+    background: var(--navy);
+    color: white;
+    border: 0;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    margin-top: 6px;
+  }
+  .auth-card .switch-link {
+    text-align: center;
+    margin-top: 22px;
+    font-size: 13px;
+    color: var(--slate);
+  }
+  .auth-card .switch-link a {
+    color: var(--navy);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .auth-card .forgot {
+    text-align: right;
+    margin: -8px 0 14px;
+    font-size: 12px;
+  }
+  .auth-card .forgot a { color: var(--slate); text-decoration: none; }
+  .auth-card .error {
+    margin: 14px 0 0;
+    text-align: center;
+    color: var(--coral);
+    font-size: 13px;
+    display: none;
+  }
+  .auth-card .success {
+    margin: 14px 0 0;
+    text-align: center;
+    color: var(--green);
+    font-size: 13px;
+    display: none;
+  }
+
+  /* === Main app === */
   .hero {
     background: var(--navy);
     color: white;
-    padding: 40px 24px 80px;
+    padding: 32px 24px 70px;
     text-align: center;
+    position: relative;
   }
-  .hero img {
-    width: 80px; height: 80px;
-    margin: 0 auto 12px;
-    display: block;
-  }
+  .hero img.logo { width: 80px; height: 80px; margin: 0 auto 10px; display: block; }
   .hero h1 {
     font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 32px;
+    font-size: 28px;
     margin: 0 0 6px;
     font-weight: 600;
   }
-  .hero .subtitle {
+  .hero .subtitle { color: var(--gold); letter-spacing: 3px; text-transform: uppercase; font-size: 11px; margin: 0; }
+  .hero .greeting { margin: 16px 0 0; font-size: 15px; color: rgba(255,255,255,0.85); }
+  .hero .logout {
+    position: absolute;
+    top: 18px;
+    right: 22px;
+    background: rgba(255,255,255,0.1);
     color: var(--gold);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    font-size: 11px;
-    margin: 0;
+    border: 0;
+    padding: 6px 14px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 12px;
+    text-decoration: none;
   }
-  .hero .greeting {
-    margin: 20px 0 0;
-    font-size: 16px;
-    color: rgba(255,255,255,0.85);
+
+  .tabs {
+    background: white;
+    border-bottom: 1px solid var(--light);
+    padding: 0 24px;
+    display: flex;
+    gap: 0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
   }
+  .tab {
+    background: none;
+    border: 0;
+    padding: 16px 20px;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--slate);
+    font-weight: 600;
+    border-bottom: 3px solid transparent;
+  }
+  .tab.active { color: var(--navy); border-bottom-color: var(--gold); }
 
   .container {
     max-width: 920px;
-    margin: -50px auto 40px;
+    margin: -40px auto 40px;
     padding: 0 20px;
     position: relative;
   }
@@ -118,167 +244,177 @@
     border-radius: 6px;
     padding: 16px 18px;
     margin-bottom: 12px;
-    transition: box-shadow 0.2s;
   }
-  .reservation-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.04); }
-  .reservation-item .row {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 14px;
-    flex-wrap: wrap;
-  }
-  .reservation-item .ref {
-    font-size: 11px;
-    color: var(--slate);
-    letter-spacing: 1.5px;
-    text-transform: uppercase;
-    font-weight: 600;
-    margin-bottom: 4px;
-  }
-  .reservation-item .date {
-    font-family: 'Cormorant Garamond', Georgia, serif;
-    font-size: 22px;
-    font-weight: 600;
-    color: var(--navy);
-    margin-bottom: 4px;
-    line-height: 1.2;
-  }
-  .reservation-item .meta {
-    font-size: 13px;
-    color: var(--slate);
-  }
-  .reservation-item .amount {
-    text-align: right;
-    font-weight: 700;
-    color: var(--navy);
-    font-size: 18px;
-  }
-  .reservation-item .amount .ttc {
-    font-size: 10px;
-    color: var(--slate);
-    font-weight: 400;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-  }
-  .badge-status {
-    display: inline-block;
-    padding: 3px 10px;
-    border-radius: 12px;
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: white;
-  }
-  .reservation-item .actions {
-    margin-top: 14px;
-    padding-top: 12px;
-    border-top: 1px dashed var(--light);
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-    align-items: center;
-  }
-  .reservation-item .actions a, .reservation-item .actions button {
-    background: var(--navy);
-    color: white;
-    text-decoration: none;
-    padding: 6px 14px;
-    border-radius: 4px;
-    font-size: 12px;
-    font-weight: 600;
-    border: 0;
-    cursor: pointer;
-    letter-spacing: 0.5px;
-  }
-  .reservation-item .actions a.secondary {
-    background: white;
-    color: var(--navy);
-    border: 1px solid var(--light);
-  }
-  .pin-box {
-    margin-top: 14px;
-    padding: 14px 16px;
-    background: var(--cream);
-    border: 1px dashed var(--gold);
-    border-radius: 4px;
-    text-align: center;
-  }
-  .pin-box .pin-label {
-    font-size: 9px;
-    color: var(--slate);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    font-weight: 700;
-  }
-  .pin-box .pin-code {
-    font-family: 'Courier New', monospace;
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--navy);
-    letter-spacing: 6px;
-    margin-top: 6px;
-  }
+  .reservation-item .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
+  .reservation-item .ref { font-size: 11px; color: var(--slate); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
+  .reservation-item .date { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 600; color: var(--navy); line-height: 1.2; }
+  .reservation-item .meta { font-size: 13px; color: var(--slate); margin-top: 4px; }
+  .reservation-item .amount { text-align: right; font-weight: 700; color: var(--navy); font-size: 18px; }
+  .reservation-item .amount .ttc { font-size: 10px; color: var(--slate); font-weight: 400; letter-spacing: 1px; text-transform: uppercase; }
+  .badge-status { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 10px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: white; }
+  .reservation-item .actions { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--light); display: flex; gap: 10px; flex-wrap: wrap; }
+  .reservation-item .actions a { background: var(--navy); color: white; text-decoration: none; padding: 6px 14px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+  .pin-box { margin-top: 14px; padding: 14px 16px; background: var(--cream); border: 1px dashed var(--gold); border-radius: 4px; text-align: center; }
+  .pin-box .pin-label { font-size: 9px; color: var(--slate); letter-spacing: 3px; text-transform: uppercase; font-weight: 700; }
+  .pin-box .pin-code { font-family: 'Courier New', monospace; font-size: 28px; font-weight: 700; color: var(--navy); letter-spacing: 6px; margin-top: 6px; }
 
-  .empty-state {
-    text-align: center;
-    padding: 30px 20px;
-    color: var(--slate);
-    font-size: 14px;
-  }
+  .empty-state { text-align: center; padding: 30px 20px; color: var(--slate); font-size: 14px; }
 
-  .footer {
-    text-align: center;
-    padding: 24px 20px 40px;
-    color: var(--slate);
-    font-size: 13px;
+  /* === Profile section === */
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .form-row.single { grid-template-columns: 1fr; }
+  .form-group label { display: block; font-size: 11px; color: var(--slate); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 4px; font-weight: 600; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 10px 12px; border: 1px solid var(--light); border-radius: 4px;
+    font-size: 14px; font-family: inherit; color: var(--navy);
   }
+  .form-actions { display: flex; gap: 10px; margin-top: 18px; }
+  .btn { padding: 11px 20px; border-radius: 4px; border: 0; cursor: pointer; font-weight: 600; font-size: 13px; font-family: inherit; }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--light); }
+
+  .footer { text-align: center; padding: 24px 20px 40px; color: var(--slate); font-size: 13px; }
   .footer a { color: var(--gold); text-decoration: none; font-weight: 600; }
 
-  #error-screen {
-    display: none;
-    text-align: center;
-    padding: 80px 20px;
-  }
-  #error-screen h1 { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 28px; }
-  #error-screen p { color: var(--slate); }
-
   @media (max-width: 600px) {
-    .hero h1 { font-size: 26px; }
+    .hero h1 { font-size: 24px; }
     .reservation-item .row { flex-direction: column; }
-    .reservation-item .amount { text-align: left; }
+    .form-row { grid-template-columns: 1fr; }
   }
 </style>
 </head>
 <body>
 
-<div id="loading" style="text-align:center;padding:80px 20px;color:var(--slate);">Chargement de votre espace…</div>
-
-<div id="error-screen">
-  <h1>Lien invalide ou expiré</h1>
-  <p>Ce lien n'est pas reconnu. Si vous pensez qu'il s'agit d'une erreur, contactez-nous au <a id="error-phone" href="tel:+33623880503">06 23 88 05 03</a> ou par email à <a id="error-email" href="mailto:contact@coworking-sens.com">contact@coworking-sens.com</a>.</p>
+<!-- ============================================ -->
+<!-- ÉCRAN LOGIN -->
+<!-- ============================================ -->
+<div id="screen-login" class="auth-bg" style="display:none;">
+  <div class="auth-card">
+    <div class="logo">
+      <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-navy.png" alt="ACW">
+    </div>
+    <h1>Mon espace</h1>
+    <p class="subtitle">L'Atelier du Coworking</p>
+    <form onsubmit="doLogin(event)">
+      <label>Email</label>
+      <input id="login-email" type="email" required autocomplete="email">
+      <label>Mot de passe</label>
+      <input id="login-password" type="password" required autocomplete="current-password">
+      <div class="forgot"><a href="#" onclick="showScreen('forgot');return false;">Mot de passe oublié ?</a></div>
+      <button type="submit" class="primary">Se connecter</button>
+      <p id="login-error" class="error"></p>
+    </form>
+    <div class="switch-link">
+      Pas encore de compte ? <a href="#" onclick="showScreen('signup');return false;">Créez le vôtre</a>
+    </div>
+  </div>
 </div>
 
-<div id="main" style="display:none;">
+<!-- ============================================ -->
+<!-- ÉCRAN SIGNUP -->
+<!-- ============================================ -->
+<div id="screen-signup" class="auth-bg" style="display:none;">
+  <div class="auth-card">
+    <div class="logo">
+      <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-navy.png" alt="ACW">
+    </div>
+    <h1>Créer mon compte</h1>
+    <p class="subtitle">Inscription rapide</p>
+    <form onsubmit="doSignup(event)">
+      <label>Nom complet</label>
+      <input id="signup-name" type="text" required autocomplete="name">
+      <label>Email</label>
+      <input id="signup-email" type="email" required autocomplete="email">
+      <label>Téléphone</label>
+      <input id="signup-phone" type="tel" autocomplete="tel">
+      <label>Mot de passe (8+ caractères, 1 majuscule, 1 chiffre)</label>
+      <input id="signup-password" type="password" required minlength="8" autocomplete="new-password">
+      <button type="submit" class="primary">Créer mon compte</button>
+      <p id="signup-error" class="error"></p>
+    </form>
+    <div class="switch-link">
+      Déjà un compte ? <a href="#" onclick="showScreen('login');return false;">Se connecter</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- ÉCRAN MOT DE PASSE OUBLIÉ -->
+<!-- ============================================ -->
+<div id="screen-forgot" class="auth-bg" style="display:none;">
+  <div class="auth-card">
+    <div class="logo">
+      <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-navy.png" alt="ACW">
+    </div>
+    <h1>Mot de passe oublié</h1>
+    <p class="subtitle">On vous envoie un lien</p>
+    <form onsubmit="doForgot(event)">
+      <label>Votre email</label>
+      <input id="forgot-email" type="email" required autocomplete="email">
+      <button type="submit" class="primary">Envoyer le lien de réinitialisation</button>
+      <p id="forgot-success" class="success"></p>
+      <p id="forgot-error" class="error"></p>
+    </form>
+    <div class="switch-link">
+      <a href="#" onclick="showScreen('login');return false;">← Retour au login</a>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- ÉCRAN RESET PASSWORD -->
+<!-- ============================================ -->
+<div id="screen-reset" class="auth-bg" style="display:none;">
+  <div class="auth-card">
+    <div class="logo">
+      <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-navy.png" alt="ACW">
+    </div>
+    <h1>Nouveau mot de passe</h1>
+    <p class="subtitle">Choisissez-en un nouveau</p>
+    <form onsubmit="doReset(event)">
+      <label>Nouveau mot de passe (8+ caractères, 1 majuscule, 1 chiffre)</label>
+      <input id="reset-password" type="password" required minlength="8" autocomplete="new-password">
+      <button type="submit" class="primary">Mettre à jour mon mot de passe</button>
+      <p id="reset-error" class="error"></p>
+    </form>
+  </div>
+</div>
+
+<!-- ============================================ -->
+<!-- ÉCRAN LOADING -->
+<!-- ============================================ -->
+<div id="screen-loading" style="display:none;text-align:center;padding:80px 20px;color:var(--slate);">Chargement…</div>
+
+<!-- ============================================ -->
+<!-- APP PRINCIPALE -->
+<!-- ============================================ -->
+<div id="screen-app" style="display:none;">
 
 <div class="hero">
-  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW">
+  <button onclick="doLogout()" class="logout">Déconnexion</button>
+  <img class="logo" src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW">
   <h1>L'Atelier du Coworking</h1>
   <p class="subtitle">Mon espace personnel</p>
-  <p class="greeting" id="greeting">Bonjour, votre espace personnel</p>
+  <p class="greeting" id="greeting">Bonjour</p>
+</div>
+
+<div class="tabs">
+  <button class="tab active" data-tab="overview" onclick="switchTab('overview')">📋 Mes réservations</button>
+  <button class="tab" data-tab="profile" onclick="switchTab('profile')">👤 Mon profil</button>
+  <button class="tab" data-tab="security" onclick="switchTab('security')">🔒 Sécurité</button>
 </div>
 
 <div class="container">
 
-  <!-- Stats -->
+<!-- TAB OVERVIEW -->
+<div id="tab-overview" class="tab-content">
   <div class="stats-grid">
     <div class="stat-card">
-      <div class="stat-label">Réservations à venir</div>
+      <div class="stat-label">À venir</div>
       <div class="stat-value" id="stat-upcoming">—</div>
     </div>
     <div class="stat-card" style="border-left-color:var(--green)">
-      <div class="stat-label">Total réservations</div>
+      <div class="stat-label">Total</div>
       <div class="stat-value" id="stat-total">—</div>
     </div>
     <div class="stat-card" style="border-left-color:var(--slate)">
@@ -287,74 +423,290 @@
     </div>
   </div>
 
-  <!-- Réservations à venir -->
   <div class="card">
     <h2>À venir <span class="count" id="count-upcoming">0</span></h2>
     <div id="upcoming-list"></div>
   </div>
 
-  <!-- Historique -->
   <div class="card">
     <h2>Historique <span class="count" id="count-past">0</span></h2>
     <div id="past-list"></div>
   </div>
+</div>
 
-  <!-- Contact -->
+<!-- TAB PROFILE -->
+<div id="tab-profile" class="tab-content" style="display:none;">
+  <div class="card">
+    <h2>Mes informations</h2>
+    <form onsubmit="saveProfile(event)">
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nom complet</label>
+          <input id="prof-name" type="text">
+        </div>
+        <div class="form-group">
+          <label>Téléphone</label>
+          <input id="prof-phone" type="tel">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Email</label>
+          <input id="prof-email" type="email" disabled style="background:var(--cream);color:var(--slate);">
+        </div>
+        <div class="form-group">
+          <label>Type</label>
+          <select id="prof-type">
+            <option value="perso">Particulier</option>
+            <option value="pro">Professionnel</option>
+          </select>
+        </div>
+      </div>
+      <div id="prof-pro-fields" style="display:none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Société</label>
+            <input id="prof-company" type="text">
+          </div>
+          <div class="form-group">
+            <label>SIRET</label>
+            <input id="prof-siret" type="text">
+          </div>
+        </div>
+        <div class="form-row single">
+          <div class="form-group">
+            <label>Adresse société</label>
+            <input id="prof-address" type="text">
+          </div>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Enregistrer</button>
+        <p id="prof-success" style="color:var(--green);font-size:13px;margin:0;display:none;align-self:center;">✓ Modifications enregistrées</p>
+        <p id="prof-error" style="color:var(--coral);font-size:13px;margin:0;display:none;align-self:center;"></p>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- TAB SECURITY -->
+<div id="tab-security" class="tab-content" style="display:none;">
+  <div class="card">
+    <h2>Changer mon mot de passe</h2>
+    <form onsubmit="changePassword(event)">
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Mot de passe actuel</label>
+          <input id="cur-password" type="password" required autocomplete="current-password">
+        </div>
+      </div>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Nouveau mot de passe (8+, 1 maj, 1 chiffre)</label>
+          <input id="new-password" type="password" required minlength="8" autocomplete="new-password">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">Mettre à jour</button>
+        <p id="pwd-success" style="color:var(--green);font-size:13px;margin:0;display:none;align-self:center;">✓ Mot de passe modifié</p>
+        <p id="pwd-error" style="color:var(--coral);font-size:13px;margin:0;display:none;align-self:center;"></p>
+      </div>
+    </form>
+  </div>
+
   <div class="card">
     <h2>Une question ?</h2>
     <p style="margin:0;font-size:14px;color:var(--slate);line-height:1.7">
       Notre équipe est joignable au <a href="tel:+33623880503" style="color:var(--navy);font-weight:600;text-decoration:none;">06 23 88 05 03</a>
       ou par email à <a href="mailto:contact@coworking-sens.com" style="color:var(--navy);font-weight:600;text-decoration:none;">contact@coworking-sens.com</a>.
     </p>
-    <p style="margin:10px 0 0;font-size:13px;color:var(--slate);">
-      📍 20 rue Pasteur · 89100 Sens
-    </p>
   </div>
-
 </div>
 
-<div class="footer">
-  L'Atelier du Coworking Sens · <a href="https://coworking-sens.com">coworking-sens.com</a>
-</div>
+</div><!-- /container -->
 
-</div><!-- /main -->
+<div class="footer">L'Atelier du Coworking Sens · <a href="https://coworking-sens.com">coworking-sens.com</a></div>
+
+</div><!-- /screen-app -->
 
 <script>
+// ============================================
+// Config
+// ============================================
 const API_BASE = '/api/coworking';
+const STORAGE_KEY = 'cw_client_session';
 
-// Récupère le token depuis l'URL (path: /mon-espace/{token} → ?token={token} via rewrite)
-function getToken() {
+let SESSION = null;  // { token, email, name }
+
+// ============================================
+// Helpers
+// ============================================
+function getStoredSession() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'); }
+  catch (e) { return null; }
+}
+function saveSession(s) { localStorage.setItem(STORAGE_KEY, JSON.stringify(s)); }
+function clearSession() { localStorage.removeItem(STORAGE_KEY); }
+
+function showScreen(name) {
+  ['login', 'signup', 'forgot', 'reset', 'loading', 'app'].forEach(n => {
+    document.getElementById(`screen-${n}`).style.display = 'none';
+  });
+  document.getElementById(`screen-${name}`).style.display = name === 'app' ? 'block' : 'flex';
+  if (name === 'loading') document.getElementById('screen-loading').style.display = 'block';
+}
+
+function formatMoney(a) { if (a == null) return '—'; return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(a); }
+function formatDate(iso) { if (!iso) return '—'; return new Date(iso).toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+function formatMonthYear(iso) { if (!iso) return '—'; return new Date(iso).toLocaleDateString('fr-FR',{month:'long',year:'numeric'}); }
+function spaceLabel(slug) { return {'coworking':'Espace coworking','bureau':'Bureau privé','salle-reunion':'Salle de réunion','privatisation':'Privatisation atelier'}[slug] || slug; }
+
+function authHeaders() {
+  return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${SESSION.token}` };
+}
+
+// ============================================
+// Auth flows
+// ============================================
+async function doLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(`${API_BASE}/client/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password}),
+    });
+    if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'Identifiants invalides'); }
+    const data = await r.json();
+    SESSION = { token: data.client_token, email: data.email, name: data.name };
+    saveSession(SESSION);
+    enterApp();
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+}
+
+async function doSignup(e) {
+  e.preventDefault();
+  const body = {
+    name: document.getElementById('signup-name').value.trim(),
+    email: document.getElementById('signup-email').value.trim(),
+    phone: document.getElementById('signup-phone').value.trim() || null,
+    password: document.getElementById('signup-password').value,
+    client_type: 'perso',
+  };
+  const errEl = document.getElementById('signup-error');
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(`${API_BASE}/client/signup`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body),
+    });
+    if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'Erreur création compte'); }
+    const data = await r.json();
+    SESSION = { token: data.client_token, email: data.email, name: data.name };
+    saveSession(SESSION);
+    enterApp();
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+}
+
+async function doForgot(e) {
+  e.preventDefault();
+  const email = document.getElementById('forgot-email').value.trim();
+  const successEl = document.getElementById('forgot-success');
+  const errEl = document.getElementById('forgot-error');
+  successEl.style.display = 'none'; errEl.style.display = 'none';
+  try {
+    const r = await fetch(`${API_BASE}/client/forgot-password`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({email}),
+    });
+    if (!r.ok) throw new Error('Erreur, réessayez plus tard');
+    successEl.textContent = 'Si un compte existe avec cet email, un lien a été envoyé.';
+    successEl.style.display = 'block';
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+}
+
+async function doReset(e) {
+  e.preventDefault();
   const urlParams = new URLSearchParams(window.location.search);
-  let t = urlParams.get('token');
-  if (t) return t;
-  // Fallback : essaie d'extraire du path /mon-espace/{uuid}
-  const m = window.location.pathname.match(/\/mon-espace\/([0-9a-f-]+)/i);
-  if (m) return m[1];
-  return null;
+  const token = urlParams.get('token');
+  const password = document.getElementById('reset-password').value;
+  const errEl = document.getElementById('reset-error');
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(`${API_BASE}/client/reset-password`, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({token, new_password: password}),
+    });
+    if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'Lien invalide ou expiré'); }
+    const data = await r.json();
+    SESSION = { token: data.client_token, email: data.email, name: data.name };
+    saveSession(SESSION);
+    window.history.replaceState({}, '', '/mon-espace');
+    enterApp();
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
 }
 
-function formatMoney(amount) {
-  if (amount == null) return '—';
-  return new Intl.NumberFormat('fr-FR', {style:'currency', currency:'EUR'}).format(amount);
+function doLogout() {
+  clearSession();
+  SESSION = null;
+  showScreen('login');
 }
 
-function formatDate(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+// ============================================
+// App principal
+// ============================================
+async function enterApp() {
+  showScreen('loading');
+  try {
+    const r = await fetch(`${API_BASE}/mon-espace/${SESSION.token}`);
+    if (!r.ok) throw new Error('Session expirée');
+    const data = await r.json();
+    renderApp(data);
+    showScreen('app');
+  } catch (e) {
+    clearSession(); SESSION = null;
+    showScreen('login');
+  }
 }
 
-function formatMonthYear(iso) {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleDateString('fr-FR', {month:'long', year:'numeric'});
-}
+function renderApp(data) {
+  const c = data.customer;
+  const firstName = (c.name || '').split(' ')[0] || '';
+  document.getElementById('greeting').textContent = firstName ? `Bonjour ${firstName}` : 'Bonjour';
 
-function spaceLabel(slug) {
-  return {
-    'coworking': 'Espace coworking',
-    'bureau': 'Bureau privé',
-    'salle-reunion': 'Salle de réunion',
-    'privatisation': 'Privatisation atelier',
-  }[slug] || slug;
+  // Stats
+  document.getElementById('stat-upcoming').textContent = data.stats.upcoming_count;
+  document.getElementById('stat-total').textContent = data.stats.total_count;
+  document.getElementById('stat-since').textContent = c.first_booking_at ? formatMonthYear(c.first_booking_at) : '—';
+
+  // Upcoming
+  const upcoming = data.reservations.upcoming;
+  document.getElementById('count-upcoming').textContent = upcoming.length;
+  document.getElementById('upcoming-list').innerHTML = upcoming.length
+    ? upcoming.map(renderReservation).join('')
+    : `<div class="empty-state">Aucune réservation à venir.<br><a href="https://coworking-sens.com" style="color:var(--navy);font-weight:600;text-decoration:none;">Réservez votre prochaine venue →</a></div>`;
+
+  // Past
+  const past = data.reservations.past;
+  document.getElementById('count-past').textContent = past.length;
+  document.getElementById('past-list').innerHTML = past.length
+    ? past.map(renderReservation).join('')
+    : `<div class="empty-state">Pas encore d'historique.</div>`;
+
+  // Pre-fill profile
+  document.getElementById('prof-name').value = c.name || '';
+  document.getElementById('prof-phone').value = c.phone || '';
+  document.getElementById('prof-email').value = c.email || '';
+  document.getElementById('prof-type').value = c.client_type || 'perso';
+  document.getElementById('prof-company').value = c.company || '';
+  toggleProFields(c.client_type === 'pro');
 }
 
 function renderReservation(r) {
@@ -364,100 +716,111 @@ function renderReservation(r) {
   const unit = r.space_unit ? ` · ${r.space_unit}` : '';
   let pinBlock = '';
   if (r.pin_code && r.is_active) {
-    pinBlock = `
-      <div class="pin-box">
-        <div class="pin-label">Votre code d'accès</div>
-        <div class="pin-code">${r.pin_code}</div>
+    pinBlock = `<div class="pin-box"><div class="pin-label">Votre code d'accès</div><div class="pin-code">${r.pin_code}</div></div>`;
+  }
+  const invoiceBtn = r.invoice_url ? `<a href="${r.invoice_url}" target="_blank">Télécharger la facture</a>` : '';
+  const amountBlock = r.amount_ttc != null ? `<div class="amount">${formatMoney(r.amount_ttc)} <span class="ttc">TTC</span></div>` : '';
+  return `<div class="reservation-item">
+    <div class="row">
+      <div>
+        <div class="ref">${r.reference}</div>
+        <div class="date">${dateStr}</div>
+        <div class="meta">${hours} · ${space}${unit}</div>
       </div>
-    `;
-  }
-  let invoiceBtn = '';
-  if (r.invoice_url) {
-    invoiceBtn = `<a href="${r.invoice_url}" target="_blank">Télécharger la facture</a>`;
-  }
-  let amountBlock = '';
-  if (r.amount_ttc != null) {
-    amountBlock = `<div class="amount">${formatMoney(r.amount_ttc)} <span class="ttc">TTC</span></div>`;
-  }
-  return `
-    <div class="reservation-item">
-      <div class="row">
-        <div>
-          <div class="ref">${r.reference}</div>
-          <div class="date">${dateStr}</div>
-          <div class="meta">${hours} · ${space}${unit}</div>
-        </div>
-        <div>
-          <span class="badge-status" style="background:${r.status_color}">${r.status_label}</span>
-          ${amountBlock}
-        </div>
+      <div>
+        <span class="badge-status" style="background:${r.status_color}">${r.status_label}</span>
+        ${amountBlock}
       </div>
-      ${pinBlock}
-      ${invoiceBtn ? `<div class="actions">${invoiceBtn}</div>` : ''}
     </div>
-  `;
+    ${pinBlock}
+    ${invoiceBtn ? `<div class="actions">${invoiceBtn}</div>` : ''}
+  </div>`;
 }
 
-async function loadPortal() {
-  const token = getToken();
-  if (!token) {
-    showError();
-    return;
-  }
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
+  document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
+  document.getElementById(`tab-${name}`).style.display = 'block';
+}
+
+function toggleProFields(show) {
+  document.getElementById('prof-pro-fields').style.display = show ? 'block' : 'none';
+}
+document.addEventListener('change', e => {
+  if (e.target.id === 'prof-type') toggleProFields(e.target.value === 'pro');
+});
+
+async function saveProfile(e) {
+  e.preventDefault();
+  const successEl = document.getElementById('prof-success');
+  const errEl = document.getElementById('prof-error');
+  successEl.style.display = 'none'; errEl.style.display = 'none';
+  const body = {
+    name: document.getElementById('prof-name').value.trim(),
+    phone: document.getElementById('prof-phone').value.trim() || null,
+    client_type: document.getElementById('prof-type').value,
+    company: document.getElementById('prof-company').value.trim() || null,
+    company_siret: document.getElementById('prof-siret') ? document.getElementById('prof-siret').value.trim() || null : null,
+    company_address: document.getElementById('prof-address') ? document.getElementById('prof-address').value.trim() || null : null,
+  };
   try {
-    const r = await fetch(`${API_BASE}/mon-espace/${token}`);
-    if (!r.ok) throw new Error(`HTTP ${r.status}`);
-    const data = await r.json();
-    renderPortal(data);
-  } catch (e) {
-    console.error(e);
-    showError();
-  }
+    const r = await fetch(`${API_BASE}/client/me`, {method:'PATCH', headers: authHeaders(), body: JSON.stringify(body)});
+    if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'Erreur'); }
+    successEl.style.display = 'block';
+    setTimeout(()=>{ successEl.style.display='none'; }, 3000);
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
 }
 
-function renderPortal(data) {
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('main').style.display = 'block';
+async function changePassword(e) {
+  e.preventDefault();
+  const successEl = document.getElementById('pwd-success');
+  const errEl = document.getElementById('pwd-error');
+  successEl.style.display = 'none'; errEl.style.display = 'none';
+  const body = {
+    current_password: document.getElementById('cur-password').value,
+    new_password: document.getElementById('new-password').value,
+  };
+  try {
+    const r = await fetch(`${API_BASE}/client/me/change-password`, {method:'POST', headers: authHeaders(), body: JSON.stringify(body)});
+    if (!r.ok) { const err = await r.json().catch(()=>({})); throw new Error(err.detail || 'Erreur'); }
+    successEl.style.display = 'block';
+    document.getElementById('cur-password').value = '';
+    document.getElementById('new-password').value = '';
+    setTimeout(()=>{ successEl.style.display='none'; }, 3000);
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+}
 
-  // Greeting
-  const firstName = (data.customer.name || '').split(' ')[0] || '';
-  document.getElementById('greeting').textContent = firstName
-    ? `Bonjour ${firstName}, votre espace personnel`
-    : 'Votre espace personnel';
+// ============================================
+// Init : détection du contexte (magic link, reset, session...)
+// ============================================
+const urlParams = new URLSearchParams(window.location.search);
+const pathMatch = window.location.pathname.match(/\/mon-espace\/([0-9a-f-]+)/i);
 
-  // Stats
-  document.getElementById('stat-upcoming').textContent = data.stats.upcoming_count;
-  document.getElementById('stat-total').textContent = data.stats.total_count;
-  document.getElementById('stat-since').textContent = data.customer.first_booking_at
-    ? formatMonthYear(data.customer.first_booking_at)
-    : '—';
-
-  // Upcoming
-  const upcomingEl = document.getElementById('upcoming-list');
-  document.getElementById('count-upcoming').textContent = data.reservations.upcoming.length;
-  if (data.reservations.upcoming.length === 0) {
-    upcomingEl.innerHTML = `<div class="empty-state">Aucune réservation à venir.<br>
-      <a href="https://coworking-sens.com" style="color:var(--navy);font-weight:600;text-decoration:none;">Réservez votre prochaine venue →</a></div>`;
+// Cas 1 : URL avec /reset-password?token=...
+if (window.location.pathname.includes('reset-password') || (urlParams.get('token') && window.location.pathname.includes('reset'))) {
+  showScreen('reset');
+}
+// Cas 2 : URL avec ?token=... (vient de reset-password email)
+else if (urlParams.get('token') && !pathMatch) {
+  // Token de reset password
+  showScreen('reset');
+}
+// Cas 3 : Magic link /mon-espace/{uuid}
+else if (pathMatch) {
+  SESSION = { token: pathMatch[1], email: null, name: null };
+  saveSession(SESSION);
+  enterApp();
+}
+// Cas 4 : Session existante en localStorage
+else {
+  const stored = getStoredSession();
+  if (stored && stored.token) {
+    SESSION = stored;
+    enterApp();
   } else {
-    upcomingEl.innerHTML = data.reservations.upcoming.map(renderReservation).join('');
-  }
-
-  // Past
-  const pastEl = document.getElementById('past-list');
-  document.getElementById('count-past').textContent = data.reservations.past.length;
-  if (data.reservations.past.length === 0) {
-    pastEl.innerHTML = `<div class="empty-state">Pas encore d'historique.</div>`;
-  } else {
-    pastEl.innerHTML = data.reservations.past.map(renderReservation).join('');
+    showScreen('login');
   }
 }
-
-function showError() {
-  document.getElementById('loading').style.display = 'none';
-  document.getElementById('error-screen').style.display = 'block';
-}
-
-loadPortal();
 </script>
 
 </body>
