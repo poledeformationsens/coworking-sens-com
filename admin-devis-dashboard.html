@@ -381,7 +381,8 @@
         </div>
         <div>
           <label>Email</label>
-          <input type="email" name="client_email" required>
+          <input type="email" name="client_email" required onblur="lookupClient(this.value)">
+          <p id="client-hint" style="font-size:11px;color:var(--green);margin:-12px 0 14px;display:none;">✓ Client connu — formulaire pré-rempli</p>
         </div>
         <div>
           <label>Téléphone</label>
@@ -853,6 +854,38 @@ function addItemFromPricing() {
 
   // Reset dropdown
   sel.value = '';
+}
+
+async function lookupClient(email) {
+  email = (email || '').trim();
+  const hint = document.getElementById('client-hint');
+  hint.style.display = 'none';
+  if (!email || email.length < 4 || !email.includes('@')) return;
+  try {
+    const r = await fetch(`${API_BASE}/customers/by-email?email=${encodeURIComponent(email)}`, {headers: HEADERS});
+    if (!r.ok) return;  // 404 = inconnu, on n'affiche rien
+    const c = await r.json();
+    // Pré-remplit les champs s'ils sont vides (ne pas écraser si l'admin a déjà tapé)
+    const setIfEmpty = (sel, val) => {
+      const el = document.querySelector(sel);
+      if (el && !el.value && val) el.value = val;
+    };
+    setIfEmpty('input[name="client_name"]', c.name);
+    setIfEmpty('input[name="client_phone"]', c.phone);
+    if (c.client_type) {
+      const typeSel = document.querySelector('select[name="client_type"]');
+      if (typeSel) {
+        typeSel.value = c.client_type;
+        typeSel.dispatchEvent(new Event('change'));  // déclenche affichage des champs pro
+      }
+    }
+    setIfEmpty('input[name="company"]', c.company);
+    setIfEmpty('input[name="company_siret"]', c.company_siret);
+    setIfEmpty('input[name="company_address"]', c.company_address);
+    hint.style.display = 'block';
+  } catch (e) {
+    console.warn('lookupClient échoué :', e);
+  }
 }
 
 function openNewDevisModal(prefillDate) {
