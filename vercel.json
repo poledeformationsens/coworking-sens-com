@@ -3,6 +3,10 @@
     {
       "source": "/facture/:sid.pdf",
       "destination": "https://pole-iad-sens.fr/api/coworking/invoice/:sid.pdf"
+    },
+    {
+      "source": "/api/coworking/:path*",
+      "destination": "https://pole-iad-sens.fr/api/coworking/:path*"
     }
   ]
 }
