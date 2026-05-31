@@ -643,7 +643,11 @@ function statusLabel(s) {
 async function loadDevis() {
   document.getElementById('devis-list').innerHTML = '<p style="color:var(--slate);text-align:center;padding:40px;">Chargement...</p>';
   try {
-    const url = currentFilter ? `${API_BASE}/devis?status=${currentFilter}` : `${API_BASE}/devis`;
+    // Filtre selon le toggle TEST : ON → uniquement test, OFF → uniquement prod
+    const params = new URLSearchParams();
+    if (currentFilter) params.set('status', currentFilter);
+    params.set('test_mode', isTestMode() ? 'true' : 'false');
+    const url = `${API_BASE}/devis?${params.toString()}`;
     const r = await fetch(url, {headers: HEADERS});
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     const data = await r.json();
