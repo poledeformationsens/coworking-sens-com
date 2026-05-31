@@ -9,8 +9,16 @@
       "destination": "https://pole-iad-sens.fr/api/coworking/:path*"
     },
     {
+      "source": "/mon-espace/reset-password",
+      "destination": "/mon-espace.html"
+    },
+    {
       "source": "/mon-espace/:token",
       "destination": "/mon-espace.html?token=:token"
+    },
+    {
+      "source": "/mon-espace",
+      "destination": "/mon-espace.html"
     }
   ]
 }
