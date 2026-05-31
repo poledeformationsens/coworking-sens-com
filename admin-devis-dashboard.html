@@ -437,6 +437,12 @@
 
       <!-- Items -->
       <label>Lignes de prestation</label>
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
+        <select id="pricing-picker" style="flex:1;padding:9px 12px;border:1px solid var(--light);border-radius:4px;font-size:13px;font-family:inherit;color:var(--navy);">
+          <option value="">— Choisir un tarif du catalogue —</option>
+        </select>
+        <button type="button" class="btn btn-primary" style="font-size:11px;padding:9px 14px;" onclick="addItemFromPricing()">Ajouter</button>
+      </div>
       <div class="items-table">
         <table>
           <thead>
@@ -452,7 +458,7 @@
             <!-- inséré par JS -->
           </tbody>
         </table>
-        <button type="button" class="btn btn-secondary" onclick="addItem()" style="margin-top:8px;font-size:11px;padding:6px 12px;">+ Ajouter une ligne</button>
+        <button type="button" class="btn btn-secondary" onclick="addItem()" style="margin-top:8px;font-size:11px;padding:6px 12px;">+ Ligne vide (sur-mesure)</button>
       </div>
 
       <div class="modal-grid">
@@ -525,6 +531,7 @@ function activateApp(token, email) {
   document.getElementById('user-email').textContent = email;
   applyTestModeUI();
   loadDevis();
+  loadPricing();
 }
 
 function showLogin() {
@@ -763,9 +770,94 @@ function setFilter(s) {
 // =====================================
 // Modal nouveau devis
 // =====================================
+// Catalogue de tarifs (chargé une fois)
+let PRICING_CATALOG = [];
+
+async function loadPricing() {
+  try {
+    const r = await fetch(`${API_BASE}/pricing`, {headers: HEADERS});
+    if (!r.ok) return;
+    const data = await r.json();
+    PRICING_CATALOG = data.pricing || [];
+    refreshPricingDropdown();
+  } catch (e) {
+    console.warn('Catalogue tarifs indisponible :', e);
+  }
+}
+
+function refreshPricingDropdown() {
+  const sel = document.getElementById('pricing-picker');
+  if (!sel) return;
+  // Groupé par espace
+  const groups = {};
+  PRICING_CATALOG.forEach(p => {
+    const k = p.space || 'autre';
+    if (!groups[k]) groups[k] = [];
+    groups[k].push(p);
+  });
+  const labels = {
+    coworking: 'Coworking',
+    bureau: 'Bureau privé',
+    'salle-reunion': 'Salle de réunion',
+    privatisation: 'Privatisation',
+    option: 'Options',
+  };
+  sel.innerHTML = '<option value="">— Choisir un tarif du catalogue —</option>';
+  Object.keys(groups).forEach(spaceKey => {
+    const og = document.createElement('optgroup');
+    og.label = labels[spaceKey] || spaceKey;
+    groups[spaceKey].forEach(p => {
+      const opt = document.createElement('option');
+      opt.value = p.id;
+      opt.textContent = `${p.name} — ${formatMoney(p.unit_price_ht)} HT (TVA ${p.tva_rate}%)`;
+      og.appendChild(opt);
+    });
+    sel.appendChild(og);
+  });
+}
+
+function addItemFromPricing() {
+  const sel = document.getElementById('pricing-picker');
+  const id = sel.value;
+  if (!id) { alert('Sélectionne un tarif dans la liste'); return; }
+  const p = PRICING_CATALOG.find(x => x.id === id);
+  if (!p) return;
+  itemId++;
+  const tr = document.createElement('tr');
+  tr.dataset.id = itemId;
+  // Description : nom + description si présente
+  const fullDesc = p.description ? `${p.name} — ${p.description}` : p.name;
+  tr.innerHTML = `
+    <td><input name="item_desc_${itemId}" value="${fullDesc.replace(/"/g,'&quot;')}" required></td>
+    <td><input name="item_qty_${itemId}" type="number" min="0.5" step="1" value="1" style="width:60px"></td>
+    <td><input name="item_pu_${itemId}" type="number" min="0" step="0.01" value="${p.unit_price_ht}" required style="width:90px"></td>
+    <td>
+      <select name="item_tva_${itemId}">
+        <option value="20" ${p.tva_rate==20?'selected':''}>20%</option>
+        <option value="10" ${p.tva_rate==10?'selected':''}>10%</option>
+        <option value="5.5" ${p.tva_rate==5.5?'selected':''}>5,5%</option>
+        <option value="0" ${p.tva_rate==0?'selected':''}>0%</option>
+      </select>
+    </td>
+    <td><button type="button" class="btn btn-danger" style="padding:4px 10px" onclick="this.closest('tr').remove()">×</button></td>
+  `;
+  document.getElementById('items-tbody').appendChild(tr);
+
+  // Si c'est le 1er item ET que c'est pas une option, pré-remplit espace + horaires
+  const visibleItems = document.getElementById('items-tbody').children.length;
+  if (visibleItems === 1 && p.space !== 'option') {
+    document.querySelector('select[name="space"]').value = p.space;
+    if (p.default_hour_from) document.querySelector('input[name="hour_from"]').value = p.default_hour_from;
+    if (p.default_hour_to) document.querySelector('input[name="hour_to"]').value = p.default_hour_to;
+  }
+
+  // Reset dropdown
+  sel.value = '';
+}
+
 function openNewDevisModal(prefillDate) {
   document.getElementById('items-tbody').innerHTML = '';
-  addItem();
+  // Ne pas ajouter de ligne vide par défaut : le user choisit un tarif OU ajoute du sur-mesure
   if (prefillDate) {
     document.querySelector('input[name="date"]').value = prefillDate;
   }
@@ -800,10 +892,25 @@ document.querySelector('select[name="client_type"]').addEventListener('change', 
   document.getElementById('pro-fields').style.display = e.target.value === 'pro' ? 'block' : 'none';
 });
 
+function hmToMinutes(hm) {
+  if (!hm) return 0;
+  const [h, m] = hm.split(':');
+  return parseInt(h, 10) * 60 + parseInt(m || '0', 10);
+}
+
 async function submitNewDevis(e) {
   e.preventDefault();
   const form = e.target;
   const fd = new FormData(form);
+
+  // Validation : privatisation = min 3h
+  if (fd.get('space') === 'privatisation') {
+    const dur = hmToMinutes(fd.get('hour_to')) - hmToMinutes(fd.get('hour_from'));
+    if (dur < 180) {
+      alert(`⚠️ Privatisation : minimum 3 heures requis.\nCréneau actuel : ${Math.floor(dur/60)}h${String(dur%60).padStart(2,'0')}\nÉlargis les horaires.`);
+      return;
+    }
+  }
 
   const items = [];
   document.querySelectorAll('#items-tbody tr').forEach(tr => {
