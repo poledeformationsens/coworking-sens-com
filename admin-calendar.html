@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Calendrier — L'Atelier du Coworking</title>
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+<style>
+  :root {
+    --navy: #03234D;
+    --gold: #C9B584;
+    --cream: #F8F7F4;
+    --slate: #5A6A85;
+    --light: #E5DDCB;
+    --coral: #EA584A;
+    --green: #1D9E75;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
+    margin: 0;
+    background: var(--cream);
+    color: var(--navy);
+  }
+  header {
+    background: var(--navy);
+    color: white;
+    padding: 18px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  header h1 { margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 600; }
+  header nav { display: flex; gap: 12px; }
+  header nav a {
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 13px;
+    padding: 6px 14px;
+    border-radius: 16px;
+    transition: background 0.2s;
+  }
+  header nav a:hover { background: rgba(255,255,255,0.1); }
+  header nav a.active { background: var(--gold); color: var(--navy); font-weight: 600; }
+  header .user { font-size: 13px; color: var(--gold); display: flex; align-items: center; }
+  .test-toggle {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 12px; background: rgba(255,255,255,0.08);
+    border-radius: 20px; font-size: 12px; color: var(--gold);
+    cursor: pointer; user-select: none; margin-right: 16px;
+  }
+  .test-toggle .switch {
+    width: 30px; height: 16px; border-radius: 8px;
+    background: rgba(255,255,255,0.25); position: relative; transition: background 0.2s;
+  }
+  .test-toggle .switch::after {
+    content: ''; position: absolute; top: 2px; left: 2px;
+    width: 12px; height: 12px; border-radius: 50%; background: white; transition: left 0.2s;
+  }
+  .test-toggle.on .switch { background: #B88800; }
+  .test-toggle.on .switch::after { left: 16px; }
+
+  #test-banner {
+    background: #FFEAA7; border-bottom: 2px solid #B88800; color: #553C00;
+    padding: 10px 24px; text-align: center; font-size: 13px; font-weight: 600; display: none;
+  }
+  #test-banner.on { display: block; }
+
+  .container { max-width: 1400px; margin: 24px auto; padding: 0 24px; }
+
+  .filters {
+    display: flex; gap: 8px; align-items: center; flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .filter-chip {
+    padding: 6px 14px; border-radius: 20px;
+    border: 1px solid var(--light); background: white; color: var(--slate);
+    cursor: pointer; font-size: 12px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 1px; display: flex; align-items: center; gap: 6px;
+  }
+  .filter-chip.active { background: var(--navy); color: white; border-color: var(--navy); }
+  .filter-chip .dot {
+    width: 10px; height: 10px; border-radius: 50%; display: inline-block;
+  }
+
+  #calendar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+
+  /* FullCalendar custom styling */
+  .fc { font-family: -apple-system, sans-serif; }
+  .fc-toolbar-title { font-family: 'Cormorant Garamond', Georgia, serif !important; color: var(--navy); font-size: 22px !important; }
+  .fc-button { background: var(--navy) !important; border: 0 !important; font-size: 12px !important; padding: 8px 14px !important; }
+  .fc-button:hover { background: #051f3f !important; }
+  .fc-button-active { background: var(--gold) !important; color: var(--navy) !important; }
+  .fc-today-button { text-transform: uppercase; letter-spacing: 1px; }
+  .fc-event { border: none !important; padding: 2px 6px !important; font-size: 11px !important; cursor: pointer; }
+
+  /* Modal détail event */
+  .modal-bg {
+    position: fixed; top:0; left:0; right:0; bottom:0;
+    background: rgba(3,35,77,0.4); display: none; align-items: center; justify-content: center; z-index:1000;
+  }
+  .modal-bg.open { display: flex; }
+  .modal {
+    background: white; max-width: 480px; width:90%;
+    border-radius: 8px; padding: 28px;
+  }
+  .modal h2 {
+    margin: 0 0 16px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--navy); font-size: 22px;
+  }
+  .modal .field { margin-bottom: 10px; font-size: 14px; }
+  .modal .field label { color: var(--slate); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px; }
+  .modal-footer {
+    display: flex; justify-content: flex-end; gap: 12px;
+    margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--light);
+  }
+  .btn {
+    padding: 10px 18px; border-radius: 4px; border:0; cursor: pointer;
+    font-weight: 600; font-size: 13px;
+  }
+  .btn-primary { background: var(--navy); color: white; }
+  .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--light); }
+
+  /* Login screen (clone du dashboard) */
+  #login-screen {
+    display:none; position:fixed; top:0; left:0; right:0; bottom:0;
+    background:var(--navy); z-index:9999; align-items:center; justify-content:center;
+  }
+  #login-screen > div {
+    background:white; padding:40px 36px; border-radius:8px; width:380px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.2);
+  }
+  #login-screen h2 {
+    margin:0 0 8px; font-family:'Cormorant Garamond',Georgia,serif;
+    color:var(--navy); font-size:24px; text-align:center;
+  }
+  #login-screen label {
+    display:block; font-size:11px; color:var(--slate); letter-spacing:1px;
+    text-transform:uppercase; margin-bottom:6px; font-weight:600;
+  }
+  #login-screen input {
+    width:100%; padding:11px 14px; border:1px solid var(--light);
+    border-radius:4px; font-size:14px; margin-bottom:16px; font-family:inherit; color:var(--navy);
+  }
+  #login-screen button {
+    width:100%; padding:13px; background:var(--navy); color:white; border:0;
+    border-radius:4px; font-weight:600; font-size:14px; cursor:pointer;
+  }
+</style>
+</head>
+<body>
+
+<!-- Login -->
+<div id="login-screen">
+  <div>
+    <h2>L'Atelier du Coworking</h2>
+    <p style="margin:0 0 28px;text-align:center;font-size:11px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;">Calendrier admin</p>
+    <form onsubmit="doLogin(event)">
+      <label>Email</label>
+      <input id="login-email" type="email" required autocomplete="email">
+      <label>Mot de passe</label>
+      <input id="login-password" type="password" required autocomplete="current-password">
+      <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--slate);margin:14px 0 18px;font-weight:400;cursor:pointer;text-transform:none;letter-spacing:0;">
+        <input id="login-remember" type="checkbox" checked style="margin:0;width:auto;">
+        Rester connecté pendant 7 jours
+      </label>
+      <button type="submit">Se connecter</button>
+      <p id="login-error" style="margin:14px 0 0;text-align:center;color:var(--coral);font-size:13px;display:none;"></p>
+    </form>
+  </div>
+</div>
+
+<!-- Main app -->
+<div id="main-app" style="display:none;">
+
+<header>
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">📋 Devis</a>
+      <a href="admin-calendar.html" class="active">📅 Calendrier</a>
+    </nav>
+  </div>
+  <span class="user">
+    <div class="test-toggle" id="test-toggle" onclick="toggleTestMode()">
+      <div class="switch"></div>
+      <span>Mode TEST</span>
+    </div>
+    <span id="user-email">—</span> ·
+    <a href="#" onclick="doLogout(event)" style="color:var(--gold);text-decoration:none;margin-left:8px;">Déconnexion</a>
+  </span>
+</header>
+
+<div id="test-banner">
+  🧪 MODE TEST — Les devis test sont affichés avec préfixe 🧪 (décoche pour ne voir que les vraies résa)
+</div>
+
+<div class="container">
+
+  <!-- Filtres par espace -->
+  <div class="filters">
+    <span style="font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-right:8px">Espaces :</span>
+    <button class="filter-chip active" onclick="setSpaceFilter(null)">Tous</button>
+    <button class="filter-chip" onclick="setSpaceFilter('coworking')"><span class="dot" style="background:#C9B584"></span>Coworking</button>
+    <button class="filter-chip" onclick="setSpaceFilter('bureau')"><span class="dot" style="background:#2563EB"></span>Bureau</button>
+    <button class="filter-chip" onclick="setSpaceFilter('salle-reunion')"><span class="dot" style="background:#7C3AED"></span>Salle réunion</button>
+    <button class="filter-chip" onclick="setSpaceFilter('privatisation')"><span class="dot" style="background:#EA584A"></span>Privatisation</button>
+    <label style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--slate);cursor:pointer;">
+      <input id="show-test" type="checkbox" onchange="loadEvents()"> Afficher les devis TEST
+    </label>
+  </div>
+
+  <!-- Calendar -->
+  <div id="calendar"></div>
+
+</div>
+</div><!-- /main-app -->
+
+<!-- Modal détail event -->
+<div class="modal-bg" id="modal-detail">
+  <div class="modal">
+    <h2 id="modal-title">Détail</h2>
+    <div id="modal-content"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeModal()">Fermer</button>
+      <a id="modal-link" class="btn btn-primary" style="text-decoration:none;display:none;" href="#">Voir dans Devis →</a>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
+<script>
+// =====================================
+// Config
+// =====================================
+const API_BASE = '/api/coworking';
+let TOKEN = null;
+let HEADERS = {'Content-Type': 'application/json'};
+let calendar = null;
+let currentSpaceFilter = null;
+
+// =====================================
+// Auth (identique au dashboard devis)
+// =====================================
+const STORAGE_KEY = 'cw_admin_session';
+const TEST_MODE_KEY = 'cw_test_mode';
+const SESSION_DURATION_MS = 7 * 24 * 3600 * 1000;
+
+function getStoredSession() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return null;
+    const s = JSON.parse(raw);
+    if (s.expires && s.expires < Date.now()) { localStorage.removeItem(STORAGE_KEY); return null; }
+    return s;
+  } catch (e) { return null; }
+}
+
+function saveSession(token, email, remember) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+    token, email,
+    expires: remember ? Date.now() + SESSION_DURATION_MS : null,
+  }));
+}
+
+function showLogin() {
+  document.getElementById('main-app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  setTimeout(() => document.getElementById('login-email').focus(), 100);
+}
+
+function activateApp(token, email) {
+  TOKEN = token;
+  HEADERS = {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`};
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('main-app').style.display = 'block';
+  document.getElementById('user-email').textContent = email;
+  applyTestModeUI();
+  initCalendar();
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const remember = document.getElementById('login-remember').checked;
+  const errEl = document.getElementById('login-error');
+  errEl.style.display = 'none';
+  try {
+    const r = await fetch(`${API_BASE}/admin/login`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password}),
+    });
+    if (!r.ok) { const err = await r.json().catch(() => ({})); throw new Error(err.detail || 'Identifiants invalides'); }
+    const data = await r.json();
+    saveSession(data.token, data.email, remember);
+    activateApp(data.token, data.email);
+  } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+}
+
+function doLogout(e) {
+  if (e) e.preventDefault();
+  localStorage.removeItem(STORAGE_KEY);
+  TOKEN = null;
+  showLogin();
+}
+
+// =====================================
+// Mode TEST
+// =====================================
+function isTestMode() { return localStorage.getItem(TEST_MODE_KEY) === '1'; }
+
+function applyTestModeUI() {
+  const on = isTestMode();
+  document.getElementById('test-toggle').classList.toggle('on', on);
+  document.getElementById('test-banner').classList.toggle('on', on);
+  // Quand test mode actif, on coche aussi "Afficher les devis TEST" par défaut
+  document.getElementById('show-test').checked = on;
+}
+
+function toggleTestMode() {
+  const newVal = !isTestMode();
+  localStorage.setItem(TEST_MODE_KEY, newVal ? '1' : '0');
+  applyTestModeUI();
+  if (calendar) loadEvents();
+}
+
+// =====================================
+// Calendrier
+// =====================================
+function initCalendar() {
+  const el = document.getElementById('calendar');
+  calendar = new FullCalendar.Calendar(el, {
+    locale: 'fr',
+    timeZone: 'Europe/Paris',
+    initialView: 'dayGridMonth',
+    headerToolbar: {
+      left: 'prev,next today',
+      center: 'title',
+      right: 'dayGridMonth,timeGridWeek,timeGridDay'
+    },
+    buttonText: { today: 'Aujourd\'hui', month: 'Mois', week: 'Semaine', day: 'Jour' },
+    height: 'auto',
+    slotMinTime: '07:00:00',
+    slotMaxTime: '21:00:00',
+    weekends: true,
+    firstDay: 1,
+    nowIndicator: true,
+    events: fetchEvents,
+    eventClick: onEventClick,
+    dateClick: onDateClick,
+    eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+    displayEventEnd: true,
+  });
+  calendar.render();
+}
+
+async function fetchEvents(info, success, failure) {
+  try {
+    const from = info.startStr.substring(0, 10);
+    const to = info.endStr.substring(0, 10);
+    const includeTest = document.getElementById('show-test').checked;
+    const url = `${API_BASE}/calendar?from=${from}&to=${to}&include_test=${includeTest}`;
+    const r = await fetch(url, { headers: HEADERS });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const data = await r.json();
+    let events = data.events || [];
+    if (currentSpaceFilter) {
+      events = events.filter(e => e.extendedProps && e.extendedProps.space === currentSpaceFilter);
+    }
+    success(events);
+  } catch (e) { failure(e); }
+}
+
+function loadEvents() {
+  if (calendar) calendar.refetchEvents();
+}
+
+function setSpaceFilter(space) {
+  currentSpaceFilter = space;
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  event.target.closest('.filter-chip').classList.add('active');
+  loadEvents();
+}
+
+function onEventClick(info) {
+  const e = info.event;
+  const props = e.extendedProps;
+  document.getElementById('modal-title').textContent = e.title;
+  const fields = [];
+  if (props.reference) fields.push(`<div class="field"><label>Référence</label><b>${props.reference}</b></div>`);
+  if (props.client_email) fields.push(`<div class="field"><label>Client</label>${props.client_name || ''} — <a href="mailto:${props.client_email}">${props.client_email}</a></div>`);
+  if (props.space) fields.push(`<div class="field"><label>Espace</label>${props.space}</div>`);
+  fields.push(`<div class="field"><label>Créneau</label>${e.startStr.replace('T',' ')} → ${e.endStr.replace('T',' ')}</div>`);
+  if (props.amount_ttc != null) fields.push(`<div class="field"><label>Montant TTC</label>${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(props.amount_ttc)}</div>`);
+  if (props.payment_mode) fields.push(`<div class="field"><label>Paiement</label>${props.payment_mode}</div>`);
+  if (props.devis_status) fields.push(`<div class="field"><label>Statut devis</label>${props.devis_status}</div>`);
+  if (props.status) fields.push(`<div class="field"><label>Statut résa</label>${props.status}</div>`);
+  if (props.test_mode) fields.push(`<div class="field" style="color:#B88800"><b>🧪 Devis en mode TEST</b></div>`);
+  if (props.reason) fields.push(`<div class="field"><label>Raison du blocage</label>${props.reason}</div>`);
+  document.getElementById('modal-content').innerHTML = fields.join('');
+  const link = document.getElementById('modal-link');
+  if (props.type === 'reservation') { link.style.display = 'inline-block'; link.href = 'admin-devis-dashboard.html'; }
+  else { link.style.display = 'none'; }
+  document.getElementById('modal-detail').classList.add('open');
+}
+
+function onDateClick(info) {
+  // Clic sur une case vide → propose d'ouvrir le form devis pré-rempli
+  if (confirm(`Créer un devis pour le ${info.dateStr} ?`)) {
+    window.location.href = `admin-devis-dashboard.html?prefillDate=${info.dateStr}`;
+  }
+}
+
+function closeModal() {
+  document.getElementById('modal-detail').classList.remove('open');
+}
+
+// =====================================
+// Init
+// =====================================
+const existing = getStoredSession();
+if (existing) {
+  activateApp(existing.token, existing.email);
+} else {
+  showLogin();
+}
+</script>
+
+</body>
+</html>
