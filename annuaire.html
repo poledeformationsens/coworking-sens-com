@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Annuaire de la communauté — L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  .hero{background:var(--navy);color:#fff;padding:26px 20px 22px;text-align:center;position:relative}
+  .hero img{width:74px;height:74px;display:block;margin:0 auto 8px}
+  .hero h1{font-family:'Playfair Display',serif;font-size:26px;margin:6px 0 2px}
+  .hero p{margin:0;color:rgba(255,255,255,.72);font-size:14px}
+  .hero .back{position:absolute;left:16px;top:18px;color:rgba(255,255,255,.85);text-decoration:none;font-size:13px;background:rgba(255,255,255,.12);padding:7px 14px;border-radius:99px}
+  .wrap{max-width:1080px;margin:22px auto;padding:0 16px}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  .filters input,.filters select{padding:10px 13px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:14px;color:var(--navy);background:#fff}
+  .filters input{flex:1;min-width:200px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 18px}
+  .chip{border:1px solid var(--light);background:#fff;color:var(--slate);border-radius:99px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:500}
+  .chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:14px;padding:18px;display:flex;flex-direction:column}
+  .card .top{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+  .avatar{width:46px;height:46px;border-radius:50%;background:var(--gold);color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;flex-shrink:0}
+  .name{font-weight:700;font-size:16px;line-height:1.2}
+  .role{font-size:13px;color:var(--slate)}
+  .bio{font-size:13.5px;color:#333;line-height:1.55;margin:4px 0 10px}
+  .meta{font-size:12.5px;color:var(--slate);margin:2px 0}
+  .meta b{color:var(--navy);font-weight:600}
+  .tags{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
+  .tag{background:var(--cream);border:1px solid var(--light);color:var(--navy);border-radius:99px;padding:3px 10px;font-size:11.5px}
+  .avail{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+  .avail span{background:#E7F0FA;color:var(--navy);border-radius:99px;padding:3px 10px;font-size:11.5px;font-weight:600}
+  .links{display:flex;gap:10px;margin-top:12px;flex-wrap:wrap}
+  .links a{color:var(--navy);text-decoration:none;font-size:12.5px;font-weight:600;border-bottom:1px solid var(--gold)}
+  .empty{padding:50px 20px;text-align:center;color:var(--slate)}
+  .rgpd{font-size:12px;color:var(--slate);text-align:center;margin:22px auto 8px;max-width:620px;line-height:1.6}
+  #gate{max-width:420px;margin:80px auto;background:#fff;border:1px solid var(--light);border-radius:14px;padding:30px;text-align:center}
+  .btn{background:var(--navy);color:#fff;text-decoration:none;border:none;border-radius:8px;padding:12px 22px;font-weight:700;font-size:14px;display:inline-block;margin-top:14px;cursor:pointer}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <a class="back" href="/mon-espace">← Mon espace</a>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW">
+  <h1>Annuaire de la communauté</h1>
+  <p>Les membres de L'Atelier qui ont choisi de se présenter</p>
+</div>
+
+<!-- Accès réservé aux membres -->
+<div id="gate" style="display:none">
+  <h2 style="font-family:'Playfair Display',serif;margin:0 0 8px">Réservé aux membres</h2>
+  <p style="color:var(--slate);font-size:14px;line-height:1.6">L'annuaire est accessible aux membres connectés à leur espace personnel.</p>
+  <a class="btn" href="/mon-espace">Me connecter</a>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <div class="filters">
+    <input id="search" type="text" placeholder="Rechercher un nom, métier, compétence…">
+    <select id="city-filter"><option value="">Toutes les villes</option></select>
+  </div>
+  <div class="chips" id="avail-chips">
+    <button class="chip active" data-av="">Tous</button>
+    <button class="chip" data-av="coffee">☕ Café</button>
+    <button class="chip" data-av="networking">🤝 Networking</button>
+    <button class="chip" data-av="coworking_buddy">👥 Binôme coworking</button>
+    <button class="chip" data-av="partnership">🚀 Partenariat</button>
+  </div>
+  <div id="results"><div class="empty">Chargement…</div></div>
+  <p class="rgpd">🔒 Seuls les membres ayant activé « profil public » dans leur espace apparaissent ici, avec les seules informations qu'ils ont choisi de partager. Aucune adresse e-mail n'est diffusée. Pour vous retirer de l'annuaire, désactivez « profil public » dans votre profil.</p>
+</div>
+
+<script>
+const API_BASE = '/api/coworking';
+const AVAIL_LABELS = {coffee:'☕ Café', networking:'🤝 Networking', coworking_buddy:'👥 Binôme coworking', partnership:'🚀 Partenariat'};
+let MEMBERS = [];
+let activeAvail = '';
+
+function getToken(){
+  try{ const s = JSON.parse(localStorage.getItem('cw_client_session')||'null'); return s && s.token; }
+  catch(e){ return null; }
+}
+function initials(name){ return (name||'?').split(' ').filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join(''); }
+function esc(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function normUrl(u){ if(!u) return null; return /^https?:\/\//i.test(u) ? u : 'https://'+u; }
+
+async function load(){
+  const tok = getToken();
+  if(!tok){ document.getElementById('gate').style.display='block'; return; }
+  document.getElementById('app').style.display='block';
+  try{
+    const r = await fetch(`${API_BASE}/client/community`, {headers:{'Authorization':'Bearer '+tok}, cache:'no-store'});
+    if(r.status===401){ document.getElementById('app').style.display='none'; document.getElementById('gate').style.display='block'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const data = await r.json();
+    MEMBERS = data.members || [];
+    populateCities();
+    render();
+  }catch(e){ document.getElementById('results').innerHTML = `<div class="empty">Erreur de chargement : ${e.message}</div>`; }
+}
+
+function populateCities(){
+  const cities = [...new Set(MEMBERS.map(m=>m.city).filter(Boolean))].sort((a,b)=>a.localeCompare(b,'fr'));
+  const sel = document.getElementById('city-filter');
+  cities.forEach(c=>{ const o=document.createElement('option'); o.value=c; o.textContent=c; sel.appendChild(o); });
+}
+
+function render(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  const city = document.getElementById('city-filter').value;
+  let list = MEMBERS.slice();
+  if(city) list = list.filter(m=>m.city===city);
+  if(activeAvail) list = list.filter(m=>(m.available_for||'').split(',').map(s=>s.trim()).includes(activeAvail));
+  if(q){
+    list = list.filter(m=>{
+      const hay = [m.display_name, m.profession, m.company, m.skills, m.bio, m.hobbies, m.languages].join(' ').toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  const el = document.getElementById('results');
+  if(!list.length){ el.innerHTML = '<div class="empty">Aucun membre ne correspond à votre recherche.</div>'; return; }
+  el.innerHTML = '<div class="grid">' + list.map(card).join('') + '</div>';
+}
+
+function card(m){
+  const role = [m.profession, m.company].filter(Boolean).join(' · ');
+  const skills = (m.skills||'').split(',').map(s=>s.trim()).filter(Boolean).slice(0,6);
+  const avail = (m.available_for||'').split(',').map(s=>s.trim()).filter(Boolean);
+  const links = [];
+  if(m.website)   links.push(`<a href="${esc(normUrl(m.website))}" target="_blank" rel="noopener">Site web</a>`);
+  if(m.linkedin)  links.push(`<a href="${esc(normUrl(m.linkedin))}" target="_blank" rel="noopener">LinkedIn</a>`);
+  if(m.instagram) links.push(`<a href="${esc(normUrl(m.instagram))}" target="_blank" rel="noopener">Instagram</a>`);
+  return `<div class="card">
+    <div class="top">
+      <div class="avatar">${esc(initials(m.display_name))}</div>
+      <div>
+        <div class="name">${esc(m.display_name)}</div>
+        ${role?`<div class="role">${esc(role)}</div>`:''}
+      </div>
+    </div>
+    ${m.bio?`<div class="bio">${esc(m.bio)}</div>`:''}
+    ${m.city?`<div class="meta">📍 <b>${esc(m.city)}</b></div>`:''}
+    ${m.languages?`<div class="meta">🗣️ ${esc(m.languages)}</div>`:''}
+    ${skills.length?`<div class="tags">${skills.map(s=>`<span class="tag">${esc(s)}</span>`).join('')}</div>`:''}
+    ${avail.length?`<div class="avail">${avail.map(a=>`<span>${AVAIL_LABELS[a]||esc(a)}</span>`).join('')}</div>`:''}
+    ${links.length?`<div class="links">${links.join('')}</div>`:''}
+  </div>`;
+}
+
+document.getElementById('search').addEventListener('input', render);
+document.getElementById('city-filter').addEventListener('change', render);
+document.getElementById('avail-chips').addEventListener('click', e=>{
+  const b = e.target.closest('.chip'); if(!b) return;
+  document.querySelectorAll('#avail-chips .chip').forEach(c=>c.classList.remove('active'));
+  b.classList.add('active'); activeAvail = b.dataset.av; render();
+});
+
+load();
+</script>
+</body>
+</html>

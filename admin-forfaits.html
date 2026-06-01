@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Forfaits — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header img{display:block}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1100px;margin:24px auto;padding:0 18px}
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
+  input,select{padding:9px 12px;border:1px solid var(--light);border-radius:6px;font-family:inherit;font-size:14px;color:var(--navy)}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:6px;padding:9px 16px;font-weight:600;font-size:13px;cursor:pointer}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--light)}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+  th,td{padding:11px 13px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee}
+  th{background:#fafafa;color:var(--slate);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:600}
+  .b-active{background:#E3F4EA;color:var(--green)} .b-off{background:#eee;color:#888}
+  .muted{color:var(--slate);font-size:12.5px}
+  .empty{padding:40px;text-align:center;color:var(--slate)}
+  /* modal */
+  .modal-bg{position:fixed;inset:0;background:rgba(3,35,77,.5);display:none;align-items:center;justify-content:center;z-index:50}
+  .modal{background:#fff;border-radius:12px;padding:24px;width:420px;max-width:92vw}
+  .modal h3{margin:0 0 14px;font-family:'Playfair Display',serif}
+  .modal label{display:block;font-size:12.5px;color:var(--slate);margin:12px 0 4px}
+  .modal .row{display:flex;gap:10px;justify-content:flex-end;margin-top:18px}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="box">
+    <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Forfaits</h2>
+    <p class="muted">Session admin requise.</p>
+    <a class="btn" href="admin-devis-dashboard.html" style="text-decoration:none;display:inline-block;margin-top:10px">Se connecter sur le dashboard</a>
+  </div>
+</div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="44" height="44">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">📋 Devis</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html" class="active">🎟️ Forfaits</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <input id="filter-email" type="text" placeholder="Filtrer par email client…" style="flex:1;min-width:220px">
+    <label class="muted"><input type="checkbox" id="filter-inactive"> Inclure inactifs</label>
+    <button class="btn" onclick="loadPacks()">↻ Rafraîchir</button>
+  </div>
+  <div id="packs-table"><div class="empty">Chargement…</div></div>
+</div>
+
+<div class="modal-bg" id="modal-bg">
+  <div class="modal">
+    <h3>Ajuster le forfait</h3>
+    <div id="modal-info" class="muted"></div>
+    <label>Date d'expiration (vide = sans expiration)</label>
+    <input id="m-expires" type="date" style="width:100%">
+    <label>Ajouter des crédits (peut être négatif)</label>
+    <input id="m-add" type="number" value="0" style="width:100%">
+    <label>Crédits totaux (laisser vide pour ne pas changer)</label>
+    <input id="m-total" type="number" placeholder="inchangé" style="width:100%">
+    <label>Note interne</label>
+    <input id="m-note" type="text" placeholder="ex : geste commercial" style="width:100%">
+    <label><input type="checkbox" id="m-active"> Forfait actif</label>
+    <div class="row">
+      <button class="btn ghost" onclick="closeModal()">Annuler</button>
+      <button class="btn" onclick="saveModal()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = '/api/coworking';
+const STORAGE_KEY = 'cw_admin_session';
+let HEADERS = {'Content-Type':'application/json'};
+let TOKEN = null;
+let CURRENT = null;  // pack en cours d'édition
+
+function getSession(){
+  try{ const s = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+    if(s && s.expires && s.expires < Date.now()) return null;
+    return s; }catch(e){ return null; }
+}
+
+function fmtMoney(a){ return a==null?'—':new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(a); }
+function fmtDate(iso){ if(!iso) return 'Sans expiration'; return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}); }
+
+async function loadPacks(){
+  const email = document.getElementById('filter-email').value.trim();
+  const inactive = document.getElementById('filter-inactive').checked;
+  const params = new URLSearchParams();
+  if(email) params.set('email', email);
+  if(inactive) params.set('include_inactive','true');
+  const el = document.getElementById('packs-table');
+  el.innerHTML = '<div class="empty">Chargement…</div>';
+  try{
+    const r = await fetch(`${API_BASE}/admin/packs?${params}`, {headers:HEADERS, cache:'no-store'});
+    if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const data = await r.json();
+    render(data.packs||[]);
+  }catch(e){ el.innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
+}
+
+function render(packs){
+  const el = document.getElementById('packs-table');
+  if(!packs.length){ el.innerHTML = '<div class="empty">Aucun forfait.</div>'; return; }
+  el.innerHTML = `<table><thead><tr>
+    <th>Client</th><th>Forfait</th><th>Crédits</th><th>Expiration</th><th>Montant</th><th>Statut</th><th></th>
+  </tr></thead><tbody>` + packs.map(p=>{
+    const remaining = p.remaining != null ? p.remaining : (p.total_credits - (p.used_credits||0));
+    const statusBadge = p.active
+      ? (p.expired ? '<span class="badge b-off">Expiré</span>' : '<span class="badge b-active">Actif</span>')
+      : '<span class="badge b-off">Inactif</span>';
+    const testTag = p.test_mode ? ' <span class="muted">(test)</span>' : '';
+    return `<tr>
+      <td>${p.customer_email}${testTag}</td>
+      <td>${p.label||p.space}<div class="muted">${p.space} · ${p.credit_type==='day'?'journée':'demi-journée'}</div></td>
+      <td><strong>${remaining}</strong> / ${p.total_credits}</td>
+      <td>${fmtDate(p.expires_at)}</td>
+      <td>${fmtMoney(p.amount_ttc)}</td>
+      <td>${statusBadge}</td>
+      <td><button class="btn ghost" onclick='openModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Ajuster</button></td>
+    </tr>`;
+  }).join('') + '</tbody></table>';
+}
+
+function openModal(p){
+  CURRENT = p;
+  document.getElementById('modal-info').textContent = `${p.customer_email} — ${p.label||p.space}`;
+  document.getElementById('m-expires').value = p.expires_at ? String(p.expires_at).slice(0,10) : '';
+  document.getElementById('m-add').value = 0;
+  document.getElementById('m-total').value = '';
+  document.getElementById('m-note').value = p.admin_note || '';
+  document.getElementById('m-active').checked = !!p.active;
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+function closeModal(){ document.getElementById('modal-bg').style.display='none'; CURRENT=null; }
+
+async function saveModal(){
+  if(!CURRENT) return;
+  const body = {};
+  const exp = document.getElementById('m-expires').value;
+  body.expires_at = exp ? exp : '';   // '' = sans expiration côté backend
+  const add = parseInt(document.getElementById('m-add').value||'0',10);
+  if(add) body.add_credits = add;
+  const total = document.getElementById('m-total').value;
+  if(total !== '') body.total_credits = parseInt(total,10);
+  body.admin_note = document.getElementById('m-note').value || null;
+  body.active = document.getElementById('m-active').checked;
+  try{
+    const r = await fetch(`${API_BASE}/admin/packs/${CURRENT.id}`, {method:'PATCH', headers:HEADERS, body:JSON.stringify(body)});
+    if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    closeModal(); loadPacks();
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+
+document.getElementById('filter-email').addEventListener('keydown', e=>{ if(e.key==='Enter') loadPacks(); });
+
+// Init
+(function(){
+  const s = getSession();
+  if(!s || !s.token){ document.getElementById('login').style.display='flex'; return; }
+  TOKEN = s.token;
+  HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`};
+  loadPacks();
+})();
+</script>
+</body>
+</html>

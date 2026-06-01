@@ -23,6 +23,14 @@
     {
       "source": "/mon-espace",
       "destination": "/mon-espace.html"
+    },
+    {
+      "source": "/annuaire",
+      "destination": "/annuaire.html"
+    },
+    {
+      "source": "/admin-forfaits",
+      "destination": "/admin-forfaits.html"
     }
   ]
 }

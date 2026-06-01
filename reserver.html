@@ -317,6 +317,9 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
       <div class="recap-row sep total"><span>Total TTC</span><span id="recap-price">34,80 €</span></div>
     </div>
 
+    <!-- Option forfait (affichée si connecté + crédit disponible) -->
+    <div id="pack-option" style="display:none"></div>
+
     <div class="actions-nav">
       <button class="btn btn-ghost" onclick="goStep(2)">← Retour</button>
       <button class="btn" id="btn-pay" onclick="payAndConfirm()">Payer & confirmer →</button>
@@ -422,6 +425,27 @@ const NAMES = {
 const SPACE_UNIT = {'bureau-1':'Bureau 1','bureau-2':'Bureau 2','salle-reunion':'','coworking':''};
 const SLOT_RANGE = {morning:{from:'08:00',to:'12:00'}, afternoon:{from:'14:00',to:'18:00'}, day:{from:'08:00',to:'18:00'}};
 const TVA = 1.20;
+
+// Forfaits prépayés (packs) — mapping espace → slug capacité backend
+const SPACE_SLUG = {'bureau-1':'bureau','bureau-2':'bureau','salle-reunion':'salle-reunion','coworking':'coworking'};
+let CLIENT_SESSION = null;     // { token, email, name } depuis mon-espace
+let _packsCache = null;
+function clientToken(){
+  if(CLIENT_SESSION && CLIENT_SESSION.token) return CLIENT_SESSION.token;
+  try { CLIENT_SESSION = JSON.parse(localStorage.getItem('cw_client_session') || 'null'); }
+  catch(e){ CLIENT_SESSION = null; }
+  return CLIENT_SESSION && CLIENT_SESSION.token;
+}
+function slotCreditType(slot){ return (slot==='morning'||slot==='afternoon') ? 'half-day' : (slot==='day' ? 'day' : null); }
+async function fetchMyPacks(force){
+  const tok = clientToken(); if(!tok) return [];
+  if(_packsCache && !force) return _packsCache;
+  try {
+    const r = await fetch(`${API}/client/packs`, {headers:{'Authorization':'Bearer '+tok}, cache:'no-store'});
+    if(!r.ok) return [];
+    const d = await r.json(); _packsCache = d.packs || []; return _packsCache;
+  } catch(e){ return []; }
+}
 
 function fmt(n){return n.toFixed(2).replace('.',',') + ' €'}
 
@@ -629,6 +653,76 @@ function updateRecap(){
   document.getElementById('recap-space').textContent = NAMES[selectedSpace];
   document.getElementById('recap-detail').textContent = detail + ' · ' + dateStr;
   document.getElementById('recap-price').textContent = fmt(computeCurrentPriceTTC());
+  refreshPackOption();
+}
+
+// ============================================================================
+// Option « Payer avec mon forfait »
+// ============================================================================
+async function refreshPackOption(){
+  const box = document.getElementById('pack-option');
+  if(!box) return;
+  box.style.display = 'none'; box.innerHTML = '';
+  if(!clientToken()) return;                          // visiteur non connecté
+  const ctype = slotCreditType(selectedSlot);         // forfaits = journée / demi-journée
+  const slug = SPACE_SLUG[selectedSpace];
+  if(!ctype || !slug) return;
+  const packs = await fetchMyPacks();
+  const match = packs.find(p => p.space===slug && p.credit_type===ctype && p.remaining>0 && !p.expired);
+  if(!match) return;
+  const word = match.credit_label + (match.remaining>1 ? 's' : '');
+  box.innerHTML =
+    '<div style="background:rgba(201,181,132,.12);border:1px solid rgba(201,181,132,.55);border-radius:12px;padding:16px 18px;margin:6px 0 14px;text-align:center">' +
+      '<div style="font-size:13.5px;color:rgba(255,255,255,.9);line-height:1.6;margin-bottom:12px">' +
+        '<i class="ti ti-ticket" style="color:#C9B584"></i> Vous avez un forfait <b>' + (match.label||'') + '</b> — il vous reste <b style="color:#C9B584">' + match.remaining + ' ' + word + '</b>.' +
+      '</div>' +
+      '<button type="button" id="btn-pack-pay" onclick="payWithPack()" style="background:#C9B584;color:#03234D;border:none;border-radius:999px;padding:12px 26px;font-weight:700;font-size:14px;cursor:pointer;width:100%;max-width:340px">Réserver avec mon forfait (−1 crédit) →</button>' +
+      '<div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:10px">ou réglez en ligne ci-dessous</div>' +
+    '</div>';
+  box.style.display = 'block';
+}
+
+async function payWithPack(){
+  const tok = clientToken(); if(!tok) return;
+  const btn = document.getElementById('btn-pack-pay');
+  const original = btn ? btn.textContent : '';
+  if(btn){ btn.disabled = true; btn.style.opacity = '.6'; btn.textContent = 'Vérification…'; }
+  try {
+    const date = document.getElementById('resa-date').value;
+    const stillFree = await validateBeforeContinue();
+    if(!stillFree){
+      alert('Ce créneau vient d\'être réservé par quelqu\'un d\'autre. Merci d\'en choisir un autre.');
+      goStep(2); loadAvailability(); return;
+    }
+    if(btn) btn.textContent = 'Réservation…';
+    const res = await fetch(`${API}/client/book-with-pack`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
+      body: JSON.stringify({space:selectedSpace, slot:selectedSlot, date, test_mode:TEST_MODE}),
+    });
+    if(!res.ok){ const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Réservation impossible'); }
+    const data = await res.json();
+    _packsCache = null;  // force le rechargement des crédits
+    lastBookingSnapshot = {
+      space:selectedSpace, slot:selectedSlot, date,
+      email:(CLIENT_SESSION && CLIENT_SESSION.email) || '',
+      ref:data.reference, paidWithPack:true, remaining:data.remaining,
+    };
+    goToConfirmation();
+  } catch(err){
+    console.error(err);
+    alert('Erreur : ' + err.message + '\nVous pouvez réessayer ou régler en ligne.');
+  } finally {
+    if(btn){ btn.disabled = false; btn.style.opacity = ''; btn.textContent = original; }
+  }
+}
+
+function goToConfirmation(){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  document.getElementById('step4').classList.add('active');
+  ['p1','p2','p3','p4'].forEach((id,i)=>{ const el=document.getElementById(id); el.classList.remove('active'); el.classList.add(i<3?'done':'active'); });
+  updateConfirmation();
+  window.scrollTo({top:0,behavior:'smooth'});
 }
 
 // ============================================================================
@@ -656,7 +750,12 @@ function updateConfirmation(){
   document.getElementById('conf-space').textContent = NAMES[spaceForConf] || spaceForConf;
   document.getElementById('conf-date').textContent = longDate;
   document.getElementById('conf-horaire').textContent = horaire;
-  document.getElementById('conf-prix').textContent = fmt(amount) + ' TTC';
+  if(snap && snap.paidWithPack){
+    const r = snap.remaining;
+    document.getElementById('conf-prix').textContent = 'Réglé via forfait — reste ' + r + ' crédit' + (r>1?'s':'');
+  } else {
+    document.getElementById('conf-prix').textContent = fmt(amount) + ' TTC';
+  }
   document.getElementById('conf-mail').textContent = mail;
   document.getElementById('conf-ref').textContent = reference ? ('Référence ' + reference) : 'Confirmation envoyée par e-mail';
   const startISO = d.toISOString().split('T')[0].replace(/-/g,'');

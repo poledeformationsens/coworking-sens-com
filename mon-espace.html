@@ -424,8 +424,10 @@
 
 <div class="tabs">
   <button class="tab active" data-tab="overview" onclick="switchTab('overview')">📋 Mes réservations</button>
+  <button class="tab" data-tab="packs" onclick="switchTab('packs')">🎟️ Mes forfaits</button>
   <button class="tab" data-tab="profile" onclick="switchTab('profile')">👤 Mon profil</button>
   <button class="tab" data-tab="security" onclick="switchTab('security')">🔒 Sécurité</button>
+  <button class="tab" onclick="location.href='/annuaire'">👥 Annuaire</button>
 </div>
 
 <div class="container">
@@ -458,6 +460,19 @@
   <div class="card">
     <h2>Historique <span class="count" id="count-past">0</span></h2>
     <div id="past-list"></div>
+  </div>
+</div>
+
+<!-- TAB PACKS -->
+<div id="tab-packs" class="tab-content" style="display:none;">
+  <div class="card">
+    <h2>Mes forfaits actifs <span class="count" id="count-packs">0</span></h2>
+    <div id="my-packs-list"><div class="empty-state">Chargement…</div></div>
+  </div>
+  <div class="card">
+    <h2>Acheter un forfait</h2>
+    <p style="color:var(--slate);font-size:14px;margin:0 0 16px;line-height:1.6">Réglez en une fois, réservez quand vous voulez. Crédits valables <strong>3 mois</strong>. Chaque réservation décompte 1 crédit, sans repasser par le paiement.</p>
+    <div id="packs-catalog"><div class="empty-state">Chargement…</div></div>
   </div>
 </div>
 
@@ -820,6 +835,20 @@ async function enterApp() {
 
 function renderApp(data) {
   const c = data.customer;
+  // Mémorise les infos client pour l'achat de forfait
+  CUSTOMER_EMAIL = c.email || (SESSION && SESSION.email) || null;
+  CUSTOMER_NAME = c.name || null;
+  CUSTOMER_CLIENT_TYPE = c.client_type || 'perso';
+  // Retour de Stripe après achat d'un forfait → onglet Forfaits + rafraîchit
+  const sp = new URLSearchParams(window.location.search);
+  if (sp.get('status') === 'success') {
+    history.replaceState({}, '', window.location.pathname);
+    setTimeout(() => {
+      switchTab('packs');
+      alert('Paiement réussi ! Votre forfait est en cours d\'activation, il apparaîtra ici dans quelques instants.');
+      setTimeout(loadPacks, 3000);
+    }, 300);
+  }
   // Préfère first_name (champ dédié), sinon premier mot du name complet
   const firstName = (c.first_name && c.first_name.trim())
     || ((c.name || '').split(' ').filter(s => !/^(M\.|Mme|Mlle|Autre)$/.test(s))[0])
@@ -910,6 +939,106 @@ function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === name));
   document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
   document.getElementById(`tab-${name}`).style.display = 'block';
+  if (name === 'packs') loadPacks();
+}
+
+// ============================================
+// Forfaits prépayés (packs)
+// ============================================
+let CUSTOMER_EMAIL = null, CUSTOMER_NAME = null, CUSTOMER_CLIENT_TYPE = 'perso';
+
+function packCreditWord(type, n) {
+  const w = type === 'day' ? 'journée' : 'demi-journée';
+  return w + (n > 1 ? 's' : '');
+}
+
+async function loadPacks() {
+  try {
+    const [pr, cr] = await Promise.all([
+      fetch(`${API_BASE}/client/packs`, { headers: authHeaders(), cache: 'no-store' }),
+      fetch(`${API_BASE}/packs/catalog`, { cache: 'no-store' }),
+    ]);
+    const packs = pr.ok ? (await pr.json()).packs : [];
+    const catalog = cr.ok ? (await cr.json()).packs : [];
+    renderMyPacks(packs);
+    renderCatalog(catalog);
+  } catch (e) { console.warn('Chargement forfaits', e); }
+}
+
+function renderMyPacks(packs) {
+  document.getElementById('count-packs').textContent = packs.length;
+  const el = document.getElementById('my-packs-list');
+  if (!packs.length) {
+    el.innerHTML = `<div class="empty-state">Vous n'avez pas encore de forfait.<br>Choisissez-en un ci-dessous 👇</div>`;
+    return;
+  }
+  el.innerHTML = packs.map(p => {
+    const pct = p.total_credits ? Math.round((p.remaining / p.total_credits) * 100) : 0;
+    const exp = p.expires_at ? formatDate(p.expires_at) : 'Sans expiration';
+    const expired = p.expired;
+    const exhausted = p.remaining <= 0;
+    const badge = expired
+      ? `<span class="badge-status" style="background:#9aa0ab">Expiré</span>`
+      : (exhausted ? `<span class="badge-status" style="background:#9aa0ab">Épuisé</span>` : `<span class="badge-status" style="background:var(--green)">Actif</span>`);
+    return `<div class="reservation-item" style="${expired || exhausted ? 'opacity:.6' : ''}">
+      <div class="row">
+        <div>
+          <div class="ref">${p.label || (p.space_label + ' — forfait')}</div>
+          <div class="meta">${p.space_label} · ${p.credit_type === 'day' ? 'journées' : 'demi-journées'}</div>
+        </div>
+        ${badge}
+      </div>
+      <div style="margin:12px 0 6px;font-size:14px;color:var(--navy);font-weight:600">
+        ${p.remaining} / ${p.total_credits} ${packCreditWord(p.credit_type, p.remaining)} restantes
+      </div>
+      <div style="height:8px;background:#eee;border-radius:99px;overflow:hidden">
+        <div style="height:100%;width:${pct}%;background:var(--gold)"></div>
+      </div>
+      <div style="margin-top:8px;font-size:12.5px;color:var(--slate)">${expired ? 'Expiré le ' : 'Valable jusqu\'au '}${exp}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderCatalog(catalog) {
+  const el = document.getElementById('packs-catalog');
+  if (!catalog.length) { el.innerHTML = `<div class="empty-state">Aucun forfait disponible pour le moment.</div>`; return; }
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px">` +
+    catalog.map(p => `
+      <div style="border:1px solid var(--gold);border-radius:12px;padding:16px;display:flex;flex-direction:column">
+        <div style="font-weight:700;color:var(--navy);font-size:15px;line-height:1.3">${p.name}</div>
+        <div style="font-size:13px;color:var(--slate);margin:6px 0 10px;line-height:1.5;flex:1">${p.description || ''}</div>
+        <div style="font-size:13px;color:var(--navy);margin-bottom:4px"><strong>${p.credits}</strong> ${packCreditWord(p.credit_type, p.credits)}</div>
+        <div style="font-size:20px;font-weight:800;color:var(--navy)">${formatMoney(p.price_ttc)}<span style="font-size:12px;font-weight:500;color:var(--slate)"> TTC</span></div>
+        <div style="font-size:11.5px;color:var(--slate);margin-bottom:12px">soit ${formatMoney(p.unit_price_ttc)} / ${p.credit_label}</div>
+        <button onclick='buyPack(${JSON.stringify(p).replace(/'/g, "&#39;")})' style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:14px;cursor:pointer">Acheter →</button>
+      </div>`).join('') + `</div>`;
+}
+
+async function buyPack(p) {
+  if (!CUSTOMER_EMAIL) { alert('Email du compte introuvable, reconnectez-vous.'); return; }
+  try {
+    const r = await fetch('/api/checkout', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        purchaseType: 'pack',
+        pricingId: p.pricing_id,
+        packSpace: p.space,
+        packCreditType: p.credit_type,
+        packCredits: p.credits,
+        packLabel: p.name,
+        amountTTC: p.price_ttc,
+        email: CUSTOMER_EMAIL,
+        name: CUSTOMER_NAME || '',
+        clientType: CUSTOMER_CLIENT_TYPE === 'pro' ? 'pro' : 'particulier',
+        reference: 'PACK-' + new Date().getFullYear() + '-' + (Math.floor(Math.random() * 9000) + 1000),
+        testMode: false,
+        returnPath: '/mon-espace',
+      }),
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || 'Erreur de paiement'); }
+    const data = await r.json();
+    if (data.url) window.location.href = data.url; else throw new Error('URL Stripe manquante');
+  } catch (e) { alert('Erreur : ' + e.message); }
 }
 
 function toggleProFields(show) {
