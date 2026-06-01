@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Réserver — L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.40.0/tabler-icons.min.css">
+<style>
+:root{--navy:#03234D;--cream:#F8F7F4;--gold:#C9B584;--gold-soft:rgba(201,181,132,.5);--slate:#3D4861}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:20px 12px;font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1}
+.serif,h1,h2,.h1,.h2-pill,.card-name,.slot-name,.toggle-card-name,.recap-label,.recap-row.total,.btn,.action,.section-label,.label,.card-price,.slot-price{font-variant-numeric:lining-nums;font-feature-settings:"lnum" 1}
+.screen{position:relative;width:100%;max-width:780px;background:var(--navy);border-radius:12px;overflow:hidden;color:#FFFFFF;box-shadow:0 10px 40px rgba(3,35,77,.18)}
+.screen-bg{position:absolute;top:0;left:0;right:0;bottom:0;background-image:url('https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@10df05b/Photo-principale.jpg');background-size:cover;background-position:center;opacity:.28;z-index:0}
+.screen-overlay{position:absolute;top:0;left:0;right:0;bottom:0;background:linear-gradient(180deg,rgba(3,35,77,.80) 0%,rgba(3,35,77,.94) 100%);z-index:1}
+.content{position:relative;z-index:2;padding:30px 26px 34px}
+.serif{font-family:'Playfair Display',serif;font-weight:500}
+.h1{font-family:'Playfair Display',serif;font-weight:500;font-size:30px;letter-spacing:.01em;line-height:1.2;margin:0 0 6px;color:#FFFFFF;text-align:center}
+.h2-pill{font-family:'Inter',sans-serif;font-weight:400;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);text-align:center;margin:0}
+.rule{height:1px;background:rgba(201,181,132,.3);width:60px;margin:18px auto}
+.logo{display:block;margin:0 auto 4px;width:84px;height:auto}
+
+.progress{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:22px;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.4);font-family:'Inter',sans-serif}
+.pill{display:flex;align-items:center;gap:7px}
+.pill.active{color:#FFFFFF}
+.pill.done{color:var(--gold)}
+.num{width:18px;height:18px;border-radius:50%;border:1px solid currentColor;display:inline-flex;align-items:center;justify-content:center;font-size:10px}
+.pill.active .num,.pill.done .num{background:var(--gold);border-color:var(--gold);color:var(--navy)}
+.tin-rule{height:1px;width:22px;background:currentColor;opacity:.4}
+
+.step{display:none}
+.step.active{display:block}
+
+.grid-spaces{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:10px}
+.card{position:relative;background:var(--cream);border-radius:8px;cursor:pointer;border:2px solid transparent;transition:.15s;color:#03234D;overflow:hidden;display:flex;flex-direction:column}
+.card:hover{border-color:var(--gold)}
+.card.selected{background:var(--gold);border-color:#8E764A}
+.card.selected .card-name{color:var(--navy)}
+.card.selected .card-sub{color:rgba(3,35,77,.7)}
+.card.selected .card-price{color:var(--navy);font-weight:500}
+.card.selected::after{content:'\ea5e';font-family:'tabler-icons';position:absolute;top:10px;right:10px;color:var(--navy);font-size:18px;background:#FFFFFF;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold;z-index:2}
+.card-photo{width:100%;height:120px;background-size:cover;background-position:center;background-color:#03234D}
+.card-body{padding:14px 16px 16px}
+.card-name{font-family:'Inter',sans-serif;font-size:16px;color:var(--navy);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;font-weight:500}
+.card-sub{font-size:12px;color:#6E7A93;margin-bottom:10px;line-height:1.5}
+.card-price{font-family:'Inter',sans-serif;font-size:14px;color:#A38A4A;letter-spacing:.05em}
+
+.section{background:rgba(248,247,244,0.05);border:1px solid rgba(201,181,132,.18);border-radius:8px;padding:18px 20px;margin-bottom:12px}
+.section-label{font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin:0 0 12px;display:flex;align-items:center;gap:8px}
+.row{display:flex;justify-content:space-between;align-items:flex-start;font-size:14px;padding:5px 0}
+.row .lbl{color:rgba(255,255,255,.62)}
+.row .val{color:#FFFFFF;text-align:right}
+.mail{color:var(--gold);font-family:'SF Mono',Menlo,monospace;font-size:13px}
+
+.input{width:100%;padding:11px 13px;background:var(--cream);border:1px solid #E5DDCB;border-radius:5px;font-size:14px;color:var(--navy);font-family:'Inter',sans-serif}
+.input.search-state{background:#FFF9E6;border-color:var(--gold)}
+.input.ok-state{background:#EAF3DE;border-color:#639922}
+.label{font-size:10px;color:var(--gold);letter-spacing:.18em;text-transform:uppercase;margin-bottom:6px;display:block;font-family:'Inter',sans-serif}
+.field-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.field-grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:12px}
+
+.slot-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+.slot-card{position:relative;background:var(--cream);border:2px solid transparent;border-radius:6px;padding:14px;cursor:pointer;color:var(--navy);text-align:center;transition:.15s}
+.slot-card:hover{border-color:var(--gold)}
+.slot-card.selected{background:var(--gold);border-color:#8E764A}
+.slot-card.selected .slot-hours{color:rgba(3,35,77,.75)}
+.slot-card.selected .slot-price{color:var(--navy);font-weight:500}
+.slot-card.selected::after{content:'\ea5e';font-family:'tabler-icons';position:absolute;top:8px;right:8px;color:var(--navy);font-size:14px;background:#FFFFFF;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold}
+.slot-card.full{opacity:.5;cursor:not-allowed;background:#EDEAE3;filter:grayscale(.5)}
+.slot-card.full:hover{border-color:transparent}
+.slot-card.full::after{content:'Complet';font-family:'Inter',sans-serif;position:absolute;top:7px;right:7px;background:#C0392B;color:#fff;font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:2px 6px;border-radius:3px;font-weight:600}
+.slot-name{font-family:'Inter',sans-serif;font-size:13px;letter-spacing:.15em;text-transform:uppercase;color:var(--navy);margin-bottom:4px}
+.slot-hours{font-size:12px;color:#6E7A93;margin-bottom:6px}
+.slot-price{font-family:'Inter',sans-serif;font-size:14px;color:#A38A4A}
+.slot-left{display:block;margin-top:5px;font-size:10px;letter-spacing:.05em;color:#639922;font-weight:600}
+.slot-card.full .slot-left{color:#C0392B}
+
+.avail-loading{font-size:12px;color:rgba(255,255,255,.6);font-style:italic;margin:0 0 12px;text-align:center}
+
+.custom-hour-row{background:var(--cream);border:1px solid #E5DDCB;border-radius:6px;padding:12px;margin-top:8px;display:none}
+.custom-hour-row.show{display:block}
+.custom-hour-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+
+.savings-hint{display:none;background:#FFF7E0;border:1px solid var(--gold);border-left:4px solid var(--gold);border-radius:6px;padding:12px 14px;margin-top:10px;color:#03234D}
+.savings-hint.show{display:block}
+.savings-hint-inner{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.savings-hint-icon{font-size:20px;flex-shrink:0}
+.savings-hint-body{flex:1;min-width:200px;font-size:13px;line-height:1.5;color:#03234D}
+.savings-hint-body strong{color:#03234D;font-weight:600}
+.savings-hint-btn{background:#03234D;color:#FFFFFF;border:none;padding:7px 16px;border-radius:4px;font-family:'Inter',sans-serif;font-size:11px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;font-weight:500;flex-shrink:0}
+.savings-hint-btn:hover{background:#0A3B7A}
+
+.toggle-type{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.toggle-card{position:relative;background:var(--cream);border:2px solid transparent;border-radius:8px;padding:16px;cursor:pointer;text-align:center;color:var(--navy);transition:.15s}
+.toggle-card:hover{border-color:var(--gold)}
+.toggle-card.selected{background:var(--gold);border-color:#8E764A}
+.toggle-card.selected i{color:var(--navy)}
+.toggle-card.selected .toggle-card-sub{color:rgba(3,35,77,.7)}
+.toggle-card.selected::after{content:'\ea5e';font-family:'tabler-icons';position:absolute;top:8px;right:8px;color:var(--navy);font-size:14px;background:#FFFFFF;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:bold}
+.toggle-card i{font-size:22px;color:#A38A4A;margin-bottom:6px;display:block}
+.toggle-card-name{font-family:'Inter',sans-serif;font-size:14px;letter-spacing:.15em;text-transform:uppercase;color:var(--navy);font-weight:500;margin-bottom:3px}
+.toggle-card-sub{font-size:11px;color:#6E7A93}
+
+.actions-nav{display:flex;justify-content:space-between;margin-top:22px;gap:10px}
+.btn{font-family:'Inter',sans-serif;background:var(--gold);color:var(--navy);border:none;padding:13px 24px;border-radius:5px;font-size:12px;letter-spacing:.15em;text-transform:uppercase;cursor:pointer;font-weight:600}
+.btn:hover{background:#B89D6D}
+.btn:disabled{opacity:.55;cursor:not-allowed}
+.btn-ghost{background:transparent;color:#FFFFFF;border:1px solid rgba(255,255,255,.4)}
+.btn-ghost:hover{border-color:var(--gold);color:var(--gold);background:transparent}
+
+.recap{background:var(--cream);border-radius:6px;padding:18px;color:var(--navy);margin-top:14px}
+.recap-label{font-family:'Inter',sans-serif;letter-spacing:.18em;text-transform:uppercase;font-size:11px;color:#A38A4A;margin-bottom:10px}
+.recap-row{display:flex;justify-content:space-between;padding:7px 0;font-size:14px}
+.recap-row.sep{border-top:0.5px dashed var(--gold);margin-top:10px;padding-top:14px}
+.recap-row.total{font-family:'Playfair Display',serif;font-weight:500;font-size:20px}
+
+.checkring{width:54px;height:54px;border-radius:50%;border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;margin:0 auto 18px}
+.checkring i{color:var(--gold);font-size:26px}
+.actions-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px}
+.action{background:transparent;color:#FFFFFF;border:1px solid rgba(201,181,132,.5);border-radius:6px;padding:11px 14px;font-family:'Inter',sans-serif;font-size:12px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-weight:500;text-decoration:none}
+.action:hover{background:rgba(201,181,132,.1);border-color:var(--gold)}
+.action i{font-size:16px;color:var(--gold)}
+.foot{text-align:center;font-size:12px;color:rgba(255,255,255,.55);margin-top:18px;line-height:1.7}
+
+.hint{font-size:11px;color:rgba(255,255,255,.55);margin-top:6px;display:block;font-style:italic}
+.error-msg{font-size:12px;color:#F09595;margin-top:6px;display:none}
+
+@media (max-width:520px){
+  .field-grid,.field-grid-3{grid-template-columns:1fr}
+  .toggle-type{grid-template-columns:1fr}
+  .actions-grid{grid-template-columns:1fr}
+  .progress{font-size:9px}
+  .tin-rule{width:12px}
+  .content{padding:24px 18px 28px}
+}
+</style>
+</head>
+<body>
+
+<div class="screen">
+<div class="screen-bg"></div>
+<div class="screen-overlay"></div>
+
+<div class="content">
+
+  <img class="logo" src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@10df05b/acw-logo.png" alt="L'Atelier du Coworking" />
+
+  <div class="progress">
+    <span class="pill" id="p1"><span class="num">1</span> Espace</span>
+    <span class="tin-rule"></span>
+    <span class="pill" id="p2"><span class="num">2</span> Créneau</span>
+    <span class="tin-rule"></span>
+    <span class="pill" id="p3"><span class="num">3</span> Paiement</span>
+    <span class="tin-rule"></span>
+    <span class="pill" id="p4"><span class="num">4</span> Accès</span>
+  </div>
+
+  <div class="step" id="step1">
+    <h1 class="h1">Réserver votre espace</h1>
+    <p class="h2-pill">5 lieux · 7 jours sur 7</p>
+    <div class="rule"></div>
+    <div class="grid-spaces">
+      <div class="card" data-space="bureau-1">
+        <div class="card-photo" style="background-image:url('https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@10df05b/Bureau-1.jpg')"></div>
+        <div class="card-body"><div class="card-name">Bureau 1</div><div class="card-sub">Bureau privé · 1 à 2 personnes</div><div class="card-price">à partir de 8 €/h</div></div>
+      </div>
+      <div class="card" data-space="bureau-2">
+        <div class="card-photo" style="background-image:url('https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@10df05b/Bureau-2.jpg')"></div>
+        <div class="card-body"><div class="card-name">Bureau 2</div><div class="card-sub">Bureau privé · 1 à 2 personnes</div><div class="card-price">à partir de 8 €/h</div></div>
+      </div>
+      <div class="card" data-space="salle-reunion">
+        <div class="card-photo" style="background-image:url('https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@10df05b/salle-de-reunion.jpg')"></div>
+        <div class="card-body"><div class="card-name">Salle de réunion</div><div class="card-sub">14 en réunion, 20 en théâtre</div><div class="card-price">à partir de 29 €/h</div></div>
+      </div>
+      <div class="card" data-space="coworking">
+        <div class="card-photo" style="background-image:url('https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@10df05b/Photo-principale.jpg')"></div>
+        <div class="card-body"><div class="card-name">Coworking</div><div class="card-sub">Poste en open space</div><div class="card-price">à partir de 4 €/h</div></div>
+      </div>
+      <div class="card" data-space="privatisation" data-onrequest="1">
+        <div class="card-photo" style="background-image:url('https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@10df05b/Privatisation.jpg')"></div>
+        <div class="card-body"><div class="card-name">Privatisation</div><div class="card-sub">Atelier complet · événements & formations</div><div class="card-price">Sur devis</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="step" id="step2">
+    <h1 class="h1">Votre créneau</h1>
+    <p class="h2-pill" id="step2-space">— Bureau 1 —</p>
+    <div class="rule"></div>
+
+    <div style="margin-bottom:16px">
+      <label class="label">Date</label>
+      <input class="input" type="date" id="resa-date" />
+    </div>
+
+    <p class="avail-loading" id="avail-loading" style="display:none">Vérification des disponibilités…</p>
+
+    <label class="label">Plage horaire</label>
+    <div class="slot-grid" id="slot-grid">
+      <div class="slot-card" data-slot="morning">
+        <div class="slot-name">Matinée</div>
+        <div class="slot-hours">8h - 12h (4h)</div>
+        <div class="slot-price" id="price-morning">16 €</div>
+        <span class="slot-left" data-left="morning"></span>
+      </div>
+      <div class="slot-card" data-slot="afternoon">
+        <div class="slot-name">Après-midi</div>
+        <div class="slot-hours">14h - 18h (4h)</div>
+        <div class="slot-price" id="price-afternoon">16 €</div>
+        <span class="slot-left" data-left="afternoon"></span>
+      </div>
+      <div class="slot-card selected" data-slot="day">
+        <div class="slot-name">Journée</div>
+        <div class="slot-hours">8h - 18h (10h)</div>
+        <div class="slot-price" id="price-day">29 €</div>
+        <span class="slot-left" data-left="day"></span>
+      </div>
+      <div class="slot-card" data-slot="hour">
+        <div class="slot-name">À l'heure</div>
+        <div class="slot-hours">de votre choix</div>
+        <div class="slot-price" id="price-hour">8 €/h</div>
+      </div>
+    </div>
+
+    <div class="custom-hour-row" id="custom-hours">
+      <label class="label">Sélectionnez vos horaires</label>
+      <div class="custom-hour-grid">
+        <div>
+          <label class="label" style="margin-bottom:3px">De</label>
+          <select class="input" id="hour-from"></select>
+        </div>
+        <div>
+          <label class="label" style="margin-bottom:3px">À</label>
+          <select class="input" id="hour-to"></select>
+        </div>
+      </div>
+      <span class="hint">Tarif calculé automatiquement selon la durée</span>
+      <span class="error-msg" id="hour-error">Ce créneau n'est plus disponible.</span>
+    </div>
+
+    <div class="savings-hint" id="savings-hint">
+      <div class="savings-hint-inner">
+        <span class="savings-hint-icon">💡</span>
+        <div class="savings-hint-body"><strong>Bon plan</strong> — <span id="savings-hint-text"></span></div>
+        <button class="savings-hint-btn" id="savings-hint-btn" type="button">Choisir</button>
+      </div>
+    </div>
+
+    <div class="actions-nav">
+      <button class="btn btn-ghost" onclick="goStep(1)">← Retour</button>
+      <button class="btn" id="btn-step2-next" onclick="continueFromSlot()">Continuer →</button>
+    </div>
+  </div>
+
+  <div class="step" id="step3">
+    <h1 class="h1">Vos informations</h1>
+    <p class="h2-pill">Paiement sécurisé par Stripe</p>
+    <div class="rule"></div>
+
+    <label class="label">Vous réservez</label>
+    <div class="toggle-type">
+      <div class="toggle-card selected" data-type="particulier">
+        <i class="ti ti-user"></i>
+        <div class="toggle-card-name">Particulier</div>
+        <div class="toggle-card-sub">pour moi-même</div>
+      </div>
+      <div class="toggle-card" data-type="pro">
+        <i class="ti ti-building"></i>
+        <div class="toggle-card-name">Professionnel</div>
+        <div class="toggle-card-sub">avec facture pro</div>
+      </div>
+    </div>
+
+    <div id="form-particulier">
+      <div class="field-grid">
+        <div><label class="label">Prénom</label><input class="input" placeholder="Sophie" id="p-prenom" /></div>
+        <div><label class="label">Nom</label><input class="input" placeholder="Martin" id="p-nom" /></div>
+      </div>
+      <div style="margin-bottom:10px"><label class="label">Email</label><input class="input" type="email" placeholder="sophie@exemple.fr" id="p-mail" /></div>
+      <div style="margin-bottom:12px"><label class="label">Téléphone</label><input class="input" placeholder="06 12 34 56 78" id="p-tel" /></div>
+    </div>
+
+    <div id="form-pro" style="display:none">
+      <div style="margin-bottom:12px">
+        <label class="label">SIRET <span style="color:rgba(255,255,255,.55);font-style:italic;text-transform:none;letter-spacing:0">(autocomplétion à 14 chiffres)</span></label>
+        <input class="input" id="pro-siret" maxlength="14" placeholder="14 chiffres — ex. 12345678901234" inputmode="numeric" />
+        <span class="hint" id="siret-status">Saisissez votre SIRET pour remplir automatiquement</span>
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="label">Raison sociale</label>
+        <input class="input" id="pro-societe" placeholder="Nom de votre société" />
+      </div>
+      <div style="margin-bottom:10px">
+        <label class="label">Adresse de facturation</label>
+        <input class="input" id="pro-adresse" placeholder="N° et rue" />
+      </div>
+      <div class="field-grid-3">
+        <div><label class="label">Code postal</label><input class="input" id="pro-cp" /></div>
+        <div style="grid-column:span 2"><label class="label">Ville</label><input class="input" id="pro-ville" /></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="label">Numéro de TVA intra (facultatif)</label>
+        <input class="input" id="pro-tva" placeholder="FR12345678901" />
+      </div>
+      <div class="field-grid">
+        <div><label class="label">Nom du contact</label><input class="input" id="pro-contact-nom" placeholder="Martin" /></div>
+        <div><label class="label">Prénom du contact</label><input class="input" id="pro-contact-prenom" placeholder="Sophie" /></div>
+      </div>
+      <div style="margin-bottom:10px"><label class="label">Email pro</label><input class="input" type="email" id="pro-mail" placeholder="contact@masociete.fr" /></div>
+      <div style="margin-bottom:12px"><label class="label">Téléphone</label><input class="input" id="pro-tel" placeholder="06 12 34 56 78" /></div>
+    </div>
+
+    <div class="recap">
+      <div class="recap-label">Récapitulatif</div>
+      <div class="recap-row"><span id="recap-space">Bureau 1</span><span id="recap-detail">Journée (8h-18h) · 26 mai</span></div>
+      <div class="recap-row sep total"><span>Total TTC</span><span id="recap-price">34,80 €</span></div>
+    </div>
+
+    <div class="actions-nav">
+      <button class="btn btn-ghost" onclick="goStep(2)">← Retour</button>
+      <button class="btn" id="btn-pay" onclick="payAndConfirm()">Payer & confirmer →</button>
+    </div>
+  </div>
+
+  <div class="step" id="step-devis">
+    <h1 class="h1">Privatisation de l'atelier</h1>
+    <p class="h2-pill">Demande de devis sur mesure</p>
+    <div class="rule"></div>
+    <p style="text-align:center;color:rgba(255,255,255,.78);font-size:14px;line-height:1.7;max-width:520px;margin:0 auto 22px">L'atelier complet pour vos formations, séminaires, soirées d'entreprise ou shootings. On vous prépare un devis personnalisé selon votre besoin (jauge, équipement, configuration).<br><span style="font-size:12px;color:rgba(255,255,255,.55);font-style:italic">Machine à café et thé inclus · Restauration non assurée sur place</span></p>
+    <div class="field-grid">
+      <div><label class="label">Prénom</label><input class="input" id="pv-prenom" placeholder="Sophie" /></div>
+      <div><label class="label">Nom</label><input class="input" id="pv-nom" placeholder="Martin" /></div>
+    </div>
+    <div class="field-grid">
+      <div><label class="label">Email</label><input class="input" type="email" id="pv-mail" placeholder="sophie@exemple.fr" /></div>
+      <div><label class="label">Téléphone</label><input class="input" id="pv-tel" placeholder="06 12 34 56 78" /></div>
+    </div>
+    <div style="margin-bottom:12px"><label class="label">Société (facultatif)</label><input class="input" id="pv-societe" placeholder="Nom de votre structure" /></div>
+    <div class="field-grid">
+      <div><label class="label">Date envisagée</label><input class="input" type="date" id="pv-date" /></div>
+      <div><label class="label">Nombre de personnes</label><input class="input" type="number" min="1" id="pv-people" placeholder="ex. 20" /></div>
+    </div>
+    <div style="margin-bottom:14px"><label class="label">Votre projet en quelques mots</label><textarea class="input" rows="3" id="pv-message" placeholder="Formation d'une journée pour 15 personnes, configuration en U, vidéoprojecteur..."></textarea></div>
+    <span class="error-msg" id="pv-error" style="margin-bottom:8px">Merci de renseigner au moins votre nom et un email valide.</span>
+    <div class="actions-nav">
+      <button class="btn btn-ghost" onclick="goStep(1)">← Retour</button>
+      <button class="btn" id="pv-submit" onclick="submitPrivatisation()">Envoyer la demande</button>
+    </div>
+    <p class="foot">Ou contactez-nous directement à <a href="mailto:ateliercoworking89@gmail.com" style="color:var(--gold)">ateliercoworking89@gmail.com</a></p>
+  </div>
+
+  <div class="step" id="step-devis-ok">
+    <div class="checkring"><i class="ti ti-check"></i></div>
+    <h1 class="h1">Demande envoyée</h1>
+    <p class="h2-pill">Réponse sous 24 h</p>
+    <div class="rule"></div>
+    <p style="text-align:center;color:rgba(255,255,255,.82);font-size:14px;line-height:1.7;max-width:480px;margin:0 auto 20px">Merci ! Votre demande de privatisation a bien été transmise. David vous recontacte avec un devis personnalisé. Un accusé de réception vient de partir vers <span class="mail" id="pv-conf-mail"></span>.</p>
+    <div style="text-align:center"><button class="btn" onclick="goStep(1)">Retour à l'accueil</button></div>
+  </div>
+
+  <div class="step" id="step4">
+    <div class="checkring"><i class="ti ti-check"></i></div>
+    <h1 class="h1">Réservation confirmée</h1>
+    <p class="h2-pill" id="conf-ref">Référence —</p>
+    <div class="rule"></div>
+
+    <div class="section">
+      <div class="section-label"><i class="ti ti-calendar-event"></i> Votre réservation</div>
+      <div class="row"><span class="lbl">Espace</span><span class="val" id="conf-space">Bureau 1</span></div>
+      <div class="row"><span class="lbl">Date</span><span class="val" id="conf-date">—</span></div>
+      <div class="row"><span class="lbl">Horaire</span><span class="val" id="conf-horaire">—</span></div>
+      <div class="row"><span class="lbl">Montant payé</span><span class="val" id="conf-prix">—</span></div>
+    </div>
+
+    <div class="section">
+      <div class="section-label"><i class="ti ti-mail"></i> Votre code d'accès</div>
+      <p style="margin:0;font-size:14px;line-height:1.7;color:rgba(255,255,255,.85)">Le code d'accès et les instructions vous seront envoyés sous quelques minutes par e-mail à <span class="mail" id="conf-mail">—</span>.</p>
+      <p style="margin:8px 0 0;font-size:12px;color:rgba(255,255,255,.55);font-style:italic">Vérifiez aussi vos courriers indésirables. En cas de problème, appelez-nous au 06 23 88 05 03.</p>
+    </div>
+
+    <div class="section">
+      <div class="section-label"><i class="ti ti-map-pin"></i> Informations pratiques</div>
+      <div class="row"><span class="lbl">Adresse</span><span class="val">20 rue Pasteur · 89100 Sens</span></div>
+      <div class="row"><span class="lbl">Wifi</span><span class="val">Coworkingsens · Cowork2023@@</span></div>
+      <div class="row"><span class="lbl">Contact</span><span class="val">06 23 88 05 03</span></div>
+      <div class="actions-grid">
+        <a class="action" id="btn-agenda" href="#"><i class="ti ti-calendar-plus"></i> Mon agenda</a>
+        <a class="action" id="btn-itineraire" href="https://www.google.com/maps/dir/?api=1&destination=20+rue+Pasteur+89100+Sens" target="_blank" rel="noopener"><i class="ti ti-map-2"></i> Itinéraire</a>
+      </div>
+    </div>
+
+    <div style="text-align:center"><button class="btn" onclick="goStep(1)">Faire une autre réservation</button></div>
+  </div>
+
+</div>
+</div>
+
+<script>
+// ============================================================================
+// Config
+// ============================================================================
+const API = '/api/coworking';            // proxy Vercel → backend
+const TEST_MODE = false;                  // page publique = production
+
+let selectedSpace = 'bureau-1';
+let selectedSlot = 'day';
+let selectedClientType = 'particulier';
+let availability = {};                     // { slotKey: {available, remaining} }
+
+const PRICES_HT = {
+  'bureau-1':    {hour:8,  morning:16,  afternoon:16,  day:29},
+  'bureau-2':    {hour:8,  morning:16,  afternoon:16,  day:29},
+  'salle-reunion':{hour:29, morning:70,  afternoon:70,  day:130},
+  'coworking':   {hour:4,  morning:8,   afternoon:8,   day:15},
+};
+const NAMES = {
+  'bureau-1':'Bureau 1','bureau-2':'Bureau 2','salle-reunion':'Salle de réunion',
+  'coworking':'Espace coworking','privatisation':'Privatisation atelier'
+};
+// Unité transmise au backend (capacité par unité) — null = pas d'unité
+const SPACE_UNIT = {'bureau-1':'Bureau 1','bureau-2':'Bureau 2','salle-reunion':'','coworking':''};
+const SLOT_RANGE = {morning:{from:'08:00',to:'12:00'}, afternoon:{from:'14:00',to:'18:00'}, day:{from:'08:00',to:'18:00'}};
+const TVA = 1.20;
+
+function fmt(n){return n.toFixed(2).replace('.',',') + ' €'}
+
+// ============================================================================
+// Navigation entre étapes
+// ============================================================================
+function goStep(n){
+  document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+  if(n === 'devis'){
+    document.getElementById('step-devis').classList.add('active');
+    ['p1','p2','p3','p4'].forEach(id=>document.getElementById(id).classList.remove('active','done'));
+    window.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
+  if(n === 'devis-ok'){
+    document.getElementById('step-devis-ok').classList.add('active');
+    window.scrollTo({top:0,behavior:'smooth'});
+    return;
+  }
+  document.getElementById('step'+n).classList.add('active');
+  ['p1','p2','p3','p4'].forEach((id,i)=>{
+    const el = document.getElementById(id);
+    el.classList.remove('active','done');
+    if(i+1 < n) el.classList.add('done');
+    if(i+1 === n) el.classList.add('active');
+  });
+  if(n===2){ updateSlotPrices(); updateSavingsHint(); loadAvailability(); }
+  if(n===3) updateRecap();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ============================================================================
+// Durée / prix
+// ============================================================================
+function getHourFromTo(){
+  return {from: document.getElementById('hour-from').value, to: document.getElementById('hour-to').value};
+}
+function hoursBetween(from, to){
+  return Math.max(parseInt(to.split(':')[0]) - parseInt(from.split(':')[0]), 0);
+}
+function getCurrentDurationHours(){
+  if(selectedSlot === 'morning' || selectedSlot === 'afternoon') return 4;
+  if(selectedSlot === 'day') return 10;
+  if(selectedSlot === 'hour'){ const {from,to} = getHourFromTo(); return hoursBetween(from, to); }
+  return 0;
+}
+function computeCurrentPriceTTC(){
+  if(selectedSpace === 'privatisation') return 0;
+  if(selectedSlot === 'hour'){
+    const h = getCurrentDurationHours();
+    let bestHT = h * PRICES_HT[selectedSpace].hour;
+    if(h >= 8) bestHT = Math.min(bestHT, PRICES_HT[selectedSpace].day);
+    return bestHT * TVA;
+  }
+  return PRICES_HT[selectedSpace][selectedSlot] * TVA;
+}
+function updateSlotPrices(){
+  if(!PRICES_HT[selectedSpace]) return;
+  const p = PRICES_HT[selectedSpace];
+  document.getElementById('price-morning').textContent = fmt(p.morning * TVA);
+  document.getElementById('price-afternoon').textContent = fmt(p.afternoon * TVA);
+  document.getElementById('price-day').textContent = fmt(p.day * TVA);
+  document.getElementById('price-hour').textContent = fmt(p.hour * TVA).replace('€','') + '€/h';
+}
+
+// ============================================================================
+// DISPONIBILITÉS TEMPS RÉEL
+// ============================================================================
+async function loadAvailability(){
+  const date = document.getElementById('resa-date').value;
+  if(!date || selectedSpace === 'privatisation') return;
+  const loading = document.getElementById('avail-loading');
+  loading.style.display = 'block';
+  // reset visuel
+  document.querySelectorAll('#slot-grid .slot-card').forEach(c=>c.classList.remove('full'));
+  document.querySelectorAll('.slot-left').forEach(s=>s.textContent='');
+  availability = {};
+  try {
+    const r = await fetch(`${API}/availability?date=${encodeURIComponent(date)}&space=${encodeURIComponent(selectedSpace)}&test_mode=${TEST_MODE}`);
+    if(!r.ok) throw new Error('availability ' + r.status);
+    const data = await r.json();
+    (data.slots || []).forEach(s=>{
+      availability[s.key] = {available: s.available, remaining: s.remaining, reason: s.reason};
+      const card = document.querySelector(`#slot-grid .slot-card[data-slot="${s.key}"]`);
+      const left = document.querySelector(`.slot-left[data-left="${s.key}"]`);
+      if(card){
+        if(!s.available){
+          card.classList.add('full');
+          if(card.classList.contains('selected')){ card.classList.remove('selected'); selectedSlot=null; }
+        }
+      }
+      if(left){
+        if(s.available && s.remaining > 1) left.textContent = s.remaining + ' places restantes';
+        else if(s.available && s.remaining === 1) left.textContent = 'dernière place';
+        else left.textContent = '';
+      }
+    });
+    // si le slot sélectionné est devenu complet, choisir le premier dispo
+    if(!selectedSlot || (availability[selectedSlot] && !availability[selectedSlot].available)){
+      const firstFree = ['day','morning','afternoon'].find(k=>availability[k] && availability[k].available);
+      if(firstFree){
+        document.querySelectorAll('#slot-grid .slot-card').forEach(x=>x.classList.remove('selected'));
+        const t = document.querySelector(`#slot-grid .slot-card[data-slot="${firstFree}"]`);
+        if(t) t.classList.add('selected');
+        selectedSlot = firstFree;
+      }
+    }
+  } catch(e){
+    console.warn('Dispo indisponible, on laisse réserver (vérif au paiement)', e);
+  } finally {
+    loading.style.display = 'none';
+  }
+}
+
+// Vérifie un créneau (standard ou horaire perso) juste avant de continuer
+async function validateBeforeContinue(){
+  const date = document.getElementById('resa-date').value;
+  let hf, ht;
+  if(selectedSlot === 'hour'){ const r = getHourFromTo(); hf=r.from; ht=r.to; }
+  else if(SLOT_RANGE[selectedSlot]){ hf=SLOT_RANGE[selectedSlot].from; ht=SLOT_RANGE[selectedSlot].to; }
+  else return false;
+  try {
+    const res = await fetch(`${API}/validate-slot`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({space:selectedSpace, date, hour_from:hf, hour_to:ht, test_mode:TEST_MODE})
+    });
+    const data = await res.json();
+    return !!data.ok;
+  } catch(e){ return true; } // si l'API tombe, on ne bloque pas (le webhook reste maître)
+}
+
+async function continueFromSlot(){
+  if(!selectedSlot){ alert('Merci de choisir un créneau disponible.'); return; }
+  const date = document.getElementById('resa-date').value;
+  if(!date){ alert('Merci de choisir une date.'); return; }
+  const btn = document.getElementById('btn-step2-next');
+  btn.disabled = true; const t = btn.textContent; btn.textContent = 'Vérification…';
+  const ok = await validateBeforeContinue();
+  btn.disabled = false; btn.textContent = t;
+  if(!ok){
+    if(selectedSlot === 'hour'){ document.getElementById('hour-error').style.display='block'; }
+    alert('Ce créneau vient d\'être réservé. Merci d\'en choisir un autre.');
+    loadAvailability();
+    return;
+  }
+  goStep(3);
+}
+
+// ============================================================================
+// Bon plan (suggestion créneau avantageux)
+// ============================================================================
+function updateSavingsHint(){
+  const hintEl = document.getElementById('savings-hint');
+  if(!hintEl) return;
+  if(selectedSlot !== 'hour' || selectedSpace === 'privatisation' || !PRICES_HT[selectedSpace]){ hintEl.classList.remove('show'); return; }
+  const prices = PRICES_HT[selectedSpace];
+  const {from, to} = getHourFromTo();
+  const fromH = parseInt(from.split(':')[0]), toH = parseInt(to.split(':')[0]);
+  const h = Math.max(toH - fromH, 0);
+  if(h <= 0){ hintEl.classList.remove('show'); return; }
+  const customHT = h * prices.hour;
+  const slotsRanges = [
+    {key:'morning', label:'Matinée (8h-12h)', nameOnly:'Matinée', fromH:8, toH:12, priceHT:prices.morning},
+    {key:'afternoon', label:'Après-midi (14h-18h)', nameOnly:'Après-midi', fromH:14, toH:18, priceHT:prices.afternoon},
+    {key:'day', label:'Journée (8h-18h)', nameOnly:'Journée', fromH:8, toH:18, priceHT:prices.day},
+  ];
+  const candidates = slotsRanges.filter(s => fromH >= s.fromH && toH <= s.toH && s.priceHT < customHT
+    && !(availability[s.key] && !availability[s.key].available));
+  if(candidates.length === 0){ hintEl.classList.remove('show'); return; }
+  candidates.sort((a,b)=>a.priceHT-b.priceHT);
+  const best = candidates[0];
+  const savings = (customHT - best.priceHT) * TVA;
+  document.getElementById('savings-hint-text').innerHTML =
+    "vos horaires reviennent moins chers en <strong>" + best.label + "</strong> : " +
+    fmt(best.priceHT*TVA) + " au lieu de " + fmt(customHT*TVA) + " — économisez <strong>" + fmt(savings) + "</strong>";
+  const btn = document.getElementById('savings-hint-btn');
+  btn.textContent = 'Choisir ' + best.nameOnly;
+  btn.dataset.targetSlot = best.key;
+  hintEl.classList.add('show');
+}
+function applySavingsSuggestion(){
+  const btn = document.getElementById('savings-hint-btn');
+  const targetSlot = btn.dataset.targetSlot;
+  if(!targetSlot) return;
+  document.querySelectorAll('.slot-card').forEach(x=>x.classList.remove('selected'));
+  const target = document.querySelector('.slot-card[data-slot="' + targetSlot + '"]');
+  if(target) target.classList.add('selected');
+  selectedSlot = targetSlot;
+  document.getElementById('custom-hours').classList.remove('show');
+  document.getElementById('savings-hint').classList.remove('show');
+}
+
+// ============================================================================
+// Récap
+// ============================================================================
+function updateRecap(){
+  const dateInput = document.getElementById('resa-date');
+  const d = dateInput.value ? new Date(dateInput.value) : new Date();
+  const dateStr = d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
+  let detail = '';
+  if(selectedSlot === 'morning') detail = 'Matinée (8h-12h)';
+  else if(selectedSlot === 'afternoon') detail = 'Après-midi (14h-18h)';
+  else if(selectedSlot === 'day') detail = 'Journée (8h-18h)';
+  else if(selectedSlot === 'hour'){ const {from,to} = getHourFromTo(); detail = 'De ' + from + ' à ' + to; }
+  document.getElementById('recap-space').textContent = NAMES[selectedSpace];
+  document.getElementById('recap-detail').textContent = detail + ' · ' + dateStr;
+  document.getElementById('recap-price').textContent = fmt(computeCurrentPriceTTC());
+}
+
+// ============================================================================
+// Confirmation (retour Stripe)
+// ============================================================================
+function updateConfirmation(){
+  const snap = lastBookingSnapshot;
+  const dateVal = (snap && snap.date) ? snap.date : document.getElementById('resa-date').value;
+  const d = dateVal ? new Date(dateVal) : new Date();
+  const longDate = d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  let horaire = '', startH='08', endH='18';
+  const slotForConf = (snap && snap.slot) ? snap.slot : selectedSlot;
+  const spaceForConf = (snap && snap.space) ? snap.space : selectedSpace;
+  if(slotForConf === 'morning'){horaire='8 h 00 → 12 h 00'; startH='08'; endH='12';}
+  else if(slotForConf === 'afternoon'){horaire='14 h 00 → 18 h 00'; startH='14'; endH='18';}
+  else if(slotForConf === 'day'){horaire='8 h 00 → 18 h 00'; startH='08'; endH='18';}
+  else if(slotForConf === 'hour'){
+    const from = (snap && snap.hourFrom) ? snap.hourFrom : '09:00';
+    const to = (snap && snap.hourTo) ? snap.hourTo : '17:00';
+    horaire = from + ' → ' + to; startH = from.split(':')[0]; endH = to.split(':')[0];
+  }
+  const mail = (snap && snap.email) ? snap.email : '';
+  const amount = (snap && typeof snap.amountTTC === 'number') ? snap.amountTTC : computeCurrentPriceTTC();
+  const reference = (snap && snap.ref) ? snap.ref : '';
+  document.getElementById('conf-space').textContent = NAMES[spaceForConf] || spaceForConf;
+  document.getElementById('conf-date').textContent = longDate;
+  document.getElementById('conf-horaire').textContent = horaire;
+  document.getElementById('conf-prix').textContent = fmt(amount) + ' TTC';
+  document.getElementById('conf-mail').textContent = mail;
+  document.getElementById('conf-ref').textContent = reference ? ('Référence ' + reference) : 'Confirmation envoyée par e-mail';
+  const startISO = d.toISOString().split('T')[0].replace(/-/g,'');
+  const title = encodeURIComponent('Réservation ' + (NAMES[spaceForConf]||'') + ' — L\'Atelier du Coworking');
+  const loc = encodeURIComponent('20 rue Pasteur, 89100 Sens');
+  const details = encodeURIComponent('Référence ' + reference + '. Code d\'accès envoyé par e-mail. Wifi : Coworkingsens / Cowork2023@@. Contact : 06 23 88 05 03.');
+  document.getElementById('btn-agenda').href = 'https://calendar.google.com/calendar/render?action=TEMPLATE&text=' + title + '&dates=' + startISO + 'T' + startH + '0000/' + startISO + 'T' + endH + '0000&details=' + details + '&location=' + loc;
+}
+
+// ============================================================================
+// Sélections
+// ============================================================================
+document.querySelectorAll('#step1 .card').forEach(c=>{
+  c.addEventListener('click',()=>{
+    document.querySelectorAll('#step1 .card').forEach(x=>x.classList.remove('selected'));
+    c.classList.add('selected');
+    selectedSpace = c.dataset.space;
+    if(c.dataset.onrequest === '1'){ setTimeout(()=>goStep('devis'), 200); return; }
+    // coworking n'a pas de slot 'hour' bon plan particulier, mais on garde la logique
+    selectedSlot = 'day';
+    document.querySelectorAll('#slot-grid .slot-card').forEach(x=>x.classList.remove('selected'));
+    const dayCard = document.querySelector('#slot-grid .slot-card[data-slot="day"]');
+    if(dayCard) dayCard.classList.add('selected');
+    document.getElementById('custom-hours').classList.remove('show');
+    document.getElementById('step2-space').textContent = '— ' + NAMES[selectedSpace] + ' —';
+    setTimeout(()=>goStep(2), 200);
+  });
+});
+
+document.querySelectorAll('#slot-grid .slot-card').forEach(s=>{
+  s.addEventListener('click',()=>{
+    if(s.classList.contains('full')) return; // créneau complet : non sélectionnable
+    document.querySelectorAll('#slot-grid .slot-card').forEach(x=>x.classList.remove('selected'));
+    s.classList.add('selected');
+    selectedSlot = s.dataset.slot;
+    const custom = document.getElementById('custom-hours');
+    if(selectedSlot === 'hour') custom.classList.add('show'); else custom.classList.remove('show');
+    document.getElementById('hour-error').style.display='none';
+    updateSavingsHint();
+  });
+});
+
+['hour-from','hour-to'].forEach(id=>{
+  const el = document.getElementById(id);
+  if(el) el.addEventListener('change', ()=>{ document.getElementById('hour-error').style.display='none'; updateSavingsHint(); });
+});
+const savingsBtn = document.getElementById('savings-hint-btn');
+if(savingsBtn) savingsBtn.addEventListener('click', applySavingsSuggestion);
+
+document.querySelectorAll('.toggle-card').forEach(t=>{
+  t.addEventListener('click',()=>{
+    document.querySelectorAll('.toggle-card').forEach(x=>x.classList.remove('selected'));
+    t.classList.add('selected');
+    selectedClientType = t.dataset.type;
+    document.getElementById('form-particulier').style.display = selectedClientType==='particulier' ? 'block' : 'none';
+    document.getElementById('form-pro').style.display = selectedClientType==='pro' ? 'block' : 'none';
+  });
+});
+
+document.getElementById('resa-date').addEventListener('change', ()=>{ loadAvailability(); });
+
+// Heures du sélecteur custom
+const hf = document.getElementById('hour-from'), ht = document.getElementById('hour-to');
+for(let h=8; h<=20; h++){
+  const v = (h<10?'0':'') + h + ':00';
+  const o1 = document.createElement('option'); o1.value=v; o1.textContent=v; hf.appendChild(o1);
+  const o2 = document.createElement('option'); o2.value=v; o2.textContent=v; ht.appendChild(o2);
+}
+hf.value = '09:00'; ht.value = '12:00';
+
+// Date par défaut = demain, min = aujourd'hui
+const today = new Date();
+const tomorrow = new Date(); tomorrow.setDate(tomorrow.getDate()+1);
+const dateEl = document.getElementById('resa-date');
+dateEl.value = tomorrow.toISOString().split('T')[0];
+dateEl.min = today.toISOString().split('T')[0];
+const pvDate = document.getElementById('pv-date'); if(pvDate) pvDate.min = today.toISOString().split('T')[0];
+
+document.querySelector('#step1 .card').classList.add('selected');
+
+// ============================================================================
+// SIRET autocomplétion (base Sirene)
+// ============================================================================
+const siretInput = document.getElementById('pro-siret');
+const siretStatus = document.getElementById('siret-status');
+let siretTimer = null;
+siretInput.addEventListener('input', e=>{
+  const raw = e.target.value.replace(/\D/g,'').slice(0,14);
+  e.target.value = raw;
+  clearTimeout(siretTimer);
+  if(raw.length === 14){
+    siretStatus.textContent = 'Recherche dans la base Sirene...';
+    siretInput.classList.add('search-state'); siretInput.classList.remove('ok-state');
+    siretTimer = setTimeout(()=>fetchSiret(raw), 400);
+  } else {
+    siretStatus.textContent = 'Saisissez votre SIRET pour remplir automatiquement';
+    siretInput.classList.remove('search-state','ok-state');
+  }
+});
+async function fetchSiret(siret){
+  try{
+    const r = await fetch('https://recherche-entreprises.api.gouv.fr/search?q=' + siret);
+    const data = await r.json();
+    const result = data.results && data.results[0];
+    if(result){
+      const siege = (result.matching_etablissements && result.matching_etablissements[0]) || result.siege || {};
+      document.getElementById('pro-societe').value = result.nom_complet || result.nom_raison_sociale || '';
+      document.getElementById('pro-adresse').value = (siege.adresse || '').replace(/, \d{5} .+$/,'') || '';
+      document.getElementById('pro-cp').value = siege.code_postal || '';
+      document.getElementById('pro-ville').value = siege.libelle_commune || '';
+      siretStatus.textContent = '✓ Société trouvée — vérifiez et complétez si besoin';
+      siretInput.classList.remove('search-state'); siretInput.classList.add('ok-state');
+    } else { siretStatus.textContent = '⚠️ SIRET introuvable. Remplissez manuellement.'; siretInput.classList.remove('search-state'); }
+  } catch(err){ siretStatus.textContent = '⚠️ Erreur de connexion. Remplissez manuellement.'; siretInput.classList.remove('search-state'); }
+}
+
+// ============================================================================
+// PRIVATISATION — envoi de la demande
+// ============================================================================
+async function submitPrivatisation(){
+  const name = (document.getElementById('pv-prenom').value + ' ' + document.getElementById('pv-nom').value).trim();
+  const email = document.getElementById('pv-mail').value.trim();
+  const err = document.getElementById('pv-error');
+  if(!name || !email || !email.includes('@')){ err.style.display='block'; return; }
+  err.style.display='none';
+  const btn = document.getElementById('pv-submit');
+  btn.disabled = true; const t = btn.textContent; btn.textContent = 'Envoi…';
+  try {
+    const res = await fetch(`${API}/privatisation-request`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        name, email,
+        phone: document.getElementById('pv-tel').value.trim(),
+        company: document.getElementById('pv-societe').value.trim(),
+        date: document.getElementById('pv-date').value,
+        people: document.getElementById('pv-people').value,
+        message: document.getElementById('pv-message').value.trim(),
+      })
+    });
+    if(!res.ok) throw new Error('http ' + res.status);
+    document.getElementById('pv-conf-mail').textContent = email;
+    goStep('devis-ok');
+  } catch(e){
+    alert('Erreur lors de l\'envoi. Merci de réessayer ou d\'écrire à ateliercoworking89@gmail.com');
+    btn.disabled = false; btn.textContent = t;
+  }
+}
+
+// ============================================================================
+// STRIPE CHECKOUT
+// ============================================================================
+async function payAndConfirm(){
+  const btn = document.getElementById('btn-pay');
+  const originalText = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Vérification…'; btn.style.opacity = '0.7';
+  try {
+    let email, name;
+    if(selectedClientType === 'pro'){
+      email = document.getElementById('pro-mail').value;
+      name = (document.getElementById('pro-contact-prenom').value + ' ' + document.getElementById('pro-contact-nom').value).trim();
+    } else {
+      email = document.getElementById('p-mail').value;
+      name = (document.getElementById('p-prenom').value + ' ' + document.getElementById('p-nom').value).trim();
+    }
+    if(!email || !email.includes('@')){
+      alert('Merci de renseigner un email valide');
+      btn.disabled=false; btn.textContent=originalText; btn.style.opacity=''; return;
+    }
+    // Re-vérif dispo juste avant paiement (anti double-réservation)
+    const stillFree = await validateBeforeContinue();
+    if(!stillFree){
+      alert('Ce créneau vient d\'être réservé par quelqu\'un d\'autre. Merci d\'en choisir un autre.');
+      btn.disabled=false; btn.textContent=originalText; btn.style.opacity='';
+      goStep(2); loadAvailability(); return;
+    }
+    btn.textContent = 'Redirection vers Stripe…';
+    const company = selectedClientType === 'pro' ? document.getElementById('pro-societe').value : '';
+    const dateInput = document.getElementById('resa-date').value;
+    let hourFrom = '', hourTo = '';
+    if(selectedSlot === 'hour'){ hourFrom = document.getElementById('hour-from').value; hourTo = document.getElementById('hour-to').value; }
+    const refNum = 'RES-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000);
+    const bookingSnapshot = {
+      ref:refNum, space:selectedSpace, spaceUnit:SPACE_UNIT[selectedSpace]||'', slot:selectedSlot, date:dateInput,
+      hourFrom, hourTo, amountTTC:computeCurrentPriceTTC(), email, name, clientType:selectedClientType, company, ts:Date.now(),
+    };
+    try { localStorage.setItem('acw_last_booking', JSON.stringify(bookingSnapshot)); } catch(e){}
+
+    const res = await fetch('/api/checkout', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        space: NAMES[selectedSpace],
+        spaceUnit: SPACE_UNIT[selectedSpace] || '',
+        slot: selectedSlot, date: dateInput, hourFrom, hourTo,
+        amountTTC: computeCurrentPriceTTC(),
+        email, clientType: selectedClientType, name, company,
+        reference: refNum, testMode: TEST_MODE, returnPath: window.location.pathname,
+      }),
+    });
+    if(!res.ok){ const e = await res.json().catch(()=>({error:'Erreur inconnue'})); throw new Error(e.error || 'Erreur de paiement'); }
+    const data = await res.json();
+    if(data.url){ window.location.href = data.url; } else { throw new Error('URL Stripe manquante'); }
+  } catch(err){
+    console.error(err);
+    alert('Erreur de paiement : ' + err.message + '\nMerci de réessayer ou nous contacter au 06.23.88.05.03.');
+    btn.disabled=false; btn.textContent=originalText; btn.style.opacity='';
+  }
+}
+
+// ============================================================================
+// Retour de Stripe
+// ============================================================================
+let lastBookingSnapshot = null;
+(function checkReturnFromStripe(){
+  const params = new URLSearchParams(window.location.search);
+  const status = params.get('status');
+  if(status === 'success'){
+    try {
+      const raw = localStorage.getItem('acw_last_booking');
+      if(raw){
+        const snap = JSON.parse(raw);
+        selectedSpace = snap.space || selectedSpace;
+        selectedSlot = snap.slot || selectedSlot;
+        selectedClientType = snap.clientType || selectedClientType;
+        lastBookingSnapshot = snap;
+        if(snap.date) document.getElementById('resa-date').value = snap.date;
+      }
+    } catch(e){ console.warn('Snapshot restore failed', e); }
+    document.querySelectorAll('.step').forEach(s=>s.classList.remove('active'));
+    document.getElementById('step4').classList.add('active');
+    ['p1','p2','p3','p4'].forEach((id,i)=>{ const el=document.getElementById(id); el.classList.remove('active'); el.classList.add(i<3?'done':'active'); });
+    updateConfirmation();
+    history.replaceState({}, '', window.location.pathname);
+    return;
+  } else if(status === 'cancelled'){
+    setTimeout(()=>{ goStep(3); alert('Le paiement a été annulé. Vous pouvez réessayer.'); }, 50);
+    history.replaceState({}, '', window.location.pathname);
+    return;
+  }
+  goStep(1);
+})();
+</script>
+
+</body>
+</html>

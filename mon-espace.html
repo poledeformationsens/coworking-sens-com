@@ -321,8 +321,24 @@
     <h1>Créer mon compte</h1>
     <p class="subtitle">Inscription rapide</p>
     <form onsubmit="doSignup(event)">
-      <label>Nom complet</label>
-      <input id="signup-name" type="text" required autocomplete="name">
+      <label>Civilité</label>
+      <select id="signup-civility">
+        <option value="">—</option>
+        <option value="M.">M.</option>
+        <option value="Mme">Mme</option>
+        <option value="Mlle">Mlle</option>
+        <option value="Autre">Autre</option>
+      </select>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <label>Prénom</label>
+          <input id="signup-firstname" type="text" required autocomplete="given-name">
+        </div>
+        <div>
+          <label>Nom</label>
+          <input id="signup-lastname" type="text" required autocomplete="family-name">
+        </div>
+      </div>
       <label>Email</label>
       <input id="signup-email" type="email" required autocomplete="email">
       <label>Téléphone</label>
@@ -436,17 +452,35 @@
 
 <!-- TAB PROFILE -->
 <div id="tab-profile" class="tab-content" style="display:none;">
-  <div class="card">
-    <h2>Mes informations</h2>
-    <form onsubmit="saveProfile(event)">
+  <form onsubmit="saveProfile(event)">
+
+    <!-- Identité -->
+    <div class="card">
+      <h2>🆔 Identité</h2>
       <div class="form-row">
         <div class="form-group">
-          <label>Nom complet</label>
-          <input id="prof-name" type="text">
+          <label>Civilité</label>
+          <select id="prof-civility">
+            <option value="">—</option>
+            <option value="M.">M.</option>
+            <option value="Mme">Mme</option>
+            <option value="Mlle">Mlle</option>
+            <option value="Autre">Autre</option>
+          </select>
         </div>
         <div class="form-group">
-          <label>Téléphone</label>
-          <input id="prof-phone" type="tel">
+          <label>Date de naissance</label>
+          <input id="prof-birth" type="date">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Prénom</label>
+          <input id="prof-firstname" type="text">
+        </div>
+        <div class="form-group">
+          <label>Nom</label>
+          <input id="prof-lastname" type="text">
         </div>
       </div>
       <div class="form-row">
@@ -455,11 +489,26 @@
           <input id="prof-email" type="email" disabled style="background:var(--cream);color:var(--slate);">
         </div>
         <div class="form-group">
+          <label>Téléphone</label>
+          <input id="prof-phone" type="tel">
+        </div>
+      </div>
+    </div>
+
+    <!-- Pro -->
+    <div class="card">
+      <h2>💼 Activité pro</h2>
+      <div class="form-row">
+        <div class="form-group">
           <label>Type</label>
           <select id="prof-type">
             <option value="perso">Particulier</option>
             <option value="pro">Professionnel</option>
           </select>
+        </div>
+        <div class="form-group">
+          <label>Profession / titre</label>
+          <input id="prof-profession" type="text" placeholder="Ex: Photographe, Consultant...">
         </div>
       </div>
       <div id="prof-pro-fields" style="display:none;">
@@ -480,13 +529,93 @@
           </div>
         </div>
       </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Site web</label>
+          <input id="prof-website" type="url" placeholder="https://...">
+        </div>
+        <div class="form-group">
+          <label>LinkedIn</label>
+          <input id="prof-linkedin" type="url" placeholder="https://linkedin.com/in/...">
+        </div>
+      </div>
+    </div>
+
+    <!-- Communauté -->
+    <div class="card">
+      <h2>🌐 Pour la communauté</h2>
+      <p style="margin:-10px 0 16px;font-size:13px;color:var(--slate);">Aide-nous à mieux te connaître et à faire les bonnes rencontres entre coworkers.</p>
+      <div class="form-row single">
+        <div class="form-group">
+          <label>Bio courte (1-2 phrases pour te présenter)</label>
+          <textarea id="prof-bio" rows="2" maxlength="280" style="width:100%;padding:10px 12px;border:1px solid var(--light);border-radius:4px;font-size:14px;font-family:inherit;color:var(--navy);resize:vertical;"></textarea>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Hobbies / passions</label>
+          <input id="prof-hobbies" type="text" placeholder="Ex: Photo, vélo, jazz, cuisine japonaise">
+        </div>
+        <div class="form-group">
+          <label>Compétences / expertises</label>
+          <input id="prof-skills" type="text" placeholder="Ex: Design, marketing, dev Python">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Langues parlées</label>
+          <input id="prof-languages" type="text" placeholder="Ex: Français, anglais, espagnol">
+        </div>
+        <div class="form-group">
+          <label>Instagram</label>
+          <input id="prof-instagram" type="text" placeholder="@pseudo ou URL">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Ville</label>
+          <input id="prof-city" type="text" placeholder="Sens">
+        </div>
+        <div class="form-group">
+          <label>Code postal</label>
+          <input id="prof-postal" type="text" placeholder="89100" maxlength="5">
+        </div>
+      </div>
+      <div class="form-row single" style="margin-top:8px;">
+        <div class="form-group">
+          <label style="font-weight:600;">Je suis disponible pour…</label>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:13px;">
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;color:var(--navy);">
+              <input type="checkbox" id="avail-coffee" value="coffee" style="margin:0;"> ☕ Un café/échange
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;color:var(--navy);">
+              <input type="checkbox" id="avail-buddy" value="coworking_buddy" style="margin:0;"> 👯 Coworking buddy
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;color:var(--navy);">
+              <input type="checkbox" id="avail-networking" value="networking" style="margin:0;"> 🤝 Networking pro
+            </label>
+            <label style="display:flex;align-items:center;gap:6px;font-weight:400;text-transform:none;letter-spacing:0;cursor:pointer;color:var(--navy);">
+              <input type="checkbox" id="avail-partner" value="partnership" style="margin:0;"> 💡 Partenariats
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="form-row single" style="margin-top:14px;">
+        <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;text-transform:none;letter-spacing:0;font-weight:400;color:var(--navy);">
+          <input id="prof-public" type="checkbox" style="margin:0;">
+          <span><b>Profil public</b> — Mon profil apparaîtra dans l'annuaire des coworkers (uniquement les champs ci-dessus, jamais l'email/téléphone).</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="card">
       <div class="form-actions">
-        <button type="submit" class="btn btn-primary">Enregistrer</button>
+        <button type="submit" class="btn btn-primary">Enregistrer mes modifications</button>
         <p id="prof-success" style="color:var(--green);font-size:13px;margin:0;display:none;align-self:center;">✓ Modifications enregistrées</p>
         <p id="prof-error" style="color:var(--coral);font-size:13px;margin:0;display:none;align-self:center;"></p>
       </div>
-    </form>
-  </div>
+    </div>
+  </form>
 </div>
 
 <!-- TAB SECURITY -->
@@ -591,7 +720,9 @@ async function doLogin(e) {
 async function doSignup(e) {
   e.preventDefault();
   const body = {
-    name: document.getElementById('signup-name').value.trim(),
+    civility: document.getElementById('signup-civility').value || null,
+    first_name: document.getElementById('signup-firstname').value.trim(),
+    last_name: document.getElementById('signup-lastname').value.trim(),
     email: document.getElementById('signup-email').value.trim(),
     phone: document.getElementById('signup-phone').value.trim() || null,
     password: document.getElementById('signup-password').value,
@@ -678,7 +809,10 @@ async function enterApp() {
 
 function renderApp(data) {
   const c = data.customer;
-  const firstName = (c.name || '').split(' ')[0] || '';
+  // Préfère first_name (champ dédié), sinon premier mot du name complet
+  const firstName = (c.first_name && c.first_name.trim())
+    || ((c.name || '').split(' ').filter(s => !/^(M\.|Mme|Mlle|Autre)$/.test(s))[0])
+    || '';
   document.getElementById('greeting').textContent = firstName ? `Bonjour ${firstName}` : 'Bonjour';
 
   // Stats
@@ -701,11 +835,35 @@ function renderApp(data) {
     : `<div class="empty-state">Pas encore d'historique.</div>`;
 
   // Pre-fill profile
-  document.getElementById('prof-name').value = c.name || '';
-  document.getElementById('prof-phone').value = c.phone || '';
-  document.getElementById('prof-email').value = c.email || '';
-  document.getElementById('prof-type').value = c.client_type || 'perso';
-  document.getElementById('prof-company').value = c.company || '';
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val ?? ''; };
+  setVal('prof-civility', c.civility);
+  setVal('prof-birth', c.birth_date);
+  setVal('prof-firstname', c.first_name);
+  setVal('prof-lastname', c.last_name);
+  setVal('prof-email', c.email);
+  setVal('prof-phone', c.phone);
+  setVal('prof-type', c.client_type || 'perso');
+  setVal('prof-profession', c.profession);
+  setVal('prof-company', c.company);
+  setVal('prof-siret', c.company_siret);
+  setVal('prof-address', c.company_address);
+  setVal('prof-website', c.website);
+  setVal('prof-linkedin', c.linkedin);
+  setVal('prof-bio', c.bio);
+  setVal('prof-hobbies', c.hobbies);
+  setVal('prof-skills', c.skills);
+  setVal('prof-languages', c.languages);
+  setVal('prof-instagram', c.instagram);
+  setVal('prof-city', c.city);
+  setVal('prof-postal', c.postal_code);
+  document.getElementById('prof-public').checked = !!c.public_profile;
+  // Decode available_for (CSV → checkboxes)
+  const avail = (c.available_for || '').split(',').map(s => s.trim()).filter(Boolean);
+  ['coffee', 'buddy', 'networking', 'partner'].forEach(k => {
+    const map = {coffee: 'coffee', buddy: 'coworking_buddy', networking: 'networking', partner: 'partnership'};
+    const cb = document.getElementById('avail-' + k);
+    if (cb) cb.checked = avail.includes(map[k]);
+  });
   toggleProFields(c.client_type === 'pro');
 }
 
@@ -755,13 +913,35 @@ async function saveProfile(e) {
   const successEl = document.getElementById('prof-success');
   const errEl = document.getElementById('prof-error');
   successEl.style.display = 'none'; errEl.style.display = 'none';
+  const getVal = (id) => { const el = document.getElementById(id); return el ? (el.value.trim() || null) : null; };
+  // Available_for = CSV des cases cochées
+  const availList = [];
+  if (document.getElementById('avail-coffee').checked) availList.push('coffee');
+  if (document.getElementById('avail-buddy').checked) availList.push('coworking_buddy');
+  if (document.getElementById('avail-networking').checked) availList.push('networking');
+  if (document.getElementById('avail-partner').checked) availList.push('partnership');
   const body = {
-    name: document.getElementById('prof-name').value.trim(),
-    phone: document.getElementById('prof-phone').value.trim() || null,
+    civility: getVal('prof-civility'),
+    first_name: getVal('prof-firstname'),
+    last_name: getVal('prof-lastname'),
+    phone: getVal('prof-phone'),
+    birth_date: getVal('prof-birth'),
     client_type: document.getElementById('prof-type').value,
-    company: document.getElementById('prof-company').value.trim() || null,
-    company_siret: document.getElementById('prof-siret') ? document.getElementById('prof-siret').value.trim() || null : null,
-    company_address: document.getElementById('prof-address') ? document.getElementById('prof-address').value.trim() || null : null,
+    profession: getVal('prof-profession'),
+    company: getVal('prof-company'),
+    company_siret: getVal('prof-siret'),
+    company_address: getVal('prof-address'),
+    website: getVal('prof-website'),
+    linkedin: getVal('prof-linkedin'),
+    bio: getVal('prof-bio'),
+    hobbies: getVal('prof-hobbies'),
+    skills: getVal('prof-skills'),
+    languages: getVal('prof-languages'),
+    instagram: getVal('prof-instagram'),
+    city: getVal('prof-city'),
+    postal_code: getVal('prof-postal'),
+    public_profile: document.getElementById('prof-public').checked,
+    available_for: availList.length ? availList.join(',') : null,
   };
   try {
     const r = await fetch(`${API_BASE}/client/me`, {method:'PATCH', headers: authHeaders(), body: JSON.stringify(body)});
