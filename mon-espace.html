@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mon espace — L'Atelier du Coworking</title>
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --navy: #03234D;
@@ -47,7 +47,7 @@
   }
   .auth-card .logo img { width: 100px; height: 100px; }
   .auth-card h1 {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Playfair Display', Georgia, serif;
     font-size: 24px;
     margin: 0 0 6px;
     text-align: center;
@@ -135,7 +135,7 @@
   }
   .hero img.logo { width: 130px; height: 130px; margin: 0 auto 6px; display: block; object-fit: contain; }
   .hero h1 {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Playfair Display', Georgia, serif;
     font-size: 28px;
     margin: 0 0 6px;
     font-weight: 600;
@@ -195,7 +195,7 @@
     margin-bottom: 20px;
   }
   .card h2 {
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Playfair Display', Georgia, serif;
     color: var(--navy);
     font-size: 22px;
     margin: 0 0 16px;
@@ -238,7 +238,7 @@
     font-weight: 700;
     color: var(--navy);
     margin-top: 4px;
-    font-family: 'Cormorant Garamond', Georgia, serif;
+    font-family: 'Playfair Display', Georgia, serif;
   }
 
   .reservation-item {
@@ -249,7 +249,7 @@
   }
   .reservation-item .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 14px; flex-wrap: wrap; }
   .reservation-item .ref { font-size: 11px; color: var(--slate); letter-spacing: 1.5px; text-transform: uppercase; font-weight: 600; margin-bottom: 4px; }
-  .reservation-item .date { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 600; color: var(--navy); line-height: 1.2; }
+  .reservation-item .date { font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 600; color: var(--navy); line-height: 1.2; }
   .reservation-item .meta { font-size: 13px; color: var(--slate); margin-top: 4px; }
   .reservation-item .amount { text-align: right; font-weight: 700; color: var(--navy); font-size: 18px; }
   .reservation-item .amount .ttc { font-size: 10px; color: var(--slate); font-weight: 400; letter-spacing: 1px; text-transform: uppercase; }
@@ -272,6 +272,11 @@
   }
   .form-actions { display: flex; gap: 10px; margin-top: 18px; }
   .btn { padding: 11px 20px; border-radius: 4px; border: 0; cursor: pointer; font-weight: 600; font-size: 13px; font-family: inherit; }
+  .btn-reserver { display:inline-flex; align-items:center; gap:8px; background:var(--gold); color:var(--navy); text-decoration:none; font-family:'Inter',sans-serif; font-weight:700; font-size:14px; letter-spacing:.03em; padding:13px 26px; border-radius:6px; box-shadow:0 4px 14px rgba(201,181,132,.35); transition:background .15s; }
+  .btn-reserver:hover { background:#B89D6D; }
+  .reserve-bar { display:flex; justify-content:flex-end; margin-bottom:18px; }
+  .hero-reserve { position:absolute; top:18px; left:24px; }
+  @media (max-width:560px){ .reserve-bar{justify-content:center} .hero-reserve{position:static; display:block; text-align:center; margin-bottom:10px} }
   .btn-primary { background: var(--navy); color: white; }
   .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--light); }
 
@@ -409,6 +414,7 @@
 <div id="screen-app" style="display:none;">
 
 <div class="hero">
+  <a href="/reserver" class="btn-reserver hero-reserve">＋ Réserver</a>
   <button onclick="doLogout()" class="logout">Déconnexion</button>
   <img class="logo" src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW">
   <h1>L'Atelier du Coworking</h1>
@@ -426,6 +432,9 @@
 
 <!-- TAB OVERVIEW -->
 <div id="tab-overview" class="tab-content">
+  <div class="reserve-bar">
+    <a href="/reserver" class="btn-reserver">＋ Réserver un espace</a>
+  </div>
   <div class="stats-grid">
     <div class="stat-card">
       <div class="stat-label">À venir</div>
