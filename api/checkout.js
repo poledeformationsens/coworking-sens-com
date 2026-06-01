@@ -14,10 +14,19 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { space, spaceUnit, slot, date, hourFrom, hourTo, amountTTC, email, clientType, name, company, reference, testMode, returnPath } = req.body || {};
+    const {
+      space, spaceUnit, slot, date, hourFrom, hourTo, amountTTC, email, clientType, name, company, reference, testMode, returnPath,
+      // Achat d'un forfait prépayé (pack)
+      purchaseType, pricingId, packSpace, packCreditType, packCredits, packLabel,
+    } = req.body || {};
 
-    if (!space || !amountTTC || !email) {
-      return res.status(400).json({ error: "Données manquantes (space, amountTTC, email requis)" });
+    const isPack = purchaseType === "pack";
+
+    if (!amountTTC || !email || (!isPack && !space)) {
+      return res.status(400).json({ error: "Données manquantes (amountTTC, email requis)" });
+    }
+    if (isPack && (!pricingId || !packSpace || !packCreditType || !packCredits)) {
+      return res.status(400).json({ error: "Données forfait manquantes" });
     }
 
     const amountCents = Math.round(amountTTC * 100);
@@ -25,6 +34,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Montant trop bas (minimum 1 €)" });
     }
 
+    // Construction du libellé selon le créneau
     const SLOT_LABELS = {
       morning: "Matinée (8h-12h)",
       afternoon: "Après-midi (14h-18h)",
@@ -35,6 +45,39 @@ export default async function handler(req, res) {
 
     const origin = req.headers.origin || "https://coworking-sens.com";
 
+    const productName = isPack ? packLabel : `${space} — ${slotLabel}`;
+    const productDesc = isPack
+      ? `Forfait prépayé · L'Atelier du Coworking`
+      : `Réservation L'Atelier du Coworking · ${date || ""}`;
+
+    const metadata = isPack
+      ? {
+          purchase_type: "pack",
+          pricing_id: pricingId,
+          pack_space: packSpace,
+          pack_credit_type: packCreditType,
+          pack_credits: String(packCredits),
+          pack_label: packLabel || "",
+          client_type: clientType || "particulier",
+          client_name: name || "",
+          company: company || "",
+          reference: reference || "",
+          test_mode: testMode ? "true" : "false",
+        }
+      : {
+          space,
+          space_unit: spaceUnit || "",
+          slot,
+          date: date || "",
+          hourFrom: hourFrom || "",
+          hourTo: hourTo || "",
+          client_type: clientType || "particulier",
+          client_name: name || "",
+          company: company || "",
+          reference: reference || "",
+          test_mode: testMode ? "true" : "false",
+        };
+
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
@@ -44,8 +87,8 @@ export default async function handler(req, res) {
             currency: "eur",
             unit_amount: amountCents,
             product_data: {
-              name: `${space} — ${slotLabel}`,
-              description: `Réservation L'Atelier du Coworking · ${date || ""}`,
+              name: productName,
+              description: productDesc,
               images: [
                 "https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo.png",
               ],
@@ -55,23 +98,12 @@ export default async function handler(req, res) {
         },
       ],
       customer_email: email,
-      metadata: {
-        space,
-        space_unit: spaceUnit || "",
-        slot,
-        date: date || "",
-        hourFrom: hourFrom || "",
-        hourTo: hourTo || "",
-        client_type: clientType || "particulier",
-        client_name: name || "",
-        company: company || "",
-        reference: reference || "",
-        test_mode: testMode ? "true" : "false",
-      },
+      metadata,
       success_url: `${origin}${returnPath || "/"}?status=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${returnPath || "/"}?status=cancelled`,
       locale: "fr",
       billing_address_collection: clientType === "pro" ? "required" : "auto",
+      // TVA française incluse — pas de calcul Stripe Tax pour la v1
     });
 
     return res.status(200).json({ url: session.url, sessionId: session.id });
