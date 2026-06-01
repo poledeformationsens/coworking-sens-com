@@ -994,6 +994,21 @@ let lastBookingSnapshot = null;
     history.replaceState({}, '', window.location.pathname);
     return;
   }
+  // Pré-sélection d'un espace depuis le profil (/reserver?space=bureau-1[&pack=1])
+  const preSpace = params.get('space');
+  const VALID_SPACES = ['bureau-1','bureau-2','salle-reunion','coworking'];
+  if(preSpace && VALID_SPACES.includes(preSpace)){
+    selectedSpace = preSpace;
+    selectedSlot = 'day';
+    document.querySelectorAll('#step1 .card').forEach(x=>x.classList.remove('selected'));
+    const c1 = document.querySelector('#step1 .card[data-space="'+preSpace+'"]'); if(c1) c1.classList.add('selected');
+    document.querySelectorAll('#slot-grid .slot-card').forEach(x=>x.classList.remove('selected'));
+    const dayCard = document.querySelector('#slot-grid .slot-card[data-slot="day"]'); if(dayCard) dayCard.classList.add('selected');
+    const lbl = document.getElementById('step2-space'); if(lbl) lbl.textContent = '— ' + (NAMES[preSpace]||'') + ' —';
+    history.replaceState({}, '', window.location.pathname);
+    goStep(2);
+    return;
+  }
   goStep(1);
 })();
 </script>

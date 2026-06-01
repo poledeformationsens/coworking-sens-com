@@ -972,15 +972,21 @@ function renderMyPacks(packs) {
     el.innerHTML = `<div class="empty-state">Vous n'avez pas encore de forfait.<br>Choisissez-en un ci-dessous 👇</div>`;
     return;
   }
+  const RESERVER_KEY = { bureau: 'bureau-1', coworking: 'coworking', 'salle-reunion': 'salle-reunion' };
   el.innerHTML = packs.map(p => {
     const pct = p.total_credits ? Math.round((p.remaining / p.total_credits) * 100) : 0;
     const exp = p.expires_at ? formatDate(p.expires_at) : 'Sans expiration';
     const expired = p.expired;
     const exhausted = p.remaining <= 0;
+    const usable = !expired && !exhausted;
     const badge = expired
       ? `<span class="badge-status" style="background:#9aa0ab">Expiré</span>`
       : (exhausted ? `<span class="badge-status" style="background:#9aa0ab">Épuisé</span>` : `<span class="badge-status" style="background:var(--green)">Actif</span>`);
-    return `<div class="reservation-item" style="${expired || exhausted ? 'opacity:.6' : ''}">
+    const reserveKey = RESERVER_KEY[p.space] || 'coworking';
+    const reserveBtn = usable
+      ? `<div style="margin-top:14px"><a href="/reserver?space=${reserveKey}&pack=1" class="btn-reserver" style="display:inline-block">Réserver avec ce forfait →</a></div>`
+      : '';
+    return `<div class="reservation-item" style="${usable ? '' : 'opacity:.6'}">
       <div class="row">
         <div>
           <div class="ref">${p.label || (p.space_label + ' — forfait')}</div>
@@ -995,6 +1001,7 @@ function renderMyPacks(packs) {
         <div style="height:100%;width:${pct}%;background:var(--gold)"></div>
       </div>
       <div style="margin-top:8px;font-size:12.5px;color:var(--slate)">${expired ? 'Expiré le ' : 'Valable jusqu\'au '}${exp}</div>
+      ${reserveBtn}
     </div>`;
   }).join('');
 }
