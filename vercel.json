@@ -35,6 +35,10 @@
     {
       "source": "/admin-fermetures",
       "destination": "/admin-fermetures.html"
+    },
+    {
+      "source": "/admin-stats",
+      "destination": "/admin-stats.html"
     }
   ]
 }

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Statistiques — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1100px;margin:24px auto;padding:0 18px}
+  .toolbar{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:20px;background:#fff;border:1px solid var(--light);border-radius:12px;padding:16px}
+  .toolbar label{display:block;font-size:12px;color:var(--slate);margin-bottom:4px}
+  input{padding:9px 12px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:14px;color:var(--navy)}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer}
+  .btn.gold{background:var(--gold);color:var(--navy)}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
+  .kpi{background:#fff;border:1px solid var(--light);border-radius:12px;padding:18px}
+  .kpi .label{font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:.05em}
+  .kpi .value{font-size:30px;font-weight:800;color:var(--navy);margin-top:6px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;padding:20px;margin-bottom:20px}
+  .card h2{font-family:'Playfair Display',serif;margin:0 0 14px;font-size:18px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:9px 12px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee}
+  th{color:var(--slate);font-weight:600;font-size:12px;text-transform:uppercase}
+  td.r,th.r{text-align:right}
+  .muted{color:var(--slate);font-size:12px}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="box">
+    <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Statistiques</h2>
+    <p class="muted">Session admin requise.</p>
+    <a class="btn" href="admin-devis-dashboard.html" style="text-decoration:none;display:inline-block;margin-top:10px">Se connecter sur le dashboard</a>
+  </div>
+</div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="44" height="44">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-devis-dashboard.html">📋 Devis</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-fermetures.html">🚫 Fermetures</a>
+      <a href="admin-stats.html" class="active">📊 Statistiques</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <div><label>Du</label><input id="f-from" type="date"></div>
+    <div><label>Au</label><input id="f-to" type="date"></div>
+    <button class="btn" onclick="loadStats()">Afficher</button>
+    <button class="btn gold" onclick="exportCSV()">⬇️ Export comptable (CSV)</button>
+    <span class="muted" id="status" style="align-self:center"></span>
+  </div>
+
+  <div class="kpis">
+    <div class="kpi"><div class="label">Chiffre d'affaires</div><div class="value" id="kpi-ca">—</div></div>
+    <div class="kpi"><div class="label">Réservations</div><div class="value" id="kpi-count">—</div></div>
+    <div class="kpi"><div class="label">Panier moyen</div><div class="value" id="kpi-avg">—</div></div>
+    <div class="kpi"><div class="label">Taux d'occupation*</div><div class="value" id="kpi-occ">—</div></div>
+  </div>
+
+  <div class="card">
+    <h2>Évolution du chiffre d'affaires</h2>
+    <canvas id="chart-month" height="90"></canvas>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>CA par espace</h2>
+      <table><thead><tr><th>Espace</th><th class="r">CA TTC</th></tr></thead><tbody id="tbl-space"></tbody></table>
+    </div>
+    <div class="card">
+      <h2>Par mode de paiement</h2>
+      <table><thead><tr><th>Mode</th><th class="r">CA TTC</th></tr></thead><tbody id="tbl-pay"></tbody></table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Top clients</h2>
+    <table><thead><tr><th>Client</th><th>Email</th><th class="r">Résa</th><th class="r">CA TTC</th></tr></thead><tbody id="tbl-clients"></tbody></table>
+  </div>
+
+  <p class="muted">* Taux d'occupation approximatif : équivalents-jours réservés ÷ (capacité 9 unités × jours ouvrés lun–ven de la période).</p>
+</div>
+
+<script>
+const API_BASE = '/api/coworking';
+const STORAGE_KEY = 'cw_admin_session';
+let HEADERS = {'Content-Type':'application/json'};
+let chartMonth = null;
+
+function getSession(){ try{ const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); if(s&&s.expires&&s.expires<Date.now()) return null; return s; }catch(e){ return null; } }
+function money(a){ return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(a||0); }
+const SPACE_LABEL = {'coworking':'Espace coworking','bureau':'Bureau privé','salle-reunion':'Salle de réunion','privatisation':'Privatisation'};
+function spaceLabel(s){ return SPACE_LABEL[s]||s||'—'; }
+function monthLabel(m){ if(!m) return ''; const [y,mo]=m.split('-'); return new Date(y, mo-1, 1).toLocaleDateString('fr-FR',{month:'short',year:'2-digit'}); }
+
+async function loadStats(){
+  const from = document.getElementById('f-from').value, to = document.getElementById('f-to').value;
+  const st = document.getElementById('status'); st.textContent='Chargement…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/stats?date_from=${from}&date_to=${to}&test_mode=false`, {headers:HEADERS, cache:'no-store'});
+    if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const d = await r.json();
+    document.getElementById('kpi-ca').textContent = money(d.total_ca);
+    document.getElementById('kpi-count').textContent = d.count;
+    document.getElementById('kpi-avg').textContent = money(d.avg_basket);
+    document.getElementById('kpi-occ').textContent = (d.occupancy_pct||0) + ' %';
+    document.getElementById('tbl-space').innerHTML = (d.by_space||[]).map(x=>`<tr><td>${spaceLabel(x.space)}</td><td class="r">${money(x.ca)}</td></tr>`).join('') || '<tr><td colspan="2" class="muted">Aucune donnée</td></tr>';
+    document.getElementById('tbl-pay').innerHTML = (d.by_payment||[]).map(x=>`<tr><td>${x.method}</td><td class="r">${money(x.ca)}</td></tr>`).join('') || '<tr><td colspan="2" class="muted">Aucune donnée</td></tr>';
+    document.getElementById('tbl-clients').innerHTML = (d.top_clients||[]).map(c=>`<tr><td>${c.name||'—'}</td><td class="muted">${c.email||''}</td><td class="r">${c.count}</td><td class="r">${money(c.ca)}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">Aucune donnée</td></tr>';
+    renderChart(d.by_month||[]);
+    st.textContent='';
+  }catch(e){ st.textContent='Erreur : '+e.message; }
+}
+
+function renderChart(byMonth){
+  const ctx = document.getElementById('chart-month');
+  const labels = byMonth.map(x=>monthLabel(x.month));
+  const data = byMonth.map(x=>x.ca);
+  if(chartMonth) chartMonth.destroy();
+  chartMonth = new Chart(ctx, {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'CA TTC (€)', data, backgroundColor:'#03234D', borderRadius:6 }] },
+    options:{ plugins:{legend:{display:false}}, scales:{ y:{ beginAtZero:true, ticks:{callback:v=>v+' €'} } } }
+  });
+}
+
+async function exportCSV(){
+  const from = document.getElementById('f-from').value, to = document.getElementById('f-to').value;
+  const st = document.getElementById('status'); st.textContent='Export en cours…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/export/accounting?date_from=${from}&date_to=${to}&test_mode=false`, {headers:HEADERS, cache:'no-store'});
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const d = await r.json();
+    const rows = d.rows||[];
+    if(!rows.length){ st.textContent='Aucune ligne sur la période.'; return; }
+    const cols = Object.keys(rows[0]);
+    const esc = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+    const csv = [cols.join(';'), ...rows.map(row=>cols.map(c=>esc(row[c])).join(';'))].join('\n');
+    const blob = new Blob(['﻿'+csv], {type:'text/csv;charset=utf-8;'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `export-comptable_${from}_${to}.csv`;
+    document.body.appendChild(a); a.click(); a.remove();
+    st.textContent = rows.length + ' lignes exportées ✅';
+  }catch(e){ st.textContent='Erreur : '+e.message; }
+}
+
+(function(){
+  const s = getSession();
+  if(!s || !s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  // Période par défaut : 6 derniers mois
+  const to = new Date();
+  const from = new Date(); from.setMonth(from.getMonth()-5); from.setDate(1);
+  document.getElementById('f-to').value = to.toISOString().slice(0,10);
+  document.getElementById('f-from').value = from.toISOString().slice(0,10);
+  loadStats();
+})();
+</script>
+</body>
+</html>
