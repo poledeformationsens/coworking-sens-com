@@ -93,7 +93,18 @@
   .fc-button:hover { background: #051f3f !important; }
   .fc-button-active { background: var(--gold) !important; color: var(--navy) !important; }
   .fc-today-button { text-transform: uppercase; letter-spacing: 1px; }
-  .fc-event { border: none !important; padding: 2px 6px !important; font-size: 11px !important; cursor: pointer; }
+  .fc-event { border: none !important; padding: 2px 7px !important; font-size: 11.5px !important; cursor: pointer; border-radius: 7px !important; box-shadow: 0 1px 4px rgba(3,35,77,.18) !important; font-weight: 600 !important; transition: transform .08s ease, box-shadow .08s ease; }
+  .fc-event:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(3,35,77,.25) !important; }
+  .fc-timegrid-event { border-radius: 8px !important; }
+  .fc-button { border-radius: 9px !important; font-weight: 600 !important; letter-spacing: .2px; }
+  .fc-button-primary:not(:disabled):focus { box-shadow: 0 0 0 3px rgba(201,181,132,.4) !important; }
+  .fc-col-header-cell { background: #fafbfc; }
+  .fc-col-header-cell-cushion { color: var(--slate); text-transform: uppercase; font-size: 11px; letter-spacing: .06em; font-weight: 700; padding: 8px 0 !important; text-decoration: none !important; }
+  .fc-day-today { background: rgba(201,181,132,.10) !important; }
+  .fc-highlight { background: rgba(201,181,132,.30) !important; border-radius: 8px; }
+  .fc-timegrid-now-indicator-line { border-color: #EA584A !important; }
+  .fc-timegrid-slot { height: 2.2em !important; }
+  .fc-scrollgrid { border-radius: 10px; overflow: hidden; }
 
   /* Modal détail event */
   .modal-bg {
@@ -215,7 +226,8 @@
     <span style="font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-right:8px">Espaces :</span>
     <button class="filter-chip active" onclick="setSpaceFilter(null)">Tous</button>
     <button class="filter-chip" onclick="setSpaceFilter('coworking')"><span class="dot" style="background:#C9B584"></span>Coworking</button>
-    <button class="filter-chip" onclick="setSpaceFilter('bureau')"><span class="dot" style="background:#2563EB"></span>Bureau</button>
+    <button class="filter-chip" onclick="setSpaceFilter('unit:Bureau 1')"><span class="dot" style="background:#2563EB"></span>Bureau 1</button>
+    <button class="filter-chip" onclick="setSpaceFilter('unit:Bureau 2')"><span class="dot" style="background:#0EA5A4"></span>Bureau 2</button>
     <button class="filter-chip" onclick="setSpaceFilter('salle-reunion')"><span class="dot" style="background:#7C3AED"></span>Salle réunion</button>
     <button class="filter-chip" onclick="setSpaceFilter('privatisation')"><span class="dot" style="background:#EA584A"></span>Privatisation</button>
     <label style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--slate);cursor:pointer;">
@@ -441,8 +453,26 @@ async function fetchEvents(info, success, failure) {
     const data = await r.json();
     let events = data.events || [];
     if (currentSpaceFilter) {
-      events = events.filter(e => e.extendedProps && e.extendedProps.space === currentSpaceFilter);
+      if (currentSpaceFilter.indexOf('unit:') === 0) {
+        const u = currentSpaceFilter.slice(5);
+        events = events.filter(e => e.extendedProps && e.extendedProps.space_unit === u);
+      } else {
+        events = events.filter(e => e.extendedProps && e.extendedProps.space === currentSpaceFilter);
+      }
     }
+    // Couleur par espace (style "startup", cohérent avec les chips de filtre)
+    const SPACE_COLOR = { 'coworking':'#C9B584', 'bureau':'#2563EB', 'salle-reunion':'#7C3AED', 'privatisation':'#EA584A' };
+    events = events.map(e => {
+      const sp = (e.extendedProps && e.extendedProps.space) || '';
+      const unit = (e.extendedProps && e.extendedProps.space_unit) || '';
+      let col = SPACE_COLOR[sp] || '#03234D';
+      if (sp === 'bureau') col = (unit === 'Bureau 2') ? '#0EA5A4' : '#2563EB';
+      const blocked = e.extendedProps && e.extendedProps.type === 'blocked';
+      return { ...e,
+        backgroundColor: blocked ? '#9aa0ab' : col,
+        borderColor: blocked ? '#9aa0ab' : col,
+        textColor: '#ffffff' };
+    });
     success(events);
   } catch (e) { failure(e); }
 }
