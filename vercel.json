@@ -51,6 +51,10 @@
     {
       "source": "/admin-societes",
       "destination": "/admin-societes.html"
+    },
+    {
+      "source": "/admin-tarifs",
+      "destination": "/admin-tarifs.html"
     }
   ]
 }

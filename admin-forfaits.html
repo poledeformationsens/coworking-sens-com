@@ -60,11 +60,26 @@
       <a href="admin-stats.html">📊 Statistiques</a>
       <a href="admin-evenements.html">🎉 Événements</a>
       <a href="admin-societes.html">🏢 Sociétés</a>
+      <a href="admin-tarifs.html">💶 Tarifs</a>
     </nav>
   </div>
 </header>
 
 <div class="wrap">
+  <div style="background:#fff;border:1px solid var(--light);border-radius:12px;padding:18px;margin-bottom:18px">
+    <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif">🎁 Offrir un forfait</h3>
+    <p class="muted" style="margin:0 0 12px">Crédite gratuitement des journées / demi-journées à un client (apparaît dans son espace, utilisable comme un forfait acheté).</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+      <div><label class="muted">Email client</label><input id="o-email" type="email" placeholder="client@email.fr" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div><label class="muted">Espace</label><select id="o-space" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"><option value="coworking">Coworking</option><option value="bureau">Bureau</option><option value="salle-reunion">Salle de réunion</option></select></div>
+      <div><label class="muted">Type</label><select id="o-type" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"><option value="day">Journées</option><option value="half-day">Demi-journées</option></select></div>
+      <div><label class="muted">Crédits</label><input id="o-credits" type="number" min="1" value="1" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div><label class="muted">Validité (mois, 0=∞)</label><input id="o-validity" type="number" min="0" value="3" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+    </div>
+    <button class="btn" style="margin-top:12px" onclick="offerPack()">Offrir le forfait</button>
+    <span class="muted" id="o-msg" style="margin-left:10px"></span>
+  </div>
+
   <div class="toolbar">
     <input id="filter-email" type="text" placeholder="Filtrer par email client…" style="flex:1;min-width:220px">
     <label class="muted"><input type="checkbox" id="filter-inactive"> Inclure inactifs</label>
@@ -108,6 +123,28 @@ function getSession(){
 
 function fmtMoney(a){ return a==null?'—':new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(a); }
 function fmtDate(iso){ if(!iso) return 'Sans expiration'; return new Date(iso).toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}); }
+
+async function offerPack(){
+  const msg = document.getElementById('o-msg');
+  const body = {
+    email: document.getElementById('o-email').value.trim(),
+    space: document.getElementById('o-space').value,
+    credit_type: document.getElementById('o-type').value,
+    credits: parseInt(document.getElementById('o-credits').value||'0',10),
+    validity_months: parseInt(document.getElementById('o-validity').value||'3',10),
+  };
+  if(!body.email.includes('@') || body.credits<=0){ msg.textContent='Email et nombre de crédits requis.'; return; }
+  msg.textContent='Envoi…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/packs/offer`, {method:'POST', headers:HEADERS, body:JSON.stringify(body)});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    msg.textContent='✅ Forfait offert !';
+    document.getElementById('o-email').value=''; document.getElementById('o-credits').value='1';
+    document.getElementById('filter-email').value = body.email;
+    loadPacks();
+    setTimeout(()=>msg.textContent='', 3000);
+  }catch(e){ msg.textContent='Erreur : '+e.message; }
+}
 
 async function loadPacks(){
   const email = document.getElementById('filter-email').value.trim();

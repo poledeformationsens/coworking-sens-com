@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tarifs — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1050px;margin:24px auto;padding:0 18px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px 13px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee;vertical-align:middle}
+  th{background:#fafafa;color:var(--slate);font-weight:600;font-size:12px;text-transform:uppercase}
+  input[type=number]{width:90px;padding:7px 9px;border:1px solid var(--light);border-radius:6px;font-family:inherit}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:7px;padding:7px 13px;font-weight:600;font-size:12.5px;cursor:pointer}
+  .grp{font-weight:700;color:var(--navy);background:#f3f1ea}
+  .muted{color:var(--slate);font-size:12px}
+  .ttc{color:var(--slate);font-size:12px}
+  .saved{color:var(--green);font-size:12px;margin-left:8px}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login"><div class="box">
+  <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Tarifs</h2>
+  <p class="muted">Session admin requise.</p>
+  <a href="admin-devis-dashboard.html" style="display:inline-block;margin-top:10px;background:var(--navy);color:#fff;text-decoration:none;border-radius:8px;padding:11px 18px;font-weight:700">Se connecter sur le dashboard</a>
+</div></div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="44" height="44">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-devis-dashboard.html">📋 Devis</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-fermetures.html">🚫 Fermetures</a>
+      <a href="admin-stats.html">📊 Statistiques</a>
+      <a href="admin-evenements.html">🎉 Événements</a>
+      <a href="admin-societes.html">🏢 Sociétés</a>
+      <a href="admin-tarifs.html" class="active">💶 Tarifs</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <p class="muted">Modifie le prix HT (TVA appliquée automatiquement) ou désactive une offre. Les changements sont pris en compte immédiatement.</p>
+  <div class="card"><div id="list"><div style="padding:30px;text-align:center" class="muted">Chargement…</div></div></div>
+</div>
+
+<script>
+const API_BASE='/api/coworking';
+const STORAGE_KEY='cw_admin_session';
+let HEADERS={'Content-Type':'application/json'};
+const SPACE_LABEL={'coworking':'Espace coworking','bureau':'Bureau privé','salle-reunion':'Salle de réunion','privatisation':'Privatisation','option':'Options'};
+function getSession(){ try{ const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); if(s&&s.expires&&s.expires<Date.now()) return null; return s; }catch(e){ return null; } }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function ttc(ht,tva){ return (ht*(1+(tva||20)/100)).toFixed(2).replace('.',',')+' €'; }
+
+async function load(){
+  try{
+    const r=await fetch(`${API_BASE}/admin/pricing`,{headers:HEADERS,cache:'no-store'});
+    if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const d=await r.json();
+    render(d.pricing||[]);
+  }catch(e){ document.getElementById('list').innerHTML='<div style="padding:30px;text-align:center" class="muted">Erreur : '+e.message+'</div>'; }
+}
+
+function render(rows){
+  // groupe par espace
+  const groups={};
+  rows.forEach(p=>{ (groups[p.space]=groups[p.space]||[]).push(p); });
+  let html='<table><thead><tr><th>Offre</th><th>Prix HT</th><th>TTC</th><th>Active</th><th></th></tr></thead><tbody>';
+  Object.keys(groups).forEach(sp=>{
+    html+=`<tr class="grp"><td colspan="5">${SPACE_LABEL[sp]||sp}</td></tr>`;
+    groups[sp].forEach(p=>{
+      html+=`<tr data-id="${p.id}">
+        <td>${esc(p.name)}${p.description?'<div class="muted">'+esc(p.description)+'</div>':''}</td>
+        <td><input type="number" step="0.01" min="0" value="${p.unit_price_ht}" id="ht-${p.id}"> €</td>
+        <td class="ttc" id="ttc-${p.id}">${ttc(p.unit_price_ht,p.tva_rate)}</td>
+        <td><input type="checkbox" id="act-${p.id}" ${p.active?'checked':''}></td>
+        <td><button class="btn" onclick="save('${p.id}',${p.tva_rate||20})">Enregistrer</button><span class="saved" id="ok-${p.id}" style="display:none">✓</span></td>
+      </tr>`;
+    });
+  });
+  html+='</tbody></table>';
+  document.getElementById('list').innerHTML=html;
+  rows.forEach(p=>{
+    const inp=document.getElementById('ht-'+p.id);
+    inp.addEventListener('input',()=>{ document.getElementById('ttc-'+p.id).textContent=ttc(parseFloat(inp.value||'0'),p.tva_rate); });
+  });
+}
+
+async function save(id,tva){
+  const ht=parseFloat(document.getElementById('ht-'+id).value||'0');
+  const active=document.getElementById('act-'+id).checked;
+  try{
+    const r=await fetch(`${API_BASE}/admin/pricing/${id}`,{method:'PATCH',headers:HEADERS,body:JSON.stringify({unit_price_ht:ht,active})});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    const ok=document.getElementById('ok-'+id); ok.style.display='inline'; setTimeout(()=>ok.style.display='none',2000);
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+
+(function(){
+  const s=getSession();
+  if(!s||!s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS={'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  load();
+})();
+</script>
+</body>
+</html>
