@@ -31,6 +31,10 @@
     {
       "source": "/admin-forfaits",
       "destination": "/admin-forfaits.html"
+    },
+    {
+      "source": "/admin-fermetures",
+      "destination": "/admin-fermetures.html"
     }
   ]
 }

@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fermetures — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1000px;margin:24px auto;padding:0 18px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;padding:20px;margin-bottom:20px}
+  .card h2{font-family:'Playfair Display',serif;margin:0 0 14px;font-size:19px}
+  label{display:block;font-size:12.5px;color:var(--slate);margin:10px 0 4px}
+  input,select{width:100%;padding:10px 12px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:14px;color:var(--navy);background:#fff}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer;margin-top:14px}
+  .btn.ghost{background:#fff;color:var(--red);border:1px solid var(--light);padding:6px 12px;font-size:12.5px;margin:0}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
+  th,td{padding:11px 13px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee}
+  th{background:#fafafa;color:var(--slate);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600;background:#E3EBF6;color:var(--navy)}
+  .muted{color:var(--slate);font-size:12.5px}
+  .empty{padding:30px;text-align:center;color:var(--slate)}
+  .ok{color:var(--green);font-size:13px;margin-top:8px;display:none}
+  .err{color:var(--red);font-size:13px;margin-top:8px;display:none}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="box">
+    <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Fermetures</h2>
+    <p class="muted">Session admin requise.</p>
+    <a class="btn" href="admin-devis-dashboard.html" style="text-decoration:none;display:inline-block;margin-top:10px">Se connecter sur le dashboard</a>
+  </div>
+</div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="44" height="44">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">📋 Devis</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-fermetures.html" class="active">🚫 Fermetures</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2>Fermer une date</h2>
+    <div class="grid">
+      <div>
+        <label>Date</label>
+        <input id="f-date" type="date">
+      </div>
+      <div>
+        <label>Espace</label>
+        <select id="f-space">
+          <option value="">Tout l'atelier</option>
+          <option value="coworking">Espace coworking</option>
+          <option value="bureau">Bureaux (1 & 2)</option>
+          <option value="salle-reunion">Salle de réunion</option>
+        </select>
+      </div>
+      <div>
+        <label>Période</label>
+        <select id="f-period">
+          <option value="day">Toute la journée</option>
+          <option value="morning">Matin (8h-12h)</option>
+          <option value="afternoon">Après-midi (14h-18h)</option>
+        </select>
+      </div>
+      <div>
+        <label>Motif</label>
+        <input id="f-reason" type="text" placeholder="Congés, jour férié…">
+      </div>
+    </div>
+    <button class="btn" onclick="addClosure()">Fermer cette date</button>
+    <div class="ok" id="ok-msg">✅ Fermeture enregistrée.</div>
+    <div class="err" id="err-msg"></div>
+  </div>
+
+  <div class="card">
+    <h2>Fermetures enregistrées</h2>
+    <div id="list"><div class="empty">Chargement…</div></div>
+  </div>
+</div>
+
+<script>
+const API_BASE = '/api/coworking';
+const STORAGE_KEY = 'cw_admin_session';
+let HEADERS = {'Content-Type':'application/json'};
+
+function getSession(){
+  try{ const s = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+    if(s && s.expires && s.expires < Date.now()) return null;
+    return s; }catch(e){ return null; }
+}
+const SPACE_LABEL = {'':'Tout l\'atelier', 'coworking':'Espace coworking', 'bureau':'Bureaux (1 & 2)', 'salle-reunion':'Salle de réunion'};
+function spaceLabel(s){ return SPACE_LABEL[s||''] || s; }
+function fmtDate(iso){ if(!iso) return '—'; return new Date(iso+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+function periodLabel(hf, ht){
+  if(!hf && !ht) return 'Journée entière';
+  if(hf==='08:00' && ht==='12:00') return 'Matin';
+  if(hf==='14:00' && ht==='18:00') return 'Après-midi';
+  return (hf||'08:00') + ' → ' + (ht||'18:00');
+}
+
+async function load(){
+  try{
+    const r = await fetch(`${API_BASE}/admin/closures`, {headers:HEADERS, cache:'no-store'});
+    if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const data = await r.json();
+    render(data.closures||[]);
+  }catch(e){ document.getElementById('list').innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
+}
+
+function render(rows){
+  const today = new Date().toISOString().slice(0,10);
+  // on n'affiche que les fermetures à venir, triées par date
+  rows = rows.filter(b => (b.date||'') >= today).sort((a,b)=>(a.date||'').localeCompare(b.date||''));
+  const el = document.getElementById('list');
+  if(!rows.length){ el.innerHTML = '<div class="empty">Aucune fermeture à venir.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Date</th><th>Espace</th><th>Période</th><th>Motif</th><th></th></tr></thead><tbody>' +
+    rows.map(b => {
+      const devis = b.is_devis;
+      const action = devis
+        ? '<span class="badge">devis</span>'
+        : `<button class="btn ghost" onclick="del(${b.id})">Rouvrir</button>`;
+      return `<tr>
+        <td>${fmtDate(b.date)}</td>
+        <td>${spaceLabel(b.space)}</td>
+        <td>${periodLabel(b.hour_from, b.hour_to)}</td>
+        <td>${(b.reason||'').replace(/^devis:/,'Devis ')}</td>
+        <td style="text-align:right">${action}</td>
+      </tr>`;
+    }).join('') + '</tbody></table>';
+}
+
+async function addClosure(){
+  const ok = document.getElementById('ok-msg'), err = document.getElementById('err-msg');
+  ok.style.display='none'; err.style.display='none';
+  const date = document.getElementById('f-date').value;
+  if(!date){ err.textContent='Choisis une date.'; err.style.display='block'; return; }
+  const space = document.getElementById('f-space').value;
+  const period = document.getElementById('f-period').value;
+  let hour_from=null, hour_to=null;
+  if(period==='morning'){ hour_from='08:00'; hour_to='12:00'; }
+  else if(period==='afternoon'){ hour_from='14:00'; hour_to='18:00'; }
+  const reason = document.getElementById('f-reason').value || 'Fermeture';
+  try{
+    const r = await fetch(`${API_BASE}/admin/closures`, {method:'POST', headers:HEADERS, body:JSON.stringify({date, space, hour_from, hour_to, reason})});
+    if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    ok.style.display='block';
+    document.getElementById('f-reason').value='';
+    load();
+    setTimeout(()=>{ ok.style.display='none'; }, 2500);
+  }catch(e){ err.textContent='Erreur : '+e.message; err.style.display='block'; }
+}
+
+async function del(id){
+  if(!confirm('Rouvrir cette date (supprimer la fermeture) ?')) return;
+  try{
+    const r = await fetch(`${API_BASE}/admin/closures/${id}`, {method:'DELETE', headers:HEADERS});
+    if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    load();
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+
+(function(){
+  const s = getSession();
+  if(!s || !s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  // date par défaut = aujourd'hui
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  load();
+})();
+</script>
+</body>
+</html>
