@@ -1011,6 +1011,35 @@ let lastBookingSnapshot = null;
   }
   goStep(1);
 })();
+
+// ============================================================================
+// Pré-remplissage des infos client si connecté (vient du profil / forfait)
+// ============================================================================
+async function prefillFromAccount(){
+  const tok = clientToken();
+  if(!tok) return;
+  try {
+    const r = await fetch(`${API}/mon-espace/${tok}`, {cache:'no-store'});
+    if(!r.ok) return;
+    const data = await r.json();
+    const c = (data && data.customer) || {};
+    const setV = (id, val) => { const el = document.getElementById(id); if(el && val && !el.value) el.value = val; };
+    const first = c.first_name || ((c.name||'').replace(/^(M\.|Mme|Mlle|Autre)\s+/, '').split(' ')[0]) || '';
+    const last  = c.last_name || '';
+    setV('p-prenom', first);
+    setV('p-nom', last);
+    setV('p-mail', c.email);
+    setV('p-tel', c.phone);
+    if(c.client_type === 'pro'){
+      setV('pro-societe', c.company);
+      setV('pro-mail', c.email);
+      setV('pro-tel', c.phone);
+      setV('pro-contact-prenom', first);
+      setV('pro-contact-nom', last);
+    }
+  } catch(e){ /* silencieux : le client peut saisir manuellement */ }
+}
+prefillFromAccount();
 </script>
 
 </body>
