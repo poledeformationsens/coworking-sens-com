@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sociétés — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1050px;margin:24px auto;padding:0 18px}
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:18px}
+  input{padding:9px 12px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:14px;color:var(--navy);flex:1}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:11px 13px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee}
+  th{background:#fafafa;color:var(--slate);font-weight:600;font-size:12px;text-transform:uppercase}
+  td.r,th.r{text-align:right}
+  .btn{background:#fff;color:var(--navy);border:1px solid var(--light);border-radius:8px;padding:6px 12px;font-weight:600;font-size:12.5px;cursor:pointer}
+  .detail{background:#fafbfc;padding:14px 18px}
+  .detail h4{margin:8px 0 6px;font-size:13px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em}
+  .chip{display:inline-block;background:#fff;border:1px solid var(--light);border-radius:99px;padding:3px 10px;font-size:12.5px;margin:2px 4px 2px 0}
+  .muted{color:var(--slate);font-size:12.5px}
+  .empty{padding:30px;text-align:center;color:var(--slate)}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login"><div class="box">
+  <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Sociétés</h2>
+  <p class="muted">Session admin requise.</p>
+  <a href="admin-devis-dashboard.html" style="display:inline-block;margin-top:10px;background:var(--navy);color:#fff;text-decoration:none;border-radius:8px;padding:11px 18px;font-weight:700">Se connecter sur le dashboard</a>
+</div></div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="44" height="44">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-devis-dashboard.html">📋 Devis</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-fermetures.html">🚫 Fermetures</a>
+      <a href="admin-stats.html">📊 Statistiques</a>
+      <a href="admin-evenements.html">🎉 Événements</a>
+      <a href="admin-societes.html" class="active">🏢 Sociétés</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <input id="search" type="text" placeholder="Rechercher une société…">
+    <button class="btn" onclick="load()">↻ Rafraîchir</button>
+  </div>
+  <div class="card"><div id="list"><div class="empty">Chargement…</div></div></div>
+  <p class="muted" style="margin-top:10px">Les sociétés sont regroupées d'après le champ « société » des clients et des réservations.</p>
+</div>
+
+<script>
+const API_BASE = '/api/coworking';
+const STORAGE_KEY = 'cw_admin_session';
+let HEADERS = {'Content-Type':'application/json'};
+let DATA = [];
+
+function getSession(){ try{ const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); if(s&&s.expires&&s.expires<Date.now()) return null; return s; }catch(e){ return null; } }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function money(a){ return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(a||0); }
+function fmtDate(iso){ if(!iso) return ''; return new Date(iso+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'2-digit'}); }
+
+async function load(){
+  try{
+    const r = await fetch(`${API_BASE}/admin/companies`, {headers:HEADERS, cache:'no-store'});
+    if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const d = await r.json();
+    DATA = d.companies||[];
+    render();
+  }catch(e){ document.getElementById('list').innerHTML=`<div class="empty">Erreur : ${e.message}</div>`; }
+}
+
+function render(){
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  let list = DATA;
+  if(q) list = list.filter(c => (c.company||'').toLowerCase().includes(q));
+  const el = document.getElementById('list');
+  if(!list.length){ el.innerHTML='<div class="empty">Aucune société.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Société</th><th>SIRET</th><th class="r">Clients</th><th class="r">Résa</th><th class="r">CA TTC</th><th></th></tr></thead><tbody>' +
+    list.map((c,i)=>`
+      <tr>
+        <td><b>${esc(c.company)}</b></td>
+        <td class="muted">${esc(c.siret)||'—'}</td>
+        <td class="r">${c.client_count}</td>
+        <td class="r">${c.reservation_count}</td>
+        <td class="r">${money(c.ca)}</td>
+        <td class="r"><button class="btn" onclick="toggle(${i})">Détail</button></td>
+      </tr>
+      <tr id="d-${i}" style="display:none"><td colspan="6" class="detail">${detailHtml(c)}</td></tr>
+    `).join('') + '</tbody></table>';
+}
+
+function detailHtml(c){
+  const clients = (c.clients||[]).map(cl=>`<span class="chip">${esc(cl.name)||esc(cl.email)}</span>`).join('') || '<span class="muted">—</span>';
+  const resas = (c.reservations||[]).length
+    ? '<table style="margin-top:4px"><thead><tr><th>Date</th><th>Réf.</th><th>Espace</th><th>Client</th><th class="r">TTC</th></tr></thead><tbody>'+
+      c.reservations.map(r=>`<tr><td>${fmtDate(r.date)}</td><td class="muted">${esc(r.reference)}</td><td>${esc(r.space)}</td><td>${esc(r.name)||esc(r.email)}</td><td class="r">${money(r.amount_ttc)}</td></tr>`).join('')+'</tbody></table>'
+    : '<div class="muted">Aucune réservation.</div>';
+  return `<h4>Clients (${c.client_count})</h4>${clients}<h4>Réservations</h4>${resas}`;
+}
+
+function toggle(i){
+  const row = document.getElementById('d-'+i);
+  row.style.display = row.style.display==='none' ? 'table-row' : 'none';
+}
+
+document.getElementById('search').addEventListener('input', render);
+
+(function(){
+  const s=getSession();
+  if(!s||!s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS={'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  load();
+})();
+</script>
+</body>
+</html>

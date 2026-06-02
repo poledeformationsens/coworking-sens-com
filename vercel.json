@@ -47,6 +47,10 @@
     {
       "source": "/admin-evenements",
       "destination": "/admin-evenements.html"
+    },
+    {
+      "source": "/admin-societes",
+      "destination": "/admin-societes.html"
     }
   ]
 }
