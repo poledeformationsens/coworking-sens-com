@@ -1039,7 +1039,7 @@ async function buyPack(p) {
         name: CUSTOMER_NAME || '',
         clientType: CUSTOMER_CLIENT_TYPE === 'pro' ? 'pro' : 'particulier',
         reference: 'PACK-' + new Date().getFullYear() + '-' + (Math.floor(Math.random() * 9000) + 1000),
-        testMode: false,
+        testMode: new URLSearchParams(location.search).get('test') === '1',
         returnPath: '/mon-espace',
       }),
     });

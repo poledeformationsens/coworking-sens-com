@@ -138,6 +138,14 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 </head>
 <body>
 
+<div style="position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;box-sizing:border-box;pointer-events:none;">
+  <a href="/" style="pointer-events:auto;color:#fff;text-decoration:none;font-size:13px;font-weight:600;background:rgba(255,255,255,.16);padding:9px 16px;border-radius:99px;backdrop-filter:blur(6px);">← Accueil</a>
+  <span style="display:flex;gap:8px;align-items:center;pointer-events:auto;">
+    <span id="test-badge" style="display:none;background:#EA584A;color:#fff;font-size:11px;font-weight:700;padding:6px 12px;border-radius:99px;">🧪 MODE TEST</span>
+    <a href="/mon-espace" style="color:#03234D;text-decoration:none;font-size:13px;font-weight:700;background:#C9B584;padding:9px 18px;border-radius:99px;">👤 Mon espace</a>
+  </span>
+</div>
+
 <div class="screen">
 <div class="screen-bg"></div>
 <div class="screen-overlay"></div>
@@ -404,7 +412,8 @@ body{font-family:'Inter',-apple-system,sans-serif;background:#F2F2F4;color:#333;
 // Config
 // ============================================================================
 const API = '/api/coworking';            // proxy Vercel → backend
-const TEST_MODE = false;                  // page publique = production
+const TEST_MODE = new URLSearchParams(location.search).get('test') === '1';  // ?test=1 → paiement Stripe en mode test
+if (TEST_MODE) { const b = document.getElementById('test-badge'); if (b) b.style.display = 'inline-block'; }
 
 let selectedSpace = 'bureau-1';
 let selectedSlot = 'day';
