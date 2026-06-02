@@ -3,10 +3,6 @@
 
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-  apiVersion: "2024-12-18.acacia",
-});
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -44,6 +40,12 @@ export default async function handler(req, res) {
     const slotLabel = SLOT_LABELS[slot] || slot;
 
     const origin = req.headers.origin || "https://coworking-sens.com";
+
+    // Mode test : utilise la clé Stripe TEST si testMode + clé test dispo (sinon LIVE)
+    const useTest = testMode && process.env.STRIPE_SECRET_KEY_TEST;
+    const stripe = new Stripe(useTest ? process.env.STRIPE_SECRET_KEY_TEST : process.env.STRIPE_SECRET_KEY, {
+      apiVersion: "2024-12-18.acacia",
+    });
 
     const productName = isPack ? packLabel : `${space} — ${slotLabel}`;
     const productDesc = isPack
