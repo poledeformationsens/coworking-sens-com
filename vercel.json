@@ -29,6 +29,14 @@
       "destination": "/annuaire.html"
     },
     {
+      "source": "/admin-devis-dashboard",
+      "destination": "/admin-devis-dashboard.html"
+    },
+    {
+      "source": "/admin-calendar",
+      "destination": "/admin-calendar.html"
+    },
+    {
       "source": "/admin-forfaits",
       "destination": "/admin-forfaits.html"
     },
