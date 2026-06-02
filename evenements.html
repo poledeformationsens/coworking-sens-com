@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Événements — L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  .hero{background:var(--navy);color:#fff;padding:26px 20px 22px;text-align:center;position:relative}
+  .hero img{width:74px;height:74px;display:block;margin:0 auto 8px}
+  .hero h1{font-family:'Playfair Display',serif;font-size:26px;margin:6px 0 2px}
+  .hero p{margin:0;color:rgba(255,255,255,.72);font-size:14px}
+  .hero .back{position:absolute;left:16px;top:18px;color:rgba(255,255,255,.85);text-decoration:none;font-size:13px;background:rgba(255,255,255,.12);padding:7px 14px;border-radius:99px}
+  .wrap{max-width:920px;margin:24px auto;padding:0 16px}
+  .event{background:#fff;border:1px solid var(--light);border-radius:14px;padding:20px;margin-bottom:16px;display:flex;gap:18px;flex-wrap:wrap}
+  .event .main{flex:1;min-width:220px}
+  .cat{display:inline-block;background:#E7F0FA;color:var(--navy);border-radius:99px;padding:3px 12px;font-size:12px;font-weight:600;margin-bottom:8px}
+  .event h3{margin:0 0 6px;font-size:18px}
+  .event .when{font-size:13.5px;color:var(--slate);margin-bottom:8px}
+  .event .desc{font-size:14px;color:#333;line-height:1.6}
+  .event .side{display:flex;flex-direction:column;align-items:flex-end;justify-content:space-between;gap:10px;min-width:150px}
+  .spots{font-size:12.5px;color:var(--slate)}
+  .spots.full{color:var(--red);font-weight:600}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
+  .btn.cancel{background:#fff;color:var(--red);border:1px solid var(--light)}
+  .btn:disabled{opacity:.5;cursor:default}
+  .reg-badge{font-size:12.5px;color:var(--green);font-weight:600}
+  .empty{padding:50px 20px;text-align:center;color:var(--slate)}
+  #gate{max-width:420px;margin:80px auto;background:#fff;border:1px solid var(--light);border-radius:14px;padding:30px;text-align:center}
+  #gate .btn{display:inline-block;text-decoration:none;margin-top:14px}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <a class="back" href="/mon-espace">← Mon espace</a>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW">
+  <h1>Événements</h1>
+  <p>Les rendez-vous de la communauté de L'Atelier</p>
+</div>
+
+<div id="gate" style="display:none">
+  <h2 style="font-family:'Playfair Display',serif;margin:0 0 8px">Réservé aux membres</h2>
+  <p style="color:var(--slate);font-size:14px;line-height:1.6">Connectez-vous à votre espace pour voir les événements et vous inscrire.</p>
+  <a class="btn" href="/mon-espace">Me connecter</a>
+</div>
+
+<div class="wrap" id="app" style="display:none">
+  <div id="list"><div class="empty">Chargement…</div></div>
+</div>
+
+<script>
+const API_BASE = '/api/coworking';
+let TOKEN = null;
+function getToken(){ try{ const s=JSON.parse(localStorage.getItem('cw_client_session')||'null'); return s&&s.token; }catch(e){ return null; } }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtDate(iso){ if(!iso) return ''; return new Date(iso+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'}); }
+
+async function load(){
+  TOKEN = getToken();
+  if(!TOKEN){ document.getElementById('gate').style.display='block'; return; }
+  document.getElementById('app').style.display='block';
+  try{
+    const r = await fetch(`${API_BASE}/events`, {headers:{'Authorization':'Bearer '+TOKEN}, cache:'no-store'});
+    if(r.status===401){ document.getElementById('app').style.display='none'; document.getElementById('gate').style.display='block'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const d = await r.json();
+    render(d.events||[]);
+  }catch(e){ document.getElementById('list').innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
+}
+
+function render(events){
+  const el = document.getElementById('list');
+  if(!events.length){ el.innerHTML='<div class="empty">Aucun événement à venir pour le moment.</div>'; return; }
+  el.innerHTML = events.map(e=>{
+    const when = fmtDate(e.date) + (e.hour_from?` · ${e.hour_from}${e.hour_to?'–'+e.hour_to:''}`:'');
+    let spots = '';
+    if(e.spots_left===null) spots = '<span class="spots">Places illimitées</span>';
+    else if(e.spots_left<=0 && !e.is_registered) spots = '<span class="spots full">Complet</span>';
+    else spots = `<span class="spots">${e.spots_left} place${e.spots_left>1?'s':''} restante${e.spots_left>1?'s':''}</span>`;
+    let action;
+    if(e.is_registered) action = `<div style="text-align:right"><div class="reg-badge">✓ Inscrit</div><button class="btn cancel" style="margin-top:6px" onclick="cancelReg(${e.id})">Se désinscrire</button></div>`;
+    else if(e.spots_left!==null && e.spots_left<=0) action = `<button class="btn" disabled>Complet</button>`;
+    else action = `<button class="btn" onclick="reg(${e.id})">S'inscrire</button>`;
+    return `<div class="event">
+      <div class="main">
+        ${e.category?`<span class="cat">${esc(e.category)}</span>`:''}
+        <h3>${esc(e.title)}</h3>
+        <div class="when">📅 ${when}${e.location?` · 📍 ${esc(e.location)}`:''}</div>
+        ${e.description?`<div class="desc">${esc(e.description)}</div>`:''}
+      </div>
+      <div class="side">${spots}${action}</div>
+    </div>`;
+  }).join('');
+}
+
+async function reg(id){
+  try{
+    const r = await fetch(`${API_BASE}/events/${id}/register`, {method:'POST', headers:{'Authorization':'Bearer '+TOKEN}});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    load();
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+async function cancelReg(id){
+  if(!confirm('Annuler votre inscription ?')) return;
+  try{
+    const r = await fetch(`${API_BASE}/events/${id}/register`, {method:'DELETE', headers:{'Authorization':'Bearer '+TOKEN}});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    load();
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+
+load();
+</script>
+</body>
+</html>

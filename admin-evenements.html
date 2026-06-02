@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Événements — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1000px;margin:24px auto;padding:0 18px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;padding:20px;margin-bottom:20px}
+  .card h2{font-family:'Playfair Display',serif;margin:0 0 14px;font-size:18px}
+  label{display:block;font-size:12.5px;color:var(--slate);margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:14px;color:var(--navy)}
+  textarea{min-height:70px;resize:vertical}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer;margin-top:14px}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--light);padding:6px 12px;font-size:12.5px;margin:0}
+  .btn.del{color:var(--red)}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px 12px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee;vertical-align:top}
+  th{color:var(--slate);font-weight:600;font-size:12px;text-transform:uppercase}
+  .muted{color:var(--slate);font-size:12.5px}
+  .empty{padding:24px;text-align:center;color:var(--slate)}
+  .ok{color:var(--green);font-size:13px;display:none;margin-top:8px}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login"><div class="box">
+  <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Événements</h2>
+  <p class="muted">Session admin requise.</p>
+  <a class="btn" href="admin-devis-dashboard.html" style="text-decoration:none;display:inline-block;margin-top:10px">Se connecter sur le dashboard</a>
+</div></div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="44" height="44">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-devis-dashboard.html">📋 Devis</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-fermetures.html">🚫 Fermetures</a>
+      <a href="admin-stats.html">📊 Statistiques</a>
+      <a href="admin-evenements.html" class="active">🎉 Événements</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <h2 id="form-title">Créer un événement</h2>
+    <input type="hidden" id="e-id">
+    <div class="grid">
+      <div style="grid-column:1/-1"><label>Titre</label><input id="e-title" placeholder="Apéro networking"></div>
+      <div><label>Catégorie</label><input id="e-cat" placeholder="Réseautage"></div>
+      <div><label>Date</label><input id="e-date" type="date"></div>
+      <div><label>Heure début</label><input id="e-from" type="time" step="900"></div>
+      <div><label>Heure fin</label><input id="e-to" type="time" step="900"></div>
+      <div><label>Lieu</label><input id="e-loc" value="L'Atelier du Coworking"></div>
+      <div><label>Capacité (vide = illimité)</label><input id="e-cap" type="number" min="1" placeholder="ex. 20"></div>
+      <div style="grid-column:1/-1"><label>Description</label><textarea id="e-desc"></textarea></div>
+      <div style="grid-column:1/-1"><label><input type="checkbox" id="e-active" checked style="width:auto"> Visible par les membres</label></div>
+    </div>
+    <button class="btn" onclick="saveEvent()">Enregistrer</button>
+    <button class="btn ghost" style="margin-left:8px" onclick="resetForm()">Annuler</button>
+    <div class="ok" id="ok-msg">✅ Enregistré.</div>
+  </div>
+
+  <div class="card">
+    <h2>Événements</h2>
+    <div id="list"><div class="empty">Chargement…</div></div>
+  </div>
+
+  <div class="card" id="reg-card" style="display:none">
+    <h2>Inscrits — <span id="reg-title"></span></h2>
+    <div id="reg-list"></div>
+  </div>
+</div>
+
+<script>
+const API_BASE = '/api/coworking';
+const STORAGE_KEY = 'cw_admin_session';
+let HEADERS = {'Content-Type':'application/json'};
+
+function getSession(){ try{ const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); if(s&&s.expires&&s.expires<Date.now()) return null; return s; }catch(e){ return null; } }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function fmtDate(iso){ if(!iso) return ''; return new Date(iso+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'2-digit'}); }
+function val(id){ return document.getElementById(id).value.trim(); }
+
+async function load(){
+  try{
+    const r = await fetch(`${API_BASE}/admin/events`, {headers:HEADERS, cache:'no-store'});
+    if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const d = await r.json();
+    render(d.events||[]);
+  }catch(e){ document.getElementById('list').innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
+}
+
+function render(events){
+  const el = document.getElementById('list');
+  if(!events.length){ el.innerHTML='<div class="empty">Aucun événement.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Date</th><th>Titre</th><th>Inscrits</th><th>Visible</th><th></th></tr></thead><tbody>' +
+    events.map(e=>`<tr>
+      <td>${fmtDate(e.date)}${e.hour_from?'<div class="muted">'+e.hour_from+(e.hour_to?'–'+e.hour_to:'')+'</div>':''}</td>
+      <td><b>${esc(e.title)}</b>${e.category?'<div class="muted">'+esc(e.category)+'</div>':''}</td>
+      <td>${e.registered_count}${e.capacity?(' / '+e.capacity):''}</td>
+      <td>${e.active?'✅':'—'}</td>
+      <td style="text-align:right;white-space:nowrap">
+        <button class="btn ghost" onclick='showRegs(${e.id}, ${JSON.stringify(e.title)})'>Inscrits</button>
+        <button class="btn ghost" onclick='editEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Modifier</button>
+        <button class="btn ghost del" onclick="delEvent(${e.id})">Suppr.</button>
+      </td>
+    </tr>`).join('') + '</tbody></table>';
+}
+
+function resetForm(){
+  document.getElementById('e-id').value='';
+  ['e-title','e-cat','e-date','e-from','e-to','e-cap','e-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('e-loc').value="L'Atelier du Coworking";
+  document.getElementById('e-active').checked=true;
+  document.getElementById('form-title').textContent='Créer un événement';
+}
+
+function editEvent(e){
+  document.getElementById('e-id').value=e.id;
+  document.getElementById('e-title').value=e.title||'';
+  document.getElementById('e-cat').value=e.category||'';
+  document.getElementById('e-date').value=e.date||'';
+  document.getElementById('e-from').value=e.hour_from||'';
+  document.getElementById('e-to').value=e.hour_to||'';
+  document.getElementById('e-loc').value=e.location||'';
+  document.getElementById('e-cap').value=e.capacity||'';
+  document.getElementById('e-desc').value=e.description||'';
+  document.getElementById('e-active').checked=!!e.active;
+  document.getElementById('form-title').textContent='Modifier l\'événement';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function saveEvent(){
+  const id = document.getElementById('e-id').value;
+  const body = {
+    title: val('e-title'), category: val('e-cat')||null, date: val('e-date'),
+    hour_from: val('e-from')||null, hour_to: val('e-to')||null, location: val('e-loc')||null,
+    capacity: val('e-cap') ? parseInt(val('e-cap'),10) : null,
+    description: val('e-desc')||null, active: document.getElementById('e-active').checked,
+  };
+  if(!body.title || !body.date){ alert('Titre et date requis.'); return; }
+  try{
+    const url = id ? `${API_BASE}/admin/events/${id}` : `${API_BASE}/admin/events`;
+    const r = await fetch(url, {method: id?'PATCH':'POST', headers:HEADERS, body:JSON.stringify(body)});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    const ok=document.getElementById('ok-msg'); ok.style.display='block'; setTimeout(()=>ok.style.display='none',2500);
+    resetForm(); load();
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+
+async function delEvent(id){
+  if(!confirm('Supprimer cet événement et toutes ses inscriptions ?')) return;
+  try{
+    const r = await fetch(`${API_BASE}/admin/events/${id}`, {method:'DELETE', headers:HEADERS});
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    load();
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+
+async function showRegs(id, title){
+  const card=document.getElementById('reg-card'), list=document.getElementById('reg-list');
+  document.getElementById('reg-title').textContent=title;
+  card.style.display='block'; list.innerHTML='Chargement…';
+  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+  try{
+    const r = await fetch(`${API_BASE}/admin/events/${id}/registrations`, {headers:HEADERS, cache:'no-store'});
+    const d = await r.json();
+    const rows = d.registrations||[];
+    if(!rows.length){ list.innerHTML='<div class="empty">Aucun inscrit.</div>'; return; }
+    list.innerHTML = `<p class="muted">${rows.length} inscrit(s)</p><table><thead><tr><th>Nom</th><th>Email</th><th>Inscrit le</th></tr></thead><tbody>`+
+      rows.map(x=>`<tr><td>${esc(x.name)||'—'}</td><td>${esc(x.customer_email)}</td><td class="muted">${x.created_at?new Date(x.created_at).toLocaleDateString('fr-FR'):''}</td></tr>`).join('')+'</tbody></table>';
+  }catch(e){ list.innerHTML='<div class="empty">Erreur : '+e.message+'</div>'; }
+}
+
+(function(){
+  const s=getSession();
+  if(!s||!s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS={'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  document.getElementById('e-date').value=new Date().toISOString().slice(0,10);
+  load();
+})();
+</script>
+</body>
+</html>

@@ -39,6 +39,14 @@
     {
       "source": "/admin-stats",
       "destination": "/admin-stats.html"
+    },
+    {
+      "source": "/evenements",
+      "destination": "/evenements.html"
+    },
+    {
+      "source": "/admin-evenements",
+      "destination": "/admin-evenements.html"
     }
   ]
 }
