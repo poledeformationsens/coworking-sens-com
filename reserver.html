@@ -677,7 +677,7 @@ async function refreshPackOption(){
   const slug = SPACE_SLUG[selectedSpace];
   if(!ctype || !slug) return;
   const packs = await fetchMyPacks();
-  const match = packs.find(p => p.space===slug && p.credit_type===ctype && p.remaining>0 && !p.expired);
+  const match = packs.find(p => p.space===slug && p.credit_type===ctype && p.remaining>0 && !p.expired && (!!p.test_mode === TEST_MODE));
   if(!match) return;
   const word = match.credit_label + (match.remaining>1 ? 's' : '');
   box.innerHTML =
