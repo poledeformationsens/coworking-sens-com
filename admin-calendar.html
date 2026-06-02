@@ -238,6 +238,44 @@
   </div>
 </div>
 
+<!-- Modal création réservation (réserver pour un client) -->
+<div class="modal-bg" id="modal-create">
+  <div class="modal">
+    <h2>Réserver pour un client</h2>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0;">
+      <div><label style="font-size:12px;color:var(--slate)">Espace</label>
+        <select id="c-space" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;">
+          <option value="bureau-1">Bureau 1</option>
+          <option value="bureau-2">Bureau 2</option>
+          <option value="coworking">Espace coworking</option>
+          <option value="salle-reunion">Salle de réunion</option>
+        </select>
+      </div>
+      <div><label style="font-size:12px;color:var(--slate)">Date</label>
+        <input id="c-date" type="date" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+      <div><label style="font-size:12px;color:var(--slate)">Heure début</label>
+        <input id="c-from" type="time" step="900" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+      <div><label style="font-size:12px;color:var(--slate)">Heure fin</label>
+        <input id="c-to" type="time" step="900" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+      <div><label style="font-size:12px;color:var(--slate)">Nom client</label>
+        <input id="c-name" type="text" placeholder="Sophie Martin" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+      <div><label style="font-size:12px;color:var(--slate)">Email client</label>
+        <input id="c-email" type="email" placeholder="client@email.fr" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+      <div><label style="font-size:12px;color:var(--slate)">Montant TTC (€)</label>
+        <input id="c-amount" type="number" min="0" step="0.01" value="0" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+      <div style="display:flex;flex-direction:column;justify-content:flex-end;gap:6px;font-size:13px;">
+        <label style="display:flex;gap:6px;align-items:center;"><input id="c-pin" type="checkbox" checked> Générer un PIN</label>
+        <label style="display:flex;gap:6px;align-items:center;"><input id="c-mail" type="checkbox" checked> Envoyer l'email</label>
+      </div>
+    </div>
+    <div id="c-error" style="color:#C0392B;font-size:13px;display:none;margin-top:6px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeCreateModal()">Annuler</button>
+      <button class="btn btn-primary" id="c-submit" onclick="submitCreate()">Confirmer la réservation</button>
+    </div>
+  </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <script>
 // =====================================
@@ -357,6 +395,9 @@ function initCalendar() {
     weekends: true,
     firstDay: 1,
     nowIndicator: true,
+    selectable: true,
+    selectMirror: true,
+    select: onTimeSelect,
     events: fetchEvents,
     eventClick: onEventClick,
     dateClick: onDateClick,
@@ -436,11 +477,80 @@ function onEventClick(info) {
   document.getElementById('modal-detail').classList.add('open');
 }
 
-function onDateClick(info) {
-  // Clic sur une case vide → propose d'ouvrir le form devis pré-rempli
-  if (confirm(`Créer un devis pour le ${info.dateStr} ?`)) {
-    window.location.href = `admin-devis-dashboard.html?prefillDate=${info.dateStr}`;
+let _lastSelectTs = 0;
+const SPACE_FILTER_TO_KEY = { 'coworking':'coworking', 'bureau':'bureau-1', 'salle-reunion':'salle-reunion' };
+
+function onTimeSelect(info) {
+  _lastSelectTs = Date.now();
+  const date = info.startStr.substring(0, 10);
+  let hf = '08:00', ht = '18:00';
+  if (!info.allDay) {
+    hf = info.start.toTimeString().substring(0, 5);
+    ht = info.end.toTimeString().substring(0, 5);
   }
+  openCreateModal(date, hf, ht);
+  if (calendar) calendar.unselect();
+}
+
+function onDateClick(info) {
+  if (Date.now() - _lastSelectTs < 400) return;  // évite le double-déclenchement avec select
+  const date = (info.dateStr || '').substring(0, 10);
+  let hf = '08:00', ht = '18:00';
+  if (info.dateStr && info.dateStr.length > 10) {  // clic en vue semaine/jour (avec heure)
+    hf = info.date.toTimeString().substring(0, 5);
+    const end = new Date(info.date.getTime() + 60 * 60 * 1000);
+    ht = end.toTimeString().substring(0, 5);
+  }
+  openCreateModal(date, hf, ht);
+}
+
+function openCreateModal(date, hf, ht) {
+  document.getElementById('c-date').value = date;
+  document.getElementById('c-from').value = hf;
+  document.getElementById('c-to').value = ht;
+  // pré-sélectionne l'espace selon le filtre actif
+  const key = SPACE_FILTER_TO_KEY[currentSpaceFilter] || 'bureau-1';
+  document.getElementById('c-space').value = key;
+  document.getElementById('c-name').value = '';
+  document.getElementById('c-email').value = '';
+  document.getElementById('c-amount').value = '0';
+  document.getElementById('c-pin').checked = true;
+  document.getElementById('c-mail').checked = true;
+  document.getElementById('c-error').style.display = 'none';
+  document.getElementById('modal-create').classList.add('open');
+}
+
+function closeCreateModal() {
+  document.getElementById('modal-create').classList.remove('open');
+}
+
+async function submitCreate() {
+  const err = document.getElementById('c-error');
+  err.style.display = 'none';
+  const body = {
+    space: document.getElementById('c-space').value,
+    date: document.getElementById('c-date').value,
+    hour_from: document.getElementById('c-from').value,
+    hour_to: document.getElementById('c-to').value,
+    name: document.getElementById('c-name').value.trim(),
+    email: document.getElementById('c-email').value.trim(),
+    amount_ttc: parseFloat(document.getElementById('c-amount').value || '0'),
+    generate_pin: document.getElementById('c-pin').checked,
+    send_email: document.getElementById('c-mail').checked,
+    test_mode: isTestMode(),
+  };
+  if (!body.name || !body.email.includes('@')) { err.textContent = 'Nom et email valides requis.'; err.style.display = 'block'; return; }
+  const btn = document.getElementById('c-submit'); const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Création…';
+  try {
+    const r = await fetch(`${API_BASE}/admin/reservations`, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || 'Erreur'); }
+    const d = await r.json();
+    closeCreateModal();
+    loadEvents();
+    alert('Réservation créée ✅\nRéférence : ' + d.reference + (d.pin_code ? '\nPIN : ' + d.pin_code : ''));
+  } catch (e) { err.textContent = 'Erreur : ' + e.message; err.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = orig; }
 }
 
 function closeModal() {
