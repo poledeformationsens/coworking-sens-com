@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Mon espace — L'Atelier du Coworking</title>
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 <style>
   :root {
     --navy: #03234D;
@@ -19,7 +21,10 @@
   body {
     margin: 0;
     font-family: 'Inter', -apple-system, sans-serif;
-    background: var(--cream);
+    background:
+      linear-gradient(180deg, rgba(248,247,244,0.82) 0%, rgba(248,247,244,0.90) 100%),
+      url('https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/Photo-principale.jpg') center/cover fixed no-repeat;
+    background-color: var(--cream);
     color: var(--navy);
     line-height: 1.5;
   }
@@ -290,6 +295,62 @@
     .reservation-item .row { flex-direction: column; }
     .form-row { grid-template-columns: 1fr; }
   }
+
+  /* === Calendrier client (FullCalendar) === */
+  #cal-help { color: var(--slate); font-size: 13.5px; margin: 0 0 16px; line-height: 1.6; }
+  #client-calendar { --fc-border-color: #ECE7DC; --fc-today-bg-color: rgba(201,181,132,0.12); --fc-page-bg-color: #fff; }
+  #client-calendar .fc { font-family: 'Inter', sans-serif; }
+  #client-calendar .fc .fc-toolbar-title { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; color: var(--navy); font-weight: 600; text-transform: capitalize; }
+  #client-calendar .fc .fc-button-primary {
+    background: var(--navy); border-color: var(--navy); color: #fff;
+    text-transform: capitalize; font-weight: 600; font-size: 13px; box-shadow: none;
+    border-radius: 8px; padding: 7px 12px;
+  }
+  #client-calendar .fc .fc-button-primary:not(:disabled):hover { background: #06305f; border-color: #06305f; }
+  #client-calendar .fc .fc-button-primary:disabled { opacity: .45; }
+  #client-calendar .fc .fc-button-active { background: var(--gold) !important; border-color: var(--gold) !important; color: var(--navy) !important; }
+  #client-calendar .fc .fc-daygrid-day-number { color: var(--navy); font-size: 13px; font-weight: 500; padding: 6px 8px; }
+  #client-calendar .fc .fc-col-header-cell-cushion { color: var(--slate); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; padding: 8px 4px; font-weight: 700; }
+  #client-calendar .fc-daygrid-day { transition: background .15s; }
+  #client-calendar .fc-daygrid-day:hover { background: rgba(201,181,132,0.10); cursor: pointer; }
+  #client-calendar .fc-day-past { background: #FAFAF8; }
+  #client-calendar .fc-day-past .fc-daygrid-day-number { color: #B9C0CC; }
+  #client-calendar .fc-event { border: 0; border-radius: 6px; padding: 1px 5px; font-size: 11.5px; font-weight: 600; box-shadow: 0 1px 3px rgba(3,35,77,.12); cursor: default; }
+  #client-calendar .fc-daygrid-event-dot { display: none; }
+
+  /* === Modal de réservation === */
+  .modal-overlay { position: fixed; inset: 0; background: rgba(3,35,77,0.55); backdrop-filter: blur(3px); z-index: 1000; display: none; align-items: center; justify-content: center; padding: 18px; }
+  .modal-overlay.open { display: flex; }
+  .modal-card { background: #fff; border-radius: 16px; width: 100%; max-width: 460px; max-height: 92vh; overflow-y: auto; box-shadow: 0 24px 70px rgba(3,35,77,0.30); }
+  .modal-head { background: linear-gradient(135deg, var(--navy), #06305f); color: #fff; padding: 20px 24px; border-radius: 16px 16px 0 0; position: relative; }
+  .modal-head .modal-title { font-family: 'Playfair Display', Georgia, serif; font-size: 20px; margin: 0; font-weight: 600; }
+  .modal-head .modal-date { color: var(--gold); font-size: 12.5px; text-transform: capitalize; margin: 4px 0 0; letter-spacing: .5px; }
+  .modal-close { position: absolute; top: 16px; right: 18px; background: rgba(255,255,255,0.15); border: 0; color: #fff; width: 30px; height: 30px; border-radius: 50%; font-size: 17px; cursor: pointer; line-height: 1; }
+  .modal-body { padding: 22px 24px 26px; }
+  .modal-body label { display: block; font-size: 11px; color: var(--slate); letter-spacing: 1px; text-transform: uppercase; margin: 0 0 6px; font-weight: 700; }
+  .modal-body .field { margin-bottom: 18px; }
+  .seg { display: grid; gap: 8px; }
+  .seg.cols-2 { grid-template-columns: 1fr 1fr; }
+  .seg.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .seg-btn { border: 1.5px solid var(--light); background: #fff; border-radius: 10px; padding: 11px 8px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--navy); text-align: center; transition: all .12s; }
+  .seg-btn small { display: block; font-weight: 500; color: var(--slate); font-size: 11px; margin-top: 2px; }
+  .seg-btn:hover { border-color: var(--gold); }
+  .seg-btn.active { border-color: var(--gold); background: rgba(201,181,132,0.14); }
+  .seg-btn:disabled { opacity: .4; cursor: not-allowed; background: #F6F6F4; }
+  .avail-line { font-size: 13px; padding: 11px 14px; border-radius: 10px; margin-bottom: 16px; line-height: 1.5; }
+  .avail-ok { background: rgba(29,158,117,0.10); color: #157a5a; }
+  .avail-ko { background: rgba(234,88,74,0.10); color: #c0392b; }
+  .avail-neutral { background: var(--cream); color: var(--slate); }
+  .price-row { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 0; border-top: 1px solid var(--light); margin-top: 4px; }
+  .price-row .lbl { color: var(--slate); font-size: 13px; }
+  .price-row .val { font-size: 22px; font-weight: 800; color: var(--navy); }
+  .modal-actions { display: grid; gap: 10px; margin-top: 18px; }
+  .btn-ticket { background: var(--gold); color: var(--navy); border: 0; border-radius: 999px; padding: 13px; font-weight: 700; font-size: 14px; cursor: pointer; }
+  .btn-ticket:disabled { opacity: .45; cursor: not-allowed; }
+  .btn-pay-online { background: var(--navy); color: #fff; border: 0; border-radius: 999px; padding: 13px; font-weight: 700; font-size: 14px; cursor: pointer; }
+  .btn-pay-online:disabled { opacity: .45; cursor: not-allowed; }
+  .modal-note { font-size: 12px; color: var(--slate); text-align: center; margin: 12px 0 0; line-height: 1.5; }
+  .modal-msg { font-size: 13px; text-align: center; margin: 12px 0 0; min-height: 16px; }
 </style>
 </head>
 <body>
@@ -426,6 +487,7 @@
 
 <div class="tabs">
   <button class="tab active" data-tab="overview" onclick="switchTab('overview')">📋 Mes réservations</button>
+  <button class="tab" data-tab="calendar" onclick="switchTab('calendar')">📅 Calendrier</button>
   <button class="tab" data-tab="packs" onclick="switchTab('packs')">🎟️ Mes forfaits</button>
   <button class="tab" data-tab="profile" onclick="switchTab('profile')">👤 Mon profil</button>
   <button class="tab" data-tab="security" onclick="switchTab('security')">🔒 Sécurité</button>
@@ -463,6 +525,15 @@
   <div class="card">
     <h2>Historique <span class="count" id="count-past">0</span></h2>
     <div id="past-list"></div>
+  </div>
+</div>
+
+<!-- TAB CALENDRIER -->
+<div id="tab-calendar" class="tab-content" style="display:none;">
+  <div class="card">
+    <h2>Réserver un créneau</h2>
+    <p id="cal-help">Cliquez sur un jour pour réserver. Vos réservations à venir apparaissent en couleur. Réglez en ligne ou utilisez un crédit de forfait.</p>
+    <div id="client-calendar"></div>
   </div>
 </div>
 
@@ -687,6 +758,49 @@
 
 </div><!-- /screen-app -->
 
+<!-- ============================================ -->
+<!-- MODAL RÉSERVATION (depuis le calendrier) -->
+<!-- ============================================ -->
+<div id="booking-modal" class="modal-overlay" onclick="if(event.target===this)closeBooking()">
+  <div class="modal-card">
+    <div class="modal-head">
+      <h3 class="modal-title">Réserver un créneau</h3>
+      <p class="modal-date" id="bk-date-label">—</p>
+      <button class="modal-close" onclick="closeBooking()" aria-label="Fermer">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="field">
+        <label>Espace</label>
+        <div class="seg cols-2" id="bk-spaces">
+          <button type="button" class="seg-btn" data-space="coworking" onclick="bkSelectSpace('coworking')">Coworking</button>
+          <button type="button" class="seg-btn" data-space="bureau-1" onclick="bkSelectSpace('bureau-1')">Bureau 1</button>
+          <button type="button" class="seg-btn" data-space="bureau-2" onclick="bkSelectSpace('bureau-2')">Bureau 2</button>
+          <button type="button" class="seg-btn" data-space="salle-reunion" onclick="bkSelectSpace('salle-reunion')">Salle de réunion</button>
+        </div>
+      </div>
+      <div class="field">
+        <label>Créneau</label>
+        <div class="seg cols-3" id="bk-slots">
+          <button type="button" class="seg-btn" data-slot="morning" onclick="bkSelectSlot('morning')">Matinée<small>8 h–12 h</small></button>
+          <button type="button" class="seg-btn" data-slot="afternoon" onclick="bkSelectSlot('afternoon')">Après-midi<small>14 h–18 h</small></button>
+          <button type="button" class="seg-btn" data-slot="day" onclick="bkSelectSlot('day')">Journée<small>8 h–18 h</small></button>
+        </div>
+      </div>
+      <div id="bk-avail" class="avail-line avail-neutral">Choisissez un espace et un créneau.</div>
+      <div class="price-row">
+        <span class="lbl">Tarif en ligne</span>
+        <span class="val" id="bk-price">—</span>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-ticket" id="bk-btn-ticket" onclick="bookWithTicket()" style="display:none;">Réserver avec un ticket (−1 crédit) →</button>
+        <button type="button" class="btn-pay-online" id="bk-btn-pay" onclick="bookAndPay()" disabled>Réserver &amp; payer en ligne →</button>
+      </div>
+      <p class="modal-note" id="bk-ticket-note"></p>
+      <p class="modal-msg" id="bk-msg"></p>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================
 // Config
@@ -865,6 +979,9 @@ function renderApp(data) {
 
   // Upcoming
   const upcoming = data.reservations.upcoming;
+  // Mémorise pour le calendrier (à venir + passé)
+  ALL_RESERVATIONS = [].concat(data.reservations.upcoming || [], data.reservations.past || []);
+  if (CAL) { CAL.removeAllEvents(); CAL.addEventSource(buildCalEvents()); }
   document.getElementById('count-upcoming').textContent = upcoming.length;
   document.getElementById('upcoming-list').innerHTML = upcoming.length
     ? upcoming.map(renderReservation).join('')
@@ -943,6 +1060,220 @@ function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(c => c.style.display = 'none');
   document.getElementById(`tab-${name}`).style.display = 'block';
   if (name === 'packs') loadPacks();
+  if (name === 'calendar') initClientCalendar();
+}
+
+// ============================================
+// Calendrier client + réservation au clic
+// ============================================
+const C_PRICES_HT = {
+  'coworking':    {morning:8,  afternoon:8,  day:15},
+  'bureau-1':     {morning:16, afternoon:16, day:29},
+  'bureau-2':     {morning:16, afternoon:16, day:29},
+  'salle-reunion':{morning:70, afternoon:70, day:130},
+};
+const C_NAMES = {'coworking':'Espace coworking','bureau-1':'Bureau 1','bureau-2':'Bureau 2','salle-reunion':'Salle de réunion'};
+const C_SPACE_UNIT = {'coworking':'','bureau-1':'Bureau 1','bureau-2':'Bureau 2','salle-reunion':''};
+const C_SPACE_SLUG = {'coworking':'coworking','bureau-1':'bureau','bureau-2':'bureau','salle-reunion':'salle-reunion'};
+const C_TVA = 1.20;
+const C_TEST_MODE = new URLSearchParams(location.search).get('test') === '1';
+
+let ALL_RESERVATIONS = [];
+let CAL = null;
+let MY_PACKS = [];
+let bk = { date:null, space:null, slot:null };
+let bkAvail = {};
+
+function calColor(slug){
+  return {'coworking':'#C9B584','bureau':'#2563EB','salle-reunion':'#7C3AED','privatisation':'#EA584A'}[slug] || '#5A6A85';
+}
+function normSlug(s){
+  if(!s) return 'coworking'; const x=(''+s).toLowerCase();
+  if(x.includes('coworking')||x.includes('open')) return 'coworking';
+  if(x.includes('bureau')) return 'bureau';
+  if(x.includes('salle')||x.includes('réunion')||x.includes('reunion')) return 'salle-reunion';
+  if(x.includes('privatis')) return 'privatisation';
+  return x;
+}
+function buildCalEvents(){
+  return (ALL_RESERVATIONS||[]).filter(r=>r.date).map(r=>{
+    const slug = normSlug(r.space);
+    const hf = r.hour_from || '08:00', ht = r.hour_to || '18:00';
+    const unit = r.space_unit ? ' · '+r.space_unit : '';
+    return { title:(spaceLabel(slug)||r.space)+unit, start:r.date+'T'+hf+':00', end:r.date+'T'+ht+':00', color:calColor(slug), display:'block' };
+  });
+}
+function initClientCalendar(){
+  const el = document.getElementById('client-calendar');
+  if(!el) return;
+  if(CAL){ CAL.updateSize(); return; }
+  CAL = new FullCalendar.Calendar(el, {
+    initialView:'dayGridMonth', locale:'fr', firstDay:1, height:'auto',
+    headerToolbar:{ left:'prev,next today', center:'title', right:'' },
+    buttonText:{ today:"Aujourd'hui" },
+    events: buildCalEvents(),
+    validRange:{ start: new Date().toISOString().slice(0,10) },
+    dateClick: function(info){ openBooking(info.dateStr); },
+  });
+  CAL.render();
+}
+
+async function ensureMyPacks(){
+  try {
+    const r = await fetch(`${API_BASE}/client/packs`, { headers: authHeaders(), cache:'no-store' });
+    MY_PACKS = r.ok ? ((await r.json()).packs || []) : [];
+  } catch(e){ MY_PACKS = []; }
+}
+function usablePackFor(space, slot){
+  const slug = C_SPACE_SLUG[space];
+  const creditType = slot === 'day' ? 'day' : 'half-day';
+  return (MY_PACKS||[]).find(p =>
+    p.space === slug && p.credit_type === creditType &&
+    !p.expired && (p.remaining > 0) &&
+    (p.test_mode === undefined ? !C_TEST_MODE : (!!p.test_mode === C_TEST_MODE))
+  );
+}
+
+function frDate(iso){
+  try { return new Date(iso+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'}); }
+  catch(e){ return iso; }
+}
+
+async function openBooking(dateStr){
+  if(dateStr < new Date().toISOString().slice(0,10)) return; // pas de passé
+  bk = { date:dateStr, space:null, slot:null };
+  bkAvail = {};
+  document.getElementById('bk-date-label').textContent = frDate(dateStr);
+  document.querySelectorAll('#bk-spaces .seg-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('#bk-slots .seg-btn').forEach(b=>{ b.classList.remove('active'); b.disabled=false; });
+  document.getElementById('bk-price').textContent = '—';
+  document.getElementById('bk-avail').className = 'avail-line avail-neutral';
+  document.getElementById('bk-avail').textContent = 'Choisissez un espace et un créneau.';
+  document.getElementById('bk-btn-ticket').style.display = 'none';
+  document.getElementById('bk-btn-pay').disabled = true;
+  document.getElementById('bk-ticket-note').textContent = '';
+  document.getElementById('bk-msg').textContent = '';
+  document.getElementById('booking-modal').classList.add('open');
+  await ensureMyPacks();
+}
+function closeBooking(){ document.getElementById('booking-modal').classList.remove('open'); }
+
+function bkSelectSpace(space){
+  bk.space = space;
+  document.querySelectorAll('#bk-spaces .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.space===space));
+  bkFetchAvailability();
+}
+function bkSelectSlot(slot){
+  bk.slot = slot;
+  document.querySelectorAll('#bk-slots .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.slot===slot));
+  bkRefresh();
+}
+async function bkFetchAvailability(){
+  bkAvail = {};
+  if(!bk.date || !bk.space){ bkRefresh(); return; }
+  document.getElementById('bk-avail').className = 'avail-line avail-neutral';
+  document.getElementById('bk-avail').textContent = 'Vérification des disponibilités…';
+  try {
+    const u = `${API_BASE}/availability?date=${bk.date}&space=${bk.space}&test_mode=${C_TEST_MODE}`;
+    const r = await fetch(u, { cache:'no-store' });
+    if(r.ok){ const d = await r.json(); (d.slots||[]).forEach(s=>{ bkAvail[s.key]={available:s.available, remaining:s.remaining, reason:s.reason}; }); }
+  } catch(e){}
+  // grise les créneaux complets
+  document.querySelectorAll('#bk-slots .seg-btn').forEach(b=>{
+    const st = bkAvail[b.dataset.slot];
+    b.disabled = st ? !st.available : false;
+  });
+  bkRefresh();
+}
+function bkRefresh(){
+  const payBtn = document.getElementById('bk-btn-pay');
+  const ticketBtn = document.getElementById('bk-btn-ticket');
+  const availEl = document.getElementById('bk-avail');
+  const noteEl = document.getElementById('bk-ticket-note');
+  const priceEl = document.getElementById('bk-price');
+  document.getElementById('bk-msg').textContent = '';
+  // prix
+  if(bk.space && bk.slot && C_PRICES_HT[bk.space]){
+    priceEl.textContent = new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(C_PRICES_HT[bk.space][bk.slot]*C_TVA);
+  } else { priceEl.textContent = '—'; }
+  if(!bk.space || !bk.slot){
+    availEl.className='avail-line avail-neutral'; availEl.textContent='Choisissez un espace et un créneau.';
+    payBtn.disabled=true; ticketBtn.style.display='none'; noteEl.textContent=''; return;
+  }
+  const st = bkAvail[bk.slot];
+  const free = st ? st.available : true;
+  if(!free){
+    availEl.className='avail-line avail-ko'; availEl.textContent='✗ '+(st && st.reason ? st.reason : 'Créneau indisponible');
+    payBtn.disabled=true; ticketBtn.style.display='none'; noteEl.textContent=''; return;
+  }
+  const rem = (st && typeof st.remaining==='number') ? st.remaining : null;
+  availEl.className='avail-line avail-ok';
+  availEl.textContent='✓ Disponible' + (bk.space==='coworking' && rem!=null ? ' — '+rem+' place'+(rem>1?'s':'')+' restante'+(rem>1?'s':'') : '');
+  payBtn.disabled=false;
+  // ticket ?
+  const pack = usablePackFor(bk.space, bk.slot);
+  if(pack){
+    ticketBtn.style.display='block';
+    ticketBtn.disabled=false;
+    noteEl.textContent = `Vous avez ${pack.remaining} crédit${pack.remaining>1?'s':''} sur « ${pack.label || pack.space_label} ». Réserver ne décompte qu'1 crédit, sans paiement.`;
+  } else {
+    ticketBtn.style.display='none';
+    noteEl.textContent='';
+  }
+}
+
+async function bookWithTicket(){
+  const btn = document.getElementById('bk-btn-ticket');
+  const msg = document.getElementById('bk-msg');
+  btn.disabled=true; const orig=btn.textContent; btn.textContent='Réservation…'; msg.textContent='';
+  try {
+    const r = await fetch(`${API_BASE}/client/book-with-pack`, {
+      method:'POST', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()),
+      body: JSON.stringify({ space:bk.space, slot:bk.slot, date:bk.date, test_mode:C_TEST_MODE }),
+    });
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail || 'Réservation impossible'); }
+    const data = await r.json();
+    msg.style.color='var(--green)';
+    msg.textContent = '✓ Réservé ! Crédits restants : ' + (data.remaining!=null?data.remaining:'—');
+    setTimeout(()=>{ closeBooking(); enterApp(); }, 1400);
+  } catch(err){
+    msg.style.color='var(--coral, #EA584A)'; msg.textContent = 'Erreur : '+err.message;
+    btn.disabled=false; btn.textContent=orig;
+  }
+}
+
+async function bookAndPay(){
+  const btn = document.getElementById('bk-btn-pay');
+  const msg = document.getElementById('bk-msg');
+  btn.disabled=true; const orig=btn.textContent; btn.textContent='Vérification…'; msg.textContent='';
+  try {
+    // re-vérif dispo
+    const v = await fetch(`${API_BASE}/validate-slot`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ space:bk.space, date:bk.date, hour_from:(bk.slot==='afternoon'?'14:00':'08:00'), hour_to:(bk.slot==='morning'?'12:00':'18:00'), test_mode:C_TEST_MODE }),
+    });
+    const vd = await v.json().catch(()=>({ok:false}));
+    if(!vd.ok){ msg.style.color='#c0392b'; msg.textContent='Ce créneau vient d\'être pris. Choisissez-en un autre.'; bkFetchAvailability(); btn.disabled=false; btn.textContent=orig; return; }
+    btn.textContent='Redirection vers le paiement…';
+    const refNum = 'RES-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000);
+    const r = await fetch('/api/checkout', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        space: C_NAMES[bk.space], spaceUnit: C_SPACE_UNIT[bk.space] || '',
+        slot: bk.slot, date: bk.date, hourFrom:'', hourTo:'',
+        amountTTC: C_PRICES_HT[bk.space][bk.slot]*C_TVA,
+        email: CUSTOMER_EMAIL, name: CUSTOMER_NAME || '',
+        clientType: CUSTOMER_CLIENT_TYPE === 'pro' ? 'pro' : 'particulier',
+        company: '', reference: refNum, testMode: C_TEST_MODE, returnPath: '/mon-espace',
+      }),
+    });
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.error || 'Erreur de paiement'); }
+    const data = await r.json();
+    if(data.url){ window.location.href = data.url; } else { throw new Error('URL Stripe manquante'); }
+  } catch(err){
+    msg.style.color='#c0392b'; msg.textContent='Erreur : '+err.message;
+    btn.disabled=false; btn.textContent=orig;
+  }
 }
 
 // ============================================
