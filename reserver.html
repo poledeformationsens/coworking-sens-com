@@ -358,7 +358,7 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
       <button class="btn btn-ghost" onclick="goStep(1)">← Retour</button>
       <button class="btn" id="pv-submit" onclick="submitPrivatisation()">Envoyer la demande</button>
     </div>
-    <p class="foot">Ou contactez-nous directement à <a href="mailto:ateliercoworking89@gmail.com" style="color:var(--gold)">ateliercoworking89@gmail.com</a></p>
+    <p class="foot">Ou contactez-nous directement à <a href="mailto:contact@coworking-sens.com" style="color:var(--gold)">contact@coworking-sens.com</a></p>
   </div>
 
   <div class="step" id="step-devis-ok">
@@ -908,7 +908,7 @@ async function submitPrivatisation(){
     document.getElementById('pv-conf-mail').textContent = email;
     goStep('devis-ok');
   } catch(e){
-    alert('Erreur lors de l\'envoi. Merci de réessayer ou d\'écrire à ateliercoworking89@gmail.com');
+    alert('Erreur lors de l\'envoi. Merci de réessayer ou d\'écrire à contact@coworking-sens.com');
     btn.disabled = false; btn.textContent = t;
   }
 }
