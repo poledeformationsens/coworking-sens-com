@@ -180,6 +180,7 @@
       </label>
       <button type="submit">Se connecter</button>
       <p id="login-error" style="margin:14px 0 0;text-align:center;color:var(--coral);font-size:13px;display:none;"></p>
+      <p style="margin:16px 0 0;text-align:center;"><a href="#" onclick="adminForgotPassword(event)" style="color:var(--slate);font-size:12px;text-decoration:underline;">Mot de passe oublié ?</a></p>
     </form>
   </div>
 </div>
@@ -399,6 +400,21 @@ async function doLogin(e) {
     saveSession(data.token, data.email, remember);
     activateApp(data.token, data.email);
   } catch (e) { errEl.textContent = e.message; errEl.style.display = 'block'; }
+}
+
+async function adminForgotPassword(e) {
+  if (e) e.preventDefault();
+  const preset = (document.getElementById('login-email').value || '').trim();
+  const email = prompt("Entrez l'email administrateur. Un lien de réinitialisation sera envoyé à votre adresse de secours.", preset);
+  if (!email) return;
+  try {
+    const r = await fetch(`${API_BASE}/admin/forgot-password`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email: email.trim()}),
+    });
+    const d = await r.json().catch(() => ({}));
+    alert(d.message || "Si l'adresse correspond au compte admin, un email de réinitialisation a été envoyé.");
+  } catch (err) { alert('Erreur : ' + err.message); }
 }
 
 function doLogout(e) {
