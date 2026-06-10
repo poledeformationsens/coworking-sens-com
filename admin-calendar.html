@@ -248,7 +248,46 @@
     <div id="modal-content"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">Fermer</button>
+      <button id="modal-cancel-btn" class="btn" style="display:none;background:#EA584A;color:#fff;" onclick="openCancelModal()">Annuler / Rembourser</button>
       <a id="modal-link" class="btn btn-primary" style="text-decoration:none;display:none;" href="#">Voir dans Devis →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Modal annulation / remboursement -->
+<div class="modal-bg" id="modal-cancel">
+  <div class="modal">
+    <h2>Annuler & rembourser</h2>
+    <p id="rc-summary" style="font-size:13px;color:var(--slate);margin:0 0 14px;"></p>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Mode de remboursement</label>
+      <select id="rc-method" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;" onchange="onMethodChange()">
+        <option value="stripe">Remboursement carte (Stripe)</option>
+        <option value="virement">Avoir à rembourser par virement</option>
+        <option value="ticket">Recréditer le ticket (forfait)</option>
+        <option value="none">Aucun (annulation sèche)</option>
+      </select>
+    </div>
+    <div class="field" id="rc-amount-wrap" style="margin-bottom:12px;">
+      <label>Montant à rembourser (€ TTC)</label>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input type="number" id="rc-amount" step="0.01" min="0" style="flex:1;padding:9px;border:1px solid var(--light);border-radius:6px;">
+        <label style="font-size:12px;white-space:nowrap;"><input type="checkbox" id="rc-full" checked onchange="onFullToggle()"> Total</label>
+      </div>
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Motif (optionnel)</label>
+      <input type="text" id="rc-reason" placeholder="Ex : annulation client, créneau indisponible…" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;">
+    </div>
+    <div class="field" style="margin-bottom:6px;">
+      <label style="display:inline;text-transform:none;letter-spacing:0;font-size:13px;">
+        <input type="checkbox" id="rc-notify" checked> Envoyer l'email d'annulation au client
+      </label>
+    </div>
+    <div id="rc-error" style="display:none;color:#C0392B;font-size:13px;margin-top:8px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeCancelModal()">Retour</button>
+      <button id="rc-submit" class="btn" style="background:#EA584A;color:#fff;" onclick="submitCancel()">Confirmer l'annulation</button>
     </div>
   </div>
 </div>
@@ -505,9 +544,107 @@ function onEventClick(info) {
   if (props.reason) fields.push(`<div class="field"><label>Raison du blocage</label>${props.reason}</div>`);
   document.getElementById('modal-content').innerHTML = fields.join('');
   const link = document.getElementById('modal-link');
-  if (props.type === 'reservation') { link.style.display = 'inline-block'; link.href = 'admin-devis-dashboard.html'; }
+  const cancelBtn = document.getElementById('modal-cancel-btn');
+  const isResa = props.type === 'reservation';
+  const isCancelled = (props.status || '').toLowerCase() === 'cancelled';
+  if (isResa) { link.style.display = 'inline-block'; link.href = 'admin-devis-dashboard.html'; }
   else { link.style.display = 'none'; }
+  if (isResa && !isCancelled) {
+    cancelBtn.style.display = 'inline-block';
+    _currentResa = {
+      id: props.resa_id || (e.id || '').replace('resa-', ''),
+      reference: props.reference || '',
+      amount: Number(props.amount_ttc || 0),
+      payment_method: (props.payment_method || '').toLowerCase(),
+      name: props.client_name || '',
+    };
+  } else {
+    cancelBtn.style.display = 'none';
+    _currentResa = null;
+  }
   document.getElementById('modal-detail').classList.add('open');
+}
+
+// ===== Annulation / remboursement =====
+let _currentResa = null;
+
+function openCancelModal() {
+  if (!_currentResa) return;
+  const r = _currentResa;
+  document.getElementById('rc-summary').textContent =
+    `${r.reference} — ${r.name} — ${new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(r.amount)} TTC`;
+  // méthode par défaut selon le paiement d'origine
+  let m = 'stripe';
+  if (r.payment_method === 'pack') m = 'ticket';
+  else if (r.payment_method === 'stripe') m = 'stripe';
+  else m = 'virement';
+  document.getElementById('rc-method').value = m;
+  document.getElementById('rc-amount').value = r.amount.toFixed(2);
+  document.getElementById('rc-full').checked = true;
+  document.getElementById('rc-reason').value = '';
+  document.getElementById('rc-notify').checked = true;
+  document.getElementById('rc-error').style.display = 'none';
+  onMethodChange();
+  onFullToggle();
+  document.getElementById('modal-cancel').classList.add('open');
+}
+
+function closeCancelModal() {
+  document.getElementById('modal-cancel').classList.remove('open');
+}
+
+function onMethodChange() {
+  const m = document.getElementById('rc-method').value;
+  // ticket et "aucun" : pas de montant à saisir
+  const showAmount = (m === 'stripe' || m === 'virement');
+  document.getElementById('rc-amount-wrap').style.display = showAmount ? 'block' : 'none';
+}
+
+function onFullToggle() {
+  const full = document.getElementById('rc-full').checked;
+  const inp = document.getElementById('rc-amount');
+  if (full && _currentResa) inp.value = _currentResa.amount.toFixed(2);
+  inp.disabled = full;
+}
+
+async function submitCancel() {
+  if (!_currentResa) return;
+  const err = document.getElementById('rc-error');
+  err.style.display = 'none';
+  const method = document.getElementById('rc-method').value;
+  const full = document.getElementById('rc-full').checked;
+  const body = {
+    reason: document.getElementById('rc-reason').value.trim(),
+    refund_method: method === 'none' ? 'virement' : method,
+    notify_client: document.getElementById('rc-notify').checked,
+  };
+  if (method === 'none') { body.refund_amount = 0; body.notify_client = document.getElementById('rc-notify').checked; }
+  else if (method === 'stripe' || method === 'virement') {
+    body.refund_amount = full ? null : parseFloat(document.getElementById('rc-amount').value || '0');
+  }
+  const confirmMsg = method === 'stripe'
+    ? `Confirmer le remboursement Stripe de ${(body.refund_amount ?? _currentResa.amount)} € ?\nCette action débite réellement le compte Stripe.`
+    : 'Confirmer l\'annulation de cette réservation ?';
+  if (!confirm(confirmMsg)) return;
+  const btn = document.getElementById('rc-submit'); const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Traitement…';
+  try {
+    const r = await fetch(`${API_BASE}/admin/reservations/${_currentResa.id}/cancel`, {
+      method: 'POST', headers: HEADERS, body: JSON.stringify(body),
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || 'Erreur'); }
+    const d = await r.json();
+    closeCancelModal();
+    closeModal();
+    loadEvents();
+    let msg = 'Réservation annulée ✅';
+    if (d.avoir_reference) msg += '\nAvoir : ' + d.avoir_reference;
+    if (d.refund_method === 'stripe') msg += '\nRemboursement Stripe effectué.';
+    if (d.refund_method === 'ticket') msg += '\nTicket recrédité sur le forfait.';
+    if (d.refund_method === 'virement') msg += '\nAvoir émis — virement à effectuer (IBAN demandé au client).';
+    alert(msg);
+  } catch (e) { err.textContent = 'Erreur : ' + e.message; err.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = orig; }
 }
 
 let _lastSelectTs = 0;
