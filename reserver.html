@@ -268,22 +268,22 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
 
     <label class="label">Vous réservez</label>
     <div class="toggle-type">
-      <div class="toggle-card selected" data-type="particulier">
-        <i class="ti ti-user"></i>
-        <div class="toggle-card-name">Particulier</div>
-        <div class="toggle-card-sub">pour moi-même</div>
-      </div>
-      <div class="toggle-card" data-type="pro">
+      <div class="toggle-card selected" data-type="pro">
         <i class="ti ti-building"></i>
         <div class="toggle-card-name">Professionnel</div>
         <div class="toggle-card-sub">avec facture pro</div>
+      </div>
+      <div class="toggle-card" data-type="particulier">
+        <i class="ti ti-user"></i>
+        <div class="toggle-card-name">Particulier</div>
+        <div class="toggle-card-sub">pour moi-même</div>
       </div>
     </div>
 
     <div id="form-particulier">
       <div class="field-grid">
-        <div><label class="label">Prénom</label><input class="input" placeholder="Sophie" id="p-prenom" /></div>
-        <div><label class="label">Nom</label><input class="input" placeholder="Martin" id="p-nom" /></div>
+        <div><label class="label">Prénom *</label><input class="input" placeholder="Sophie" id="p-prenom" required /></div>
+        <div><label class="label">Nom *</label><input class="input" placeholder="Martin" id="p-nom" required /></div>
       </div>
       <div style="margin-bottom:10px"><label class="label">Email</label><input class="input" type="email" placeholder="sophie@exemple.fr" id="p-mail" /></div>
       <div style="margin-bottom:12px"><label class="label">Téléphone</label><input class="input" placeholder="06 12 34 56 78" id="p-tel" /></div>
@@ -312,8 +312,8 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
         <input class="input" id="pro-tva" placeholder="FR12345678901" />
       </div>
       <div class="field-grid">
-        <div><label class="label">Nom du contact</label><input class="input" id="pro-contact-nom" placeholder="Martin" /></div>
-        <div><label class="label">Prénom du contact</label><input class="input" id="pro-contact-prenom" placeholder="Sophie" /></div>
+        <div><label class="label">Nom du contact *</label><input class="input" id="pro-contact-nom" placeholder="Martin" required /></div>
+        <div><label class="label">Prénom du contact *</label><input class="input" id="pro-contact-prenom" placeholder="Sophie" required /></div>
       </div>
       <div style="margin-bottom:10px"><label class="label">Email pro</label><input class="input" type="email" id="pro-mail" placeholder="contact@masociete.fr" /></div>
       <div style="margin-bottom:12px"><label class="label">Téléphone</label><input class="input" id="pro-tel" placeholder="06 12 34 56 78" /></div>
@@ -332,6 +332,7 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
       <button class="btn btn-ghost" onclick="goStep(2)">← Retour</button>
       <button class="btn" id="btn-pay" onclick="payAndConfirm()">Payer & confirmer →</button>
     </div>
+    <a id="stripe-fallback" href="#" style="display:none;margin-top:14px;text-align:center;background:#C9B584;color:#03234D;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700;">Si le paiement ne s'ouvre pas, cliquez ici →</a>
   </div>
 
   <div class="step" id="step-devis">
@@ -921,13 +922,20 @@ async function payAndConfirm(){
   const originalText = btn.textContent;
   btn.disabled = true; btn.textContent = 'Vérification…'; btn.style.opacity = '0.7';
   try {
-    let email, name;
+    let email, prenom, nom;
     if(selectedClientType === 'pro'){
       email = document.getElementById('pro-mail').value;
-      name = (document.getElementById('pro-contact-prenom').value + ' ' + document.getElementById('pro-contact-nom').value).trim();
+      prenom = document.getElementById('pro-contact-prenom').value.trim();
+      nom = document.getElementById('pro-contact-nom').value.trim();
     } else {
       email = document.getElementById('p-mail').value;
-      name = (document.getElementById('p-prenom').value + ' ' + document.getElementById('p-nom').value).trim();
+      prenom = document.getElementById('p-prenom').value.trim();
+      nom = document.getElementById('p-nom').value.trim();
+    }
+    const name = (prenom + ' ' + nom).trim();
+    if(!prenom || !nom){
+      alert('Merci de renseigner votre prénom et votre nom.');
+      btn.disabled=false; btn.textContent=originalText; btn.style.opacity=''; return;
     }
     if(!email || !email.includes('@')){
       alert('Merci de renseigner un email valide');
@@ -965,7 +973,13 @@ async function payAndConfirm(){
     });
     if(!res.ok){ const e = await res.json().catch(()=>({error:'Erreur inconnue'})); throw new Error(e.error || 'Erreur de paiement'); }
     const data = await res.json();
-    if(data.url){ window.location.href = data.url; } else { throw new Error('URL Stripe manquante'); }
+    if(data.url){
+      // Redirection auto + lien de secours si le navigateur (ex. Safari) bloque la redirection
+      const fb = document.getElementById('stripe-fallback');
+      if(fb){ fb.href = data.url; fb.style.display = 'inline-block'; }
+      btn.textContent = 'Ouverture du paiement…';
+      setTimeout(()=>{ try{ window.location.assign(data.url); }catch(e){ window.location.href = data.url; } }, 50);
+    } else { throw new Error('URL Stripe manquante'); }
   } catch(err){
     console.error(err);
     alert('Erreur de paiement : ' + err.message + '\nMerci de réessayer ou nous contacter au 06.23.88.05.03.');

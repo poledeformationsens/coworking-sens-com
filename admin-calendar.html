@@ -312,8 +312,10 @@
         <input id="c-from" type="time" step="900" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
       <div><label style="font-size:12px;color:var(--slate)">Heure fin</label>
         <input id="c-to" type="time" step="900" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+      <div><label style="font-size:12px;color:var(--slate)">Prénom client</label>
+        <input id="c-prenom" type="text" placeholder="Sophie" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
       <div><label style="font-size:12px;color:var(--slate)">Nom client</label>
-        <input id="c-name" type="text" placeholder="Sophie Martin" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+        <input id="c-nom" type="text" placeholder="Martin" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
       <div><label style="font-size:12px;color:var(--slate)">Email client</label>
         <input id="c-email" type="email" placeholder="client@email.fr" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
       <div><label style="font-size:12px;color:var(--slate)">Montant TTC (€)</label>
@@ -697,7 +699,8 @@ function openCreateModal(date, hf, ht) {
   // pré-sélectionne l'espace selon le filtre actif
   const key = SPACE_FILTER_TO_KEY[currentSpaceFilter] || 'bureau-1';
   document.getElementById('c-space').value = key;
-  document.getElementById('c-name').value = '';
+  document.getElementById('c-prenom').value = '';
+  document.getElementById('c-nom').value = '';
   document.getElementById('c-email').value = '';
   document.getElementById('c-amount').value = '0';
   document.getElementById('c-pin').checked = true;
@@ -713,19 +716,21 @@ function closeCreateModal() {
 async function submitCreate() {
   const err = document.getElementById('c-error');
   err.style.display = 'none';
+  const prenom = document.getElementById('c-prenom').value.trim();
+  const nom = document.getElementById('c-nom').value.trim();
   const body = {
     space: document.getElementById('c-space').value,
     date: document.getElementById('c-date').value,
     hour_from: document.getElementById('c-from').value,
     hour_to: document.getElementById('c-to').value,
-    name: document.getElementById('c-name').value.trim(),
+    name: (prenom + ' ' + nom).trim(),
     email: document.getElementById('c-email').value.trim(),
     amount_ttc: parseFloat(document.getElementById('c-amount').value || '0'),
     generate_pin: document.getElementById('c-pin').checked,
     send_email: document.getElementById('c-mail').checked,
     test_mode: isTestMode(),
   };
-  if (!body.name || !body.email.includes('@')) { err.textContent = 'Nom et email valides requis.'; err.style.display = 'block'; return; }
+  if (!prenom || !nom || !body.email.includes('@')) { err.textContent = 'Prénom, nom et email valides requis.'; err.style.display = 'block'; return; }
   const btn = document.getElementById('c-submit'); const orig = btn.textContent;
   btn.disabled = true; btn.textContent = 'Création…';
   try {
