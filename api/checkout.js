@@ -104,7 +104,7 @@ export default async function handler(req, res) {
       success_url: `${origin}${returnPath || "/"}?status=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${returnPath || "/"}?status=cancelled`,
       locale: "fr",
-      billing_address_collection: clientType === "pro" ? "required" : "auto",
+      billing_address_collection: "auto",
       // TVA française incluse — pas de calcul Stripe Tax pour la v1
     });
 
