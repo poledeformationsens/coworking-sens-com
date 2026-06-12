@@ -138,6 +138,29 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
 </head>
 <body>
 
+<style>
+.acw-reviews{position:fixed;top:0;bottom:0;width:260px;display:none;flex-direction:column;justify-content:center;gap:14px;padding:24px 18px;z-index:1;pointer-events:none}
+.acw-reviews.left{left:0}
+.acw-reviews.right{right:0}
+@media(min-width:1380px){.acw-reviews{display:flex}}
+.acw-rev-head{display:flex;align-items:center;justify-content:center;gap:7px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#C9B584;margin-bottom:4px}
+.acw-rev-head b{color:#F4B400;font-size:12px}
+.acw-rev-slot{position:relative;min-height:180px}
+.acw-rev-card{background:rgba(255,255,255,.06);border:1px solid rgba(201,181,132,.25);border-radius:12px;padding:16px 16px 14px;transition:opacity .6s ease}
+.acw-rev-stars{color:#F4B400;font-size:13px;letter-spacing:2px;margin-bottom:7px}
+.acw-rev-txt{color:#fff;font-size:12.5px;line-height:1.55;margin-bottom:9px}
+.acw-rev-name{color:#C9B584;font-size:11px;font-weight:600;letter-spacing:.02em}
+</style>
+
+<aside class="acw-reviews left">
+  <div class="acw-rev-head"><b>★</b> Avis Google</div>
+  <div class="acw-rev-slot" id="acw-rev-left"></div>
+</aside>
+<aside class="acw-reviews right">
+  <div class="acw-rev-head"><b>★</b> Avis Google</div>
+  <div class="acw-rev-slot" id="acw-rev-right"></div>
+</aside>
+
 <div style="position:fixed;top:0;left:0;right:0;z-index:60;display:flex;justify-content:space-between;align-items:center;padding:12px 16px;box-sizing:border-box;pointer-events:none;">
   <a href="/" style="pointer-events:auto;color:#fff;text-decoration:none;font-size:13px;font-weight:600;background:rgba(255,255,255,.16);padding:9px 16px;border-radius:99px;backdrop-filter:blur(6px);">← Accueil</a>
   <span style="display:flex;gap:8px;align-items:center;pointer-events:auto;">
@@ -1063,6 +1086,35 @@ async function prefillFromAccount(){
   } catch(e){ /* silencieux : le client peut saisir manuellement */ }
 }
 prefillFromAccount();
+</script>
+
+<script>
+/* Bandeaux d'avis Google (vrais avis, fiche L'Atelier du Coworking) */
+(function(){
+  var R=[
+    {n:"Jérôme Robert", t:"J'ai découvert par hasard ce lieu et je recommande vivement. Un espace de coworking avec tout le confort nécessaire."},
+    {n:"Mehdi Youhet", t:"L'endroit est vraiment agréable et bien équipé. La connexion fibre est rapide, les machines à café sont à disposition."},
+    {n:"Tony Gomes", t:"Espace très agréable et bien équipé. La connexion internet est bonne."}
+  ];
+  function card(r){
+    return '<div class="acw-rev-card"><div class="acw-rev-stars">★★★★★</div>'
+      + '<div class="acw-rev-txt">« '+r.t+' »</div>'
+      + '<div class="acw-rev-name">— '+r.n+'</div></div>';
+  }
+  function mount(id, off){
+    var el=document.getElementById(id); if(!el) return;
+    var i=off%R.length;
+    function show(){
+      el.innerHTML=card(R[i]);
+      var c=el.firstChild; c.style.opacity='0';
+      requestAnimationFrame(function(){ c.style.opacity='1'; });
+      i=(i+1)%R.length;
+    }
+    show(); setInterval(show, 4500);
+  }
+  mount('acw-rev-left', 0);
+  mount('acw-rev-right', 1);
+})();
 </script>
 
 </body>
