@@ -1092,9 +1092,14 @@ prefillFromAccount();
 /* Bandeaux d'avis Google (vrais avis, fiche L'Atelier du Coworking) */
 (function(){
   var R=[
-    {n:"Jérôme Robert", t:"J'ai découvert par hasard ce lieu et je recommande vivement. Un espace de coworking avec tout le confort nécessaire."},
-    {n:"Mehdi Youhet", t:"L'endroit est vraiment agréable et bien équipé. La connexion fibre est rapide, les machines à café sont à disposition."},
-    {n:"Tony Gomes", t:"Espace très agréable et bien équipé. La connexion internet est bonne."}
+    {n:"Jérôme Robert", t:"J'ai découvert par hasard ce lieu et je recommande vivement. Un espace avec tout le confort nécessaire, au top pour animer une réunion."},
+    {n:"Lydie Bourse", t:"Absolument ravie de cet espace que j'utilise régulièrement. Un bureau individuel qui garantit intimité et concentration."},
+    {n:"Mehdi Youhet", t:"L'endroit est vraiment agréable et bien équipé. La connexion fibre est rapide, les machines à café à disposition."},
+    {n:"KarLam", t:"Un espace de coworking tout simplement exceptionnel. Des locaux modernes, bien aménagés et lumineux."},
+    {n:"Tony Gomes", t:"Espace très agréable et bien équipé. La connexion internet est bonne."},
+    {n:"Julien Morvand", t:"Un lieu d'accueil très propre et professionnel. Tout est pensé pour optimiser vos rendez-vous."},
+    {n:"Nine", t:"Excellent espace de coworking avec des équipements modernes. Internet rapide, salles de réunion bien équipées."},
+    {n:"Letizia M.", t:"Super expérience ! Espace adapté au travail en solo ou en équipe. Tout le nécessaire pour le confort professionnel."}
   ];
   function card(r){
     return '<div class="acw-rev-card"><div class="acw-rev-stars">★★★★★</div>'
@@ -1113,7 +1118,7 @@ prefillFromAccount();
     show(); setInterval(show, 4500);
   }
   mount('acw-rev-left', 0);
-  mount('acw-rev-right', 1);
+  mount('acw-rev-right', 4);
 })();
 </script>
 
