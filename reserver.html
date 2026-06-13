@@ -143,6 +143,8 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
 .acw-reviews.left{left:0}
 .acw-reviews.right{right:0}
 @media(min-width:1380px){.acw-reviews{display:flex}}
+.acw-reviews-mobile{display:block;max-width:560px;margin:24px auto 4px}
+@media(min-width:1380px){.acw-reviews-mobile{display:none}}
 .acw-rev-head{display:flex;align-items:center;justify-content:center;gap:7px;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:#C9B584;margin-bottom:4px}
 .acw-rev-head b{color:#F4B400;font-size:12px}
 .acw-rev-slot{position:relative;min-height:180px}
@@ -426,6 +428,11 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
     </div>
 
     <div style="text-align:center"><button class="btn" onclick="goStep(1)">Faire une autre réservation</button></div>
+  </div>
+
+  <div class="acw-reviews-mobile">
+    <div class="acw-rev-head"><b>★</b> Avis Google</div>
+    <div class="acw-rev-slot" id="acw-rev-mobile"></div>
   </div>
 
 </div>
@@ -1119,6 +1126,7 @@ prefillFromAccount();
   }
   mount('acw-rev-left', 0);
   mount('acw-rev-right', 4);
+  mount('acw-rev-mobile', 2);
 })();
 </script>
 
