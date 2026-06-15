@@ -241,6 +241,13 @@ function openClient(email){
       <h3>Réservations (${resas.length})</h3>
       ${resaList}
 
+      <h3>Notes & tags <span class="muted" style="text-transform:none;letter-spacing:0">(privé, admin uniquement)</span></h3>
+      <input id="crm-tags" type="text" placeholder="Tags séparés par des virgules : VIP, entreprise, à relancer…" value="${esc(c.tags||'')}"
+        style="width:100%;padding:9px 11px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:13.5px;margin-bottom:8px">
+      <textarea id="crm-notes" placeholder="Notes internes, rappels, préférences du client…" rows="3"
+        style="width:100%;padding:9px 11px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:13.5px;resize:vertical">${esc(c.notes||'')}</textarea>
+      <div><button class="btn alt" style="margin-top:8px" onclick="saveCRM('${esc(email)}', this)">💾 Enregistrer notes & tags</button></div>
+
       <div class="actions">
         <a class="btn alt" href="mailto:${esc(c.email||'')}">✉️ Écrire</a>
         ${c.email?`<button class="btn alt" onclick="sendReset('${esc(c.email)}', this)">🔑 Reset mot de passe</button>`:''}
@@ -257,6 +264,20 @@ function reviewInviteMailto(c, prenom){
 }
 function closeModal(){ document.getElementById('modal').classList.remove('open'); }
 document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
+
+async function saveCRM(email, btn){
+  const tags = document.getElementById('crm-tags').value.trim();
+  const notes = document.getElementById('crm-notes').value;
+  const orig = btn.textContent; btn.disabled=true; btn.textContent='Enregistrement…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/customers/crm`, {method:'POST', headers:HEADERS, body:JSON.stringify({email, notes, tags})});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||('Erreur '+r.status)); }
+    const c = CLIENTS.find(x=>(x.email||'').toLowerCase()===email);
+    if(c){ c.notes=notes; c.tags=tags; }
+    toast('✅ Notes & tags enregistrés');
+  }catch(e){ toast('Erreur : '+e.message); }
+  finally{ btn.disabled=false; btn.textContent=orig; }
+}
 
 async function sendReset(email, btn){
   if(!confirm(`Envoyer un lien de réinitialisation de mot de passe à :\n${email} ?`)) return;
