@@ -14,6 +14,12 @@
     --green: #1D9E75;
   }
   * { box-sizing: border-box; }
+  .quick-tile{display:flex;flex-direction:column;gap:2px;background:#fff;border:1px solid var(--light);border-radius:12px;padding:14px 16px;text-decoration:none;color:var(--navy);font-size:22px;transition:.15s}
+  .quick-tile b{font-size:14.5px;margin-top:6px;font-weight:700}
+  .quick-tile span{font-size:11px;color:var(--slate)}
+  .quick-tile:hover{border-color:var(--gold);transform:translateY(-3px);box-shadow:0 8px 22px rgba(3,35,77,.1)}
+  .quick-tile.gold{background:var(--navy);color:#fff}
+  .quick-tile.gold span{color:var(--gold)}
   body {
     font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
@@ -354,6 +360,23 @@
     <div class="card coral">
       <div class="card-label">Expirés</div>
       <div class="card-value" id="card-expired">—</div>
+    </div>
+  </div>
+
+  <!-- Accès rapides aux modules -->
+  <div style="margin-bottom:24px">
+    <div style="font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:12px">Accès rapides</div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px">
+      <a href="admin-clients.html" class="quick-tile">👤<b>Clients</b><span>CRM</span></a>
+      <a href="admin-stats.html" class="quick-tile">📊<b>Statistiques</b><span>Pilotage</span></a>
+      <a href="admin-calendar.html" class="quick-tile">📅<b>Calendrier</b><span>Réservations</span></a>
+      <a href="admin-forfaits.html" class="quick-tile">🎟️<b>Forfaits</b><span>Fidélité</span></a>
+      <a href="admin-evenements.html" class="quick-tile">🎉<b>Événements</b><span>Animation</span></a>
+      <a href="admin-fermetures.html" class="quick-tile">🚫<b>Fermetures</b><span>Disponibilités</span></a>
+      <a href="admin-societes.html" class="quick-tile">🏢<b>Sociétés</b><span>Clients pro</span></a>
+      <a href="admin-tarifs.html" class="quick-tile">💶<b>Tarifs</b><span>Offres</span></a>
+      <a href="admin-exports.html" class="quick-tile">📤<b>Exports</b><span>Comptabilité</span></a>
+      <a href="admin-hub.html" class="quick-tile gold">✨<b>Hub</b><span>Vue d'ensemble</span></a>
     </div>
   </div>
 

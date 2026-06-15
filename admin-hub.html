@@ -61,6 +61,8 @@
   .brand{position:fixed; top:22px; left:30px; z-index:5; display:flex; align-items:center; gap:10px}
   .brand img{width:38px;height:38px}
   .brand span{font-family:'Playfair Display',serif; font-size:16px}
+  .backbtn{position:fixed; top:20px; right:30px; z-index:6; display:inline-flex; align-items:center; gap:8px; background:rgba(255,255,255,.08); border:1px solid rgba(201,181,132,.5); color:#fff; text-decoration:none; font-size:13px; font-weight:600; padding:9px 16px; border-radius:12px; backdrop-filter:blur(8px); transition:.15s}
+  .backbtn:hover{background:var(--gold); color:var(--navy)}
   .hint{position:fixed; bottom:8px; left:50%; transform:translateX(-50%); z-index:5; font-size:11px; color:rgba(255,255,255,.35)}
 </style>
 </head>
@@ -72,7 +74,8 @@
   <img src="https://coworking-sens.com/acw-logo-white.png" alt="ACW" onerror="this.style.display='none'">
   <span>Back-office</span>
 </div>
-<div class="counter"><span id="cur">1</span> / <span id="tot">1</span></div>
+<a class="backbtn" href="https://coworking-sens.com/admin-devis-dashboard">← Retour au back-office</a>
+<div class="counter" style="top:64px"><span id="cur">1</span> / <span id="tot">1</span></div>
 
 <div class="stage" id="stage"></div>
 
