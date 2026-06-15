@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clients — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1180px;margin:24px auto;padding:0 18px}
+  .toolbar{display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+  .search{flex:1;min-width:240px;position:relative}
+  .search input{width:100%;padding:12px 14px 12px 40px;border:1px solid var(--light);border-radius:10px;font-family:inherit;font-size:15px;color:var(--navy);background:#fff}
+  .search::before{content:'🔎';position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:15px}
+  .count-badge{font-size:13px;color:var(--slate)}
+  .tablewrap{overflow-x:auto;background:#fff;border-radius:12px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+  table{width:100%;border-collapse:collapse;min-width:920px}
+  th,td{padding:11px 13px;text-align:left;font-size:13.5px;border-bottom:1px solid #f0f0f0;vertical-align:middle;white-space:nowrap}
+  th{background:#fafafa;color:var(--slate);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  tbody tr:hover{background:#fafbfd}
+  a.lk{color:var(--navy);text-decoration:none}
+  a.lk:hover{text-decoration:underline}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
+  .b-on{background:#E3F1E8;color:var(--green)} .b-off{background:#F0E7E7;color:var(--slate)}
+  .tk{font-weight:700}.tk-pos{color:var(--green)}.tk-zero{color:var(--slate)}
+  .num{text-align:right;font-variant-numeric:tabular-nums}
+  .act-btn{background:#fff;border:1px solid var(--light);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer;white-space:nowrap}
+  .act-btn:hover{background:#f4f1e9;border-color:var(--gold)}
+  .act-btn:disabled{opacity:.5;cursor:default}
+  .muted{color:var(--slate);font-size:12.5px}
+  .empty{padding:34px;text-align:center;color:var(--slate)}
+  #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;display:none;box-shadow:0 6px 20px rgba(0,0,0,.2);z-index:200}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="box">
+    <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Clients</h2>
+    <p class="muted">Session admin requise.</p>
+    <a href="admin-devis-dashboard.html" style="display:inline-block;margin-top:10px;background:var(--navy);color:#fff;text-decoration:none;border-radius:8px;padding:11px 18px;font-weight:700">Se connecter sur le dashboard</a>
+  </div>
+</div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="44" height="44">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-devis-dashboard.html">📋 Devis</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-fermetures.html">🚫 Fermetures</a>
+      <a href="admin-stats.html">📊 Statistiques</a>
+      <a href="admin-evenements.html">🎉 Événements</a>
+      <a href="admin-clients.html" class="active">👤 Clients</a>
+      <a href="admin-societes.html">🏢 Sociétés</a>
+      <a href="admin-tarifs.html">💶 Tarifs</a>
+      <a href="admin-exports.html">📤 Exports</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="toolbar">
+    <div class="search"><input id="q" type="text" placeholder="Rechercher un client (nom, email, téléphone, société)…" oninput="render()"></div>
+    <span class="count-badge" id="count">—</span>
+  </div>
+  <div id="list" class="tablewrap"><div class="empty">Chargement…</div></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const API_BASE = '/api/coworking';
+const STORAGE_KEY = 'cw_admin_session';
+let HEADERS = {'Content-Type':'application/json'};
+let CLIENTS = [];
+
+function getSession(){
+  try{ const s = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+    if(s && s.expires && s.expires < Date.now()) return null;
+    return s; }catch(e){ return null; }
+}
+const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur = n => (Math.round((n||0)*100)/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', 3500); }
+
+async function load(){
+  try{
+    const yr = new Date().getFullYear();
+    const [rc, rp, ra] = await Promise.all([
+      fetch(`${API_BASE}/admin/export/clients`, {headers:HEADERS, cache:'no-store'}),
+      fetch(`${API_BASE}/admin/packs`, {headers:HEADERS, cache:'no-store'}),
+      fetch(`${API_BASE}/admin/export/accounting?date_from=2024-01-01&date_to=${yr+1}-12-31&test_mode=false`, {headers:HEADERS, cache:'no-store'}),
+    ]);
+    if(rc.status===401||rc.status===403){ document.getElementById('login').style.display='flex'; return; }
+    if(!rc.ok) throw new Error('Erreur '+rc.status);
+    const clients = (await rc.json()).rows || [];
+    let packs = []; if(rp.ok){ const jp = await rp.json(); packs = jp.packs || jp || []; }
+    let resas = []; if(ra.ok){ resas = (await ra.json()).rows || []; }
+    const tickets = {}, stats = {};
+    (Array.isArray(packs)?packs:[]).forEach(p=>{
+      const em=(p.customer_email||p.email||'').toLowerCase(); if(!em) return;
+      const rem=(p.total_credits!=null&&p.used_credits!=null)?(p.total_credits-p.used_credits):(p.remaining||0);
+      if(p.active!==false) tickets[em]=(tickets[em]||0)+Math.max(rem,0);
+    });
+    resas.forEach(r=>{
+      const em=(r.email||'').toLowerCase(); if(!em) return;
+      if(!stats[em]) stats[em]={count:0,ca:0};
+      stats[em].count++; stats[em].ca += (r.montant_ttc||0);
+    });
+    CLIENTS = clients.map(c=>{
+      const em=(c.email||'').toLowerCase();
+      return {...c, tickets:tickets[em]||0, resaCount:(stats[em]||{}).count||0, ca:(stats[em]||{}).ca||0};
+    });
+    render();
+  }catch(e){ document.getElementById('list').innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
+}
+
+function render(){
+  const q = (document.getElementById('q').value||'').trim().toLowerCase();
+  let rows = CLIENTS;
+  if(q){
+    rows = CLIENTS.filter(c=>((c.nom_complet||'')+' '+(c.prenom||'')+' '+(c.nom||'')+' '+(c.email||'')+' '+(c.telephone||'')+' '+(c.societe||'')).toLowerCase().includes(q));
+  }
+  rows = rows.slice().sort((a,b)=>(a.nom_complet||a.email||'').localeCompare(b.nom_complet||b.email||''));
+  document.getElementById('count').textContent = `${rows.length} client${rows.length>1?'s':''}`;
+  const el = document.getElementById('list');
+  if(!rows.length){ el.innerHTML = '<div class="empty">Aucun client trouvé.</div>'; return; }
+  el.innerHTML = '<table><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Société</th><th>Tickets</th><th class="num">Résas</th><th class="num">CA TTC</th><th>Compte</th><th>Actions</th></tr></thead><tbody>' +
+    rows.map(c=>{
+      const tk = c.tickets>0 ? `<span class="tk tk-pos">${c.tickets}</span>` : `<span class="tk tk-zero">0</span>`;
+      const acc = c.compte_actif==='oui' ? '<span class="badge b-on">Activé</span>' : '<span class="badge b-off">Non activé</span>';
+      const reset = c.email ? `<button class="act-btn" onclick="sendReset('${esc(c.email)}', this)">🔑 Reset MDP</button>` : '';
+      return `<tr>
+        <td><strong>${esc(c.nom_complet||((c.prenom||'')+' '+(c.nom||'')).trim()||'—')}</strong></td>
+        <td>${c.email?`<a class="lk" href="mailto:${esc(c.email)}">${esc(c.email)}</a>`:'—'}</td>
+        <td>${c.telephone?`<a class="lk" href="tel:${esc(c.telephone)}">${esc(c.telephone)}</a>`:'—'}</td>
+        <td>${esc(c.societe||'—')}</td>
+        <td>${tk}</td>
+        <td class="num">${c.resaCount}</td>
+        <td class="num">${eur(c.ca)}</td>
+        <td>${acc}</td>
+        <td>${reset}</td>
+      </tr>`;
+    }).join('') + '</tbody></table>';
+}
+
+async function sendReset(email, btn){
+  if(!confirm(`Envoyer un lien de réinitialisation de mot de passe à :\n${email} ?`)) return;
+  const orig = btn.textContent; btn.disabled=true; btn.textContent='Envoi…';
+  try{
+    const r = await fetch(`${API_BASE}/client/forgot-password`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})
+    });
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    toast(`✅ Lien de réinitialisation envoyé à ${email}`);
+  }catch(e){ toast('Erreur : '+e.message); }
+  finally{ btn.disabled=false; btn.textContent=orig; }
+}
+
+(function(){
+  const s = getSession();
+  if(!s || !s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  load();
+})();
+</script>
+</body>
+</html>

@@ -71,6 +71,10 @@
     {
       "source": "/admin-exports",
       "destination": "/admin-exports.html"
+    },
+    {
+      "source": "/admin-clients",
+      "destination": "/admin-clients.html"
     }
   ]
 }
