@@ -79,6 +79,10 @@
     {
       "source": "/admin-hub",
       "destination": "/admin-hub.html"
+    },
+    {
+      "source": "/admin-prospection",
+      "destination": "/admin-prospection.html"
     }
   ]
 }
