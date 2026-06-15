@@ -13,6 +13,10 @@
       "destination": "/reserver.html"
     },
     {
+      "source": "/reserver/",
+      "destination": "/reserver.html"
+    },
+    {
       "source": "/mon-espace/reset-password",
       "destination": "/mon-espace.html"
     },
