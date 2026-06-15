@@ -64,6 +64,15 @@
   #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:20px}
   @media(max-width:760px){.grid2,.kpis-2{grid-template-columns:1fr}}
+  .podium-row{display:flex;align-items:center;gap:16px;padding:12px 0;border-bottom:1px solid #f0ebe0}
+  .podium-row:last-child{border-bottom:none}
+  .podium-row .medal{font-size:26px;width:36px;text-align:center}
+  .podium-row .who{flex:1}
+  .podium-row .who .nm{font-weight:700;font-size:15px}
+  .podium-row .who .em{font-size:12px;color:var(--slate)}
+  .podium-row .stat{text-align:right}
+  .podium-row .stat .big{font-weight:800;font-size:17px}
+  .podium-row .stat .sub{font-size:12px;color:var(--slate)}
 </style>
 </head>
 <body>
@@ -130,6 +139,10 @@
     <div class="kpis">
       <div class="kpi sm"><div class="label">Réservations</div><div class="value" id="kpi-count">—</div><div class="delta" id="d-count"></div></div>
       <div class="kpi sm"><div class="label">Panier moyen</div><div class="value" id="kpi-avg">—</div></div>
+    </div>
+    <div class="card">
+      <h2>🏆 Top 3 des plus gros utilisateurs</h2>
+      <div id="top3"></div>
     </div>
     <div class="card">
       <h2>Évolution du chiffre d'affaires</h2>
@@ -242,12 +255,27 @@ async function loadStats(){
     deltaHTML('d-count', DATA.delta_count_pct);
     // top clients
     document.getElementById('tbl-clients').innerHTML = (DATA.top_clients||[]).map(c=>`<tr><td>${c.name||'—'}</td><td class="muted">${c.email||''}</td><td class="r">${c.count}</td><td class="r">${money(c.ca)}</td></tr>`).join('') || '<tr><td colspan="4" class="muted">Aucune donnée</td></tr>';
+    renderTop3();
     renderChart(DATA.by_month||[]);
     renderOffres();
     renderCategorie();
     renderFrequentations();
     st.textContent='';
   }catch(e){ st.textContent='Erreur : '+e.message; }
+}
+
+function renderTop3(){
+  if(!DATA) return;
+  // "Plus gros utilisateurs" = ceux qui réservent le plus (nb de réservations), puis CA
+  const top = (DATA.top_clients||[]).slice()
+    .sort((a,b)=> (b.count-a.count) || (b.ca-a.ca)).slice(0,3);
+  const medals = ['🥇','🥈','🥉'];
+  document.getElementById('top3').innerHTML = top.map((c,i)=>`
+    <div class="podium-row">
+      <div class="medal">${medals[i]}</div>
+      <div class="who"><div class="nm">${c.name||'—'}</div><div class="em">${c.email||''}</div></div>
+      <div class="stat"><div class="big">${c.count} résa</div><div class="sub">${money(c.ca)}</div></div>
+    </div>`).join('') || '<p class="muted">Aucune donnée sur la période.</p>';
 }
 
 function renderChart(byMonth){
