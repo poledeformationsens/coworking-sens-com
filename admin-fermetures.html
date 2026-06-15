@@ -67,8 +67,12 @@
     <h2>Fermer une date</h2>
     <div class="grid">
       <div>
-        <label>Date</label>
+        <label>Date de début</label>
         <input id="f-date" type="date">
+      </div>
+      <div>
+        <label>Date de fin <span style="font-weight:400;opacity:.7">(optionnel)</span></label>
+        <input id="f-date-end" type="date">
       </div>
       <div>
         <label>Espace</label>
@@ -88,8 +92,8 @@
         </select>
       </div>
       <div>
-        <label>Motif</label>
-        <input id="f-reason" type="text" placeholder="Congés, jour férié…">
+        <label>Motif <span style="color:#EA584A">*</span></label>
+        <input id="f-reason" type="text" placeholder="Congés, jour férié, privatisation…" required>
       </div>
     </div>
     <button class="btn" onclick="addClosure()">Fermer cette date</button>
@@ -160,20 +164,36 @@ async function addClosure(){
   ok.style.display='none'; err.style.display='none';
   const date = document.getElementById('f-date').value;
   if(!date){ err.textContent='Choisis une date.'; err.style.display='block'; return; }
+  let dateEnd = document.getElementById('f-date-end').value || date;
+  if(dateEnd < date){ err.textContent='La date de fin doit être après la date de début.'; err.style.display='block'; return; }
+  // Construit la liste des jours de la plage (max 90 jours par sécurité)
+  const days=[]; let d=new Date(date+'T00:00:00');
+  const end=new Date(dateEnd+'T00:00:00');
+  while(d<=end && days.length<90){ days.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
   const space = document.getElementById('f-space').value;
   const period = document.getElementById('f-period').value;
   let hour_from=null, hour_to=null;
   if(period==='morning'){ hour_from='08:00'; hour_to='12:00'; }
   else if(period==='afternoon'){ hour_from='14:00'; hour_to='18:00'; }
-  const reason = document.getElementById('f-reason').value || 'Fermeture';
+  const reason = (document.getElementById('f-reason').value||'').trim();
+  if(!reason){ err.textContent='Merci d\'indiquer la raison de la fermeture (ex. congés, privatisation).'; err.style.display='block'; return; }
+  const btn = document.querySelector('button.btn'); const orig = btn?btn.textContent:'';
+  if(btn){ btn.disabled=true; btn.textContent = days.length>1 ? `Fermeture (${days.length} jours)…` : 'Enregistrement…'; }
   try{
-    const r = await fetch(`${API_BASE}/admin/closures`, {method:'POST', headers:HEADERS, body:JSON.stringify({date, space, hour_from, hour_to, reason})});
-    if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    let done=0;
+    for(const day of days){
+      const r = await fetch(`${API_BASE}/admin/closures`, {method:'POST', headers:HEADERS, body:JSON.stringify({date:day, space, hour_from, hour_to, reason})});
+      if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error((e.detail||'Erreur')+` (le ${day})`); }
+      done++;
+    }
+    ok.textContent = days.length>1 ? `✅ ${done} fermetures enregistrées (du ${date} au ${dateEnd}).` : '✅ Fermeture enregistrée.';
     ok.style.display='block';
     document.getElementById('f-reason').value='';
+    document.getElementById('f-date-end').value='';
     load();
-    setTimeout(()=>{ ok.style.display='none'; }, 2500);
+    setTimeout(()=>{ ok.style.display='none'; }, 3500);
   }catch(e){ err.textContent='Erreur : '+e.message; err.style.display='block'; }
+  finally{ if(btn){ btn.disabled=false; btn.textContent=orig; } }
 }
 
 async function del(id){

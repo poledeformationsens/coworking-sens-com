@@ -229,6 +229,8 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
 
     <p class="avail-loading" id="avail-loading" style="display:none">Vérification des disponibilités…</p>
 
+    <div id="closure-banner" style="display:none;background:rgba(234,88,74,.12);border:1px solid #EA584A;border-radius:8px;padding:14px 16px;margin:6px 0 10px;color:#fff;font-size:14px;line-height:1.5;"></div>
+
     <label class="label">Plage horaire</label>
     <div class="slot-grid" id="slot-grid">
       <div class="slot-card" data-slot="morning">
@@ -563,12 +565,21 @@ async function loadAvailability(){
   document.querySelectorAll('#slot-grid .slot-card').forEach(c=>c.classList.remove('full'));
   document.querySelectorAll('.slot-left').forEach(s=>s.textContent='');
   availability = {};
+  const banner = document.getElementById('closure-banner');
+  if(banner){ banner.style.display='none'; banner.textContent=''; }
   try {
     const r = await fetch(`${API}/availability?date=${encodeURIComponent(date)}&space=${encodeURIComponent(selectedSpace)}&test_mode=${TEST_MODE}&_=${Date.now()}`, {cache:'no-store'});
     if(!r.ok) throw new Error('availability ' + r.status);
     const data = await r.json();
+    // Fermeture : si tous les créneaux sont fermés, on affiche le motif au client
+    const closureMsg = (data.slots || []).map(s=>s.closure_reason).find(Boolean);
+    const allClosed = (data.slots || []).length > 0 && (data.slots || []).every(s=>!s.available && s.closure_reason);
+    if(banner && allClosed && closureMsg){
+      banner.innerHTML = '🔒 Nous ne pouvons pas vous recevoir à cette date : <strong>L\'Atelier du Coworking est fermé</strong> — ' + closureMsg + '.<br>Merci de choisir une autre date.';
+      banner.style.display='block';
+    }
     (data.slots || []).forEach(s=>{
-      availability[s.key] = {available: s.available, remaining: s.remaining, reason: s.reason};
+      availability[s.key] = {available: s.available, remaining: s.remaining, reason: s.reason, closure_reason: s.closure_reason};
       const card = document.querySelector(`#slot-grid .slot-card[data-slot="${s.key}"]`);
       const left = document.querySelector(`.slot-left[data-left="${s.key}"]`);
       if(card){
