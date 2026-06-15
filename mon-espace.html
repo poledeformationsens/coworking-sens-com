@@ -493,6 +493,7 @@
   <button class="tab" data-tab="security" onclick="switchTab('security')">🔒 Sécurité</button>
   <button class="tab" onclick="location.href='/annuaire'">👥 Annuaire</button>
   <button class="tab" onclick="location.href='/evenements'">🎉 Événements</button>
+  <button class="tab" id="admin-tab-link" style="display:none;color:#C9B584;font-weight:700;" onclick="location.href='/admin-calendar.html'">🛠️ Espace admin</button>
 </div>
 
 <div class="container">
@@ -956,6 +957,14 @@ function renderApp(data) {
   CUSTOMER_EMAIL = c.email || (SESSION && SESSION.email) || null;
   CUSTOMER_NAME = c.name || null;
   CUSTOMER_CLIENT_TYPE = c.client_type || 'perso';
+  // Onglet « Espace admin » visible uniquement pour le(s) compte(s) gérant
+  try {
+    const ADMIN_EMAILS = ['david.landry@coworking-sens.com'];
+    const adminTab = document.getElementById('admin-tab-link');
+    if (adminTab && CUSTOMER_EMAIL && ADMIN_EMAILS.includes(CUSTOMER_EMAIL.trim().toLowerCase())) {
+      adminTab.style.display = '';
+    }
+  } catch(e) {}
   // Retour de Stripe après achat d'un forfait → onglet Forfaits + rafraîchit
   const sp = new URLSearchParams(window.location.search);
   if (sp.get('status') === 'success') {
