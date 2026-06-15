@@ -24,18 +24,39 @@
   table{width:100%;border-collapse:collapse;min-width:920px}
   th,td{padding:11px 13px;text-align:left;font-size:13.5px;border-bottom:1px solid #f0f0f0;vertical-align:middle;white-space:nowrap}
   th{background:#fafafa;color:var(--slate);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
-  tbody tr:hover{background:#fafbfd}
-  a.lk{color:var(--navy);text-decoration:none}
-  a.lk:hover{text-decoration:underline}
+  tbody tr{cursor:pointer}
+  tbody tr:hover{background:#f5f8fd}
   .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
   .b-on{background:#E3F1E8;color:var(--green)} .b-off{background:#F0E7E7;color:var(--slate)}
   .tk{font-weight:700}.tk-pos{color:var(--green)}.tk-zero{color:var(--slate)}
   .num{text-align:right;font-variant-numeric:tabular-nums}
-  .act-btn{background:#fff;border:1px solid var(--light);border-radius:8px;padding:6px 10px;font-size:12px;font-weight:600;color:var(--navy);cursor:pointer;white-space:nowrap}
-  .act-btn:hover{background:#f4f1e9;border-color:var(--gold)}
-  .act-btn:disabled{opacity:.5;cursor:default}
   .muted{color:var(--slate);font-size:12.5px}
   .empty{padding:34px;text-align:center;color:var(--slate)}
+  /* Modal */
+  #modal{position:fixed;inset:0;background:rgba(3,35,77,.45);display:none;align-items:flex-start;justify-content:center;z-index:150;padding:34px 14px;overflow:auto}
+  #modal.open{display:flex}
+  .sheet{background:#fff;border-radius:16px;width:680px;max-width:100%;box-shadow:0 18px 50px rgba(0,0,0,.25);overflow:hidden}
+  .sheet-head{background:linear-gradient(135deg,var(--navy),#06305f);color:#fff;padding:22px 24px;position:relative}
+  .sheet-head h2{font-family:'Playfair Display',serif;margin:0;font-size:23px}
+  .sheet-head .sub{font-size:13px;color:rgba(255,255,255,.8);margin-top:3px}
+  .sheet-head .x{position:absolute;top:16px;right:18px;background:rgba(255,255,255,.18);border:0;color:#fff;width:32px;height:32px;border-radius:50%;font-size:18px;cursor:pointer}
+  .sheet-body{padding:20px 24px 26px}
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}
+  .stat{background:var(--cream);border-radius:10px;padding:12px;text-align:center}
+  .stat .v{font-size:21px;font-weight:800;color:var(--navy)}
+  .stat .l{font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.03em;margin-top:2px}
+  .sec{margin-top:8px}
+  .sec h3{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--slate);margin:18px 0 8px}
+  .kv{font-size:14px;margin:4px 0}.kv a{color:var(--navy)}
+  .resa-row{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0;font-size:13.5px}
+  .resa-row:last-child{border-bottom:0}
+  .review{background:#FFFBF0;border:1px solid var(--gold);border-radius:10px;padding:14px}
+  .review .stars{color:#F4B400;letter-spacing:2px;font-size:15px}
+  .noreview{background:#F4F6FA;border:1px dashed #c7d0de;border-radius:10px;padding:14px;text-align:center}
+  .actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:20px}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer;text-decoration:none;display:inline-block}
+  .btn.alt{background:#fff;color:var(--navy);border:1px solid var(--light)}
+  .btn.gold{background:var(--gold);color:var(--navy)}
   #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;display:none;box-shadow:0 6px 20px rgba(0,0,0,.2);z-index:200}
   #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
   #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
@@ -76,16 +97,38 @@
     <div class="search"><input id="q" type="text" placeholder="Rechercher un client (nom, email, téléphone, société)…" oninput="render()"></div>
     <span class="count-badge" id="count">—</span>
   </div>
+  <p class="muted" style="margin:0 0 12px">Cliquez sur un client pour ouvrir sa fiche.</p>
   <div id="list" class="tablewrap"><div class="empty">Chargement…</div></div>
 </div>
 
+<div id="modal"><div class="sheet" id="sheet"></div></div>
 <div id="toast"></div>
 
 <script>
 const API_BASE = '/api/coworking';
 const STORAGE_KEY = 'cw_admin_session';
+const GOOGLE_REVIEW_LINK = 'https://www.google.com/maps?cid=830252294857105393';
 let HEADERS = {'Content-Type':'application/json'};
-let CLIENTS = [];
+let CLIENTS = [], RESAS_BY_EMAIL = {};
+
+// Avis Google réels (fiche L'Atelier du Coworking)
+const REVIEWS = [
+  {n:'Tony Gomes', t:"Espace très agréable et bien équipé. La connexion internet est bonne."},
+  {n:'Jérôme Robert', t:"J'ai découvert par hasard ce lieu et je recommande vivement. Un espace avec tout le confort nécessaire."},
+  {n:'Mehdi Youhet', t:"L'endroit est vraiment agréable et bien équipé. La connexion fibre est rapide, les machines à café à disposition."},
+  {n:'Lydie Bourse', t:"Absolument ravie de cet espace que j'utilise régulièrement. Un bureau individuel qui garantit intimité et concentration."},
+  {n:'Julien Morvand', t:"Un lieu d'accueil très propre et professionnel. Tout est pensé pour optimiser vos rendez-vous."},
+];
+const norm = s => (s||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z ]/g,' ').replace(/\s+/g,' ').trim();
+function findReview(client){
+  const cn = norm(client.nom_complet || ((client.prenom||'')+' '+(client.nom||'')));
+  const ct = new Set(cn.split(' ').filter(w=>w.length>2));
+  for(const r of REVIEWS){
+    const rt = norm(r.n).split(' ').filter(w=>w.length>2);
+    if(rt.length && rt.every(w=>ct.has(w))) return r;
+  }
+  return null;
+}
 
 function getSession(){
   try{ const s = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
@@ -94,6 +137,7 @@ function getSession(){
 }
 const esc = s => (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const eur = n => (Math.round((n||0)*100)/100).toLocaleString('fr-FR',{style:'currency',currency:'EUR'});
+const fdate = d => d ? new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'numeric'}) : '—';
 function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.style.display='block'; setTimeout(()=>t.style.display='none', 3500); }
 
 async function load(){
@@ -110,19 +154,23 @@ async function load(){
     let packs = []; if(rp.ok){ const jp = await rp.json(); packs = jp.packs || jp || []; }
     let resas = []; if(ra.ok){ resas = (await ra.json()).rows || []; }
     const tickets = {}, stats = {};
+    RESAS_BY_EMAIL = {};
     (Array.isArray(packs)?packs:[]).forEach(p=>{
       const em=(p.customer_email||p.email||'').toLowerCase(); if(!em) return;
       const rem=(p.total_credits!=null&&p.used_credits!=null)?(p.total_credits-p.used_credits):(p.remaining||0);
-      if(p.active!==false) tickets[em]=(tickets[em]||0)+Math.max(rem,0);
+      if(p.active!==false){ tickets[em]=tickets[em]||{rem:0,packs:[]}; tickets[em].rem+=Math.max(rem,0); tickets[em].packs.push(p); }
     });
     resas.forEach(r=>{
       const em=(r.email||'').toLowerCase(); if(!em) return;
-      if(!stats[em]) stats[em]={count:0,ca:0};
+      if(!stats[em]) stats[em]={count:0,ca:0,last:''};
       stats[em].count++; stats[em].ca += (r.montant_ttc||0);
+      if((r.date||'')>stats[em].last) stats[em].last=r.date||'';
+      (RESAS_BY_EMAIL[em]=RESAS_BY_EMAIL[em]||[]).push(r);
     });
     CLIENTS = clients.map(c=>{
       const em=(c.email||'').toLowerCase();
-      return {...c, tickets:tickets[em]||0, resaCount:(stats[em]||{}).count||0, ca:(stats[em]||{}).ca||0};
+      const st=stats[em]||{count:0,ca:0,last:''};
+      return {...c, tickets:(tickets[em]||{}).rem||0, resaCount:st.count, ca:st.ca, last:st.last};
     });
     render();
   }catch(e){ document.getElementById('list').innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
@@ -138,32 +186,83 @@ function render(){
   document.getElementById('count').textContent = `${rows.length} client${rows.length>1?'s':''}`;
   const el = document.getElementById('list');
   if(!rows.length){ el.innerHTML = '<div class="empty">Aucun client trouvé.</div>'; return; }
-  el.innerHTML = '<table><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Société</th><th>Tickets</th><th class="num">Résas</th><th class="num">CA TTC</th><th>Compte</th><th>Actions</th></tr></thead><tbody>' +
+  el.innerHTML = '<table><thead><tr><th>Nom</th><th>Email</th><th>Téléphone</th><th>Société</th><th>Tickets</th><th class="num">Résas</th><th class="num">CA TTC</th><th>Compte</th></tr></thead><tbody>' +
     rows.map(c=>{
       const tk = c.tickets>0 ? `<span class="tk tk-pos">${c.tickets}</span>` : `<span class="tk tk-zero">0</span>`;
       const acc = c.compte_actif==='oui' ? '<span class="badge b-on">Activé</span>' : '<span class="badge b-off">Non activé</span>';
-      const reset = c.email ? `<button class="act-btn" onclick="sendReset('${esc(c.email)}', this)">🔑 Reset MDP</button>` : '';
-      return `<tr>
+      return `<tr onclick="openClient('${esc((c.email||'').toLowerCase())}')">
         <td><strong>${esc(c.nom_complet||((c.prenom||'')+' '+(c.nom||'')).trim()||'—')}</strong></td>
-        <td>${c.email?`<a class="lk" href="mailto:${esc(c.email)}">${esc(c.email)}</a>`:'—'}</td>
-        <td>${c.telephone?`<a class="lk" href="tel:${esc(c.telephone)}">${esc(c.telephone)}</a>`:'—'}</td>
+        <td>${esc(c.email||'—')}</td>
+        <td>${esc(c.telephone||'—')}</td>
         <td>${esc(c.societe||'—')}</td>
         <td>${tk}</td>
         <td class="num">${c.resaCount}</td>
         <td class="num">${eur(c.ca)}</td>
         <td>${acc}</td>
-        <td>${reset}</td>
       </tr>`;
     }).join('') + '</tbody></table>';
 }
+
+function openClient(email){
+  const c = CLIENTS.find(x=>(x.email||'').toLowerCase()===email);
+  if(!c) return;
+  const resas = (RESAS_BY_EMAIL[email]||[]).slice().sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  const review = findReview(c);
+  const prenom = (c.prenom || (c.nom_complet||'').split(' ')[0] || '');
+  const reviewBlock = review
+    ? `<div class="review"><div class="stars">★★★★★</div><div style="margin-top:6px;font-size:14px">« ${esc(review.t)} »</div><div class="muted" style="margin-top:6px">— Avis Google laissé par ${esc(review.n)}</div></div>`
+    : `<div class="noreview"><div style="font-size:14px;margin-bottom:8px">Pas encore d'avis Google de ce client.</div>
+         <a class="btn gold" href="${reviewInviteMailto(c, prenom)}">📣 Inviter à laisser un avis</a></div>`;
+  const resaList = resas.length
+    ? resas.slice(0,20).map(r=>`<div class="resa-row"><span>${fdate(r.date)} · ${esc(r.espace||'')}${r.unite?(' '+esc(r.unite)):''} · ${esc(r.creneau||'')}</span><strong>${eur(r.montant_ttc)}</strong></div>`).join('')
+    : '<div class="muted">Aucune réservation enregistrée.</div>';
+  document.getElementById('sheet').innerHTML = `
+    <div class="sheet-head">
+      <button class="x" onclick="closeModal()">×</button>
+      <h2>${esc(c.nom_complet||((c.prenom||'')+' '+(c.nom||'')).trim()||c.email)}</h2>
+      <div class="sub">${esc(c.type_client||'client')}${c.societe?(' · '+esc(c.societe)):''} · ${c.compte_actif==='oui'?'compte activé':'compte non activé'}</div>
+    </div>
+    <div class="sheet-body">
+      <div class="stats">
+        <div class="stat"><div class="v">${c.tickets}</div><div class="l">Tickets</div></div>
+        <div class="stat"><div class="v">${c.resaCount}</div><div class="l">Réservations</div></div>
+        <div class="stat"><div class="v">${eur(c.ca)}</div><div class="l">CA TTC</div></div>
+        <div class="stat"><div class="v" style="font-size:15px">${c.last?fdate(c.last):'—'}</div><div class="l">Dernière résa</div></div>
+      </div>
+
+      <h3>Contact</h3>
+      <div class="kv">✉️ ${c.email?`<a href="mailto:${esc(c.email)}">${esc(c.email)}</a>`:'—'}</div>
+      <div class="kv">📞 ${c.telephone?`<a href="tel:${esc(c.telephone)}">${esc(c.telephone)}</a>`:'—'}</div>
+      ${c.societe?`<div class="kv">🏢 ${esc(c.societe)}${c.siret?(' · SIRET '+esc(c.siret)):''}</div>`:''}
+
+      <h3>Avis Google</h3>
+      ${reviewBlock}
+
+      <h3>Réservations (${resas.length})</h3>
+      ${resaList}
+
+      <div class="actions">
+        <a class="btn alt" href="mailto:${esc(c.email||'')}">✉️ Écrire</a>
+        ${c.email?`<button class="btn alt" onclick="sendReset('${esc(c.email)}', this)">🔑 Reset mot de passe</button>`:''}
+        <a class="btn alt" href="admin-calendar.html">📅 Réserver pour ce client</a>
+        ${review?`<a class="btn gold" href="${GOOGLE_REVIEW_LINK}" target="_blank">⭐ Voir sur Google</a>`:''}
+      </div>
+    </div>`;
+  document.getElementById('modal').classList.add('open');
+}
+function reviewInviteMailto(c, prenom){
+  const subj = encodeURIComponent('Votre avis compte pour nous 🙏 — L\'Atelier du Coworking');
+  const body = encodeURIComponent(`Bonjour ${prenom},\n\nMerci d'avoir choisi L'Atelier du Coworking ! Si vous avez apprécié votre passage, votre avis Google nous aiderait beaucoup (cela prend 30 secondes) :\n\n${GOOGLE_REVIEW_LINK}\n\nUn grand merci,\nDavid — L'Atelier du Coworking\n06 23 88 05 03`);
+  return `mailto:${c.email||''}?subject=${subj}&body=${body}`;
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open'); }
+document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
 
 async function sendReset(email, btn){
   if(!confirm(`Envoyer un lien de réinitialisation de mot de passe à :\n${email} ?`)) return;
   const orig = btn.textContent; btn.disabled=true; btn.textContent='Envoi…';
   try{
-    const r = await fetch(`${API_BASE}/client/forgot-password`, {
-      method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})
-    });
+    const r = await fetch(`${API_BASE}/client/forgot-password`, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})});
     if(!r.ok) throw new Error('Erreur '+r.status);
     toast(`✅ Lien de réinitialisation envoyé à ${email}`);
   }catch(e){ toast('Erreur : '+e.message); }
