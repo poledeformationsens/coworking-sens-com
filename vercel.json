@@ -67,6 +67,10 @@
     {
       "source": "/admin-tarifs",
       "destination": "/admin-tarifs.html"
+    },
+    {
+      "source": "/admin-exports",
+      "destination": "/admin-exports.html"
     }
   ]
 }

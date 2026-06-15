@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exports — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1000px;margin:24px auto;padding:0 18px}
+  .intro{color:var(--slate);font-size:14px;margin:0 0 18px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;padding:20px;margin-bottom:18px;display:flex;gap:18px;align-items:flex-start}
+  .card .ico{flex:0 0 auto;width:46px;height:46px;border-radius:10px;background:#EEF2F9;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .card .body{flex:1}
+  .card h2{font-family:'Playfair Display',serif;margin:0 0 4px;font-size:18px}
+  .card p{margin:0 0 12px;color:var(--slate);font-size:13.5px;line-height:1.5}
+  label{display:block;font-size:12px;color:var(--slate);margin:0 0 4px}
+  input{width:100%;padding:9px 11px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:14px;color:var(--navy);background:#fff}
+  .row{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
+  .row > div{min-width:150px}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .msg{font-size:12.5px;margin-top:8px;min-height:16px}
+  .msg.err{color:var(--red)} .msg.ok{color:var(--green)}
+  .muted{color:var(--slate);font-size:12.5px}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="box">
+    <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Exports</h2>
+    <p class="muted">Session admin requise.</p>
+    <a class="btn" href="admin-devis-dashboard.html" style="text-decoration:none;display:inline-block;margin-top:10px">Se connecter sur le dashboard</a>
+  </div>
+</div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="44" height="44">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-devis-dashboard.html">📋 Devis</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-fermetures.html">🚫 Fermetures</a>
+      <a href="admin-stats.html">📊 Statistiques</a>
+      <a href="admin-evenements.html">🎉 Événements</a>
+      <a href="admin-societes.html">🏢 Sociétés</a>
+      <a href="admin-tarifs.html">💶 Tarifs</a>
+      <a href="admin-exports.html" class="active">📤 Exports</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <p class="intro">Téléchargez vos données au format CSV (ouvrable dans Excel / Google Sheets).</p>
+
+  <!-- Export comptable -->
+  <div class="card">
+    <div class="ico">🧾</div>
+    <div class="body">
+      <h2>Export comptable</h2>
+      <p>Toutes les factures de la période : date, espace, référence, client, société, HT, TVA, TTC, mode de paiement.</p>
+      <div class="row">
+        <div><label>Du</label><input type="date" id="cpt-from"></div>
+        <div><label>Au</label><input type="date" id="cpt-to"></div>
+        <button class="btn" id="cpt-btn" onclick="exportAccounting('comptable')">Télécharger le CSV</button>
+      </div>
+      <div class="msg" id="cpt-msg"></div>
+    </div>
+  </div>
+
+  <!-- Export des réservations -->
+  <div class="card">
+    <div class="ico">📅</div>
+    <div class="body">
+      <h2>Export des réservations</h2>
+      <p>Liste des réservations sur la période : date, créneau, espace, client, email, société, montant.</p>
+      <div class="row">
+        <div><label>Du</label><input type="date" id="res-from"></div>
+        <div><label>Au</label><input type="date" id="res-to"></div>
+        <button class="btn" id="res-btn" onclick="exportAccounting('reservations')">Télécharger le CSV</button>
+      </div>
+      <div class="msg" id="res-msg"></div>
+    </div>
+  </div>
+
+  <!-- Export des clients -->
+  <div class="card">
+    <div class="ico">👥</div>
+    <div class="body">
+      <h2>Export des clients</h2>
+      <p>Annuaire complet : civilité, prénom, nom, email, téléphone, société, SIRET, type, compte activé.</p>
+      <button class="btn" id="cli-btn" onclick="exportClients()">Télécharger le CSV</button>
+      <div class="msg" id="cli-msg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const API_BASE = '/api/coworking';
+const STORAGE_KEY = 'cw_admin_session';
+let HEADERS = {'Content-Type':'application/json'};
+
+function getSession(){
+  try{ const s = JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+    if(s && s.expires && s.expires < Date.now()) return null;
+    return s; }catch(e){ return null; }
+}
+function isTestMode(){ return localStorage.getItem('cw_test_mode') === '1'; }
+
+function toCSV(rows){
+  if(!rows || !rows.length) return '';
+  const headers = Object.keys(rows[0]);
+  const esc = v => {
+    if(v === null || v === undefined) v = '';
+    v = String(v).replace(/"/g,'""');
+    return /[";\n]/.test(v) ? '"'+v+'"' : v;
+  };
+  const lines = [headers.join(';')];
+  rows.forEach(r => lines.push(headers.map(h => esc(r[h])).join(';')));
+  return '﻿' + lines.join('\r\n'); // BOM pour Excel
+}
+function download(filename, csv){
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+
+async function exportAccounting(kind){
+  const pre = kind === 'comptable' ? 'cpt' : 'res';
+  const btn = document.getElementById(pre+'-btn'), msg = document.getElementById(pre+'-msg');
+  const from = document.getElementById(pre+'-from').value, to = document.getElementById(pre+'-to').value;
+  msg.className='msg'; msg.textContent='';
+  if(!from || !to){ msg.className='msg err'; msg.textContent='Choisis une période.'; return; }
+  btn.disabled=true; const orig=btn.textContent; btn.textContent='Préparation…';
+  try{
+    const url = `${API_BASE}/admin/export/accounting?date_from=${from}&date_to=${to}&test_mode=${isTestMode()}`;
+    const r = await fetch(url, {headers:HEADERS, cache:'no-store'});
+    if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const data = await r.json();
+    let rows = data.rows || [];
+    if(!rows.length){ msg.className='msg err'; msg.textContent='Aucune donnée sur cette période.'; return; }
+    if(kind === 'reservations'){
+      // Vue réservations : colonnes orientées booking
+      rows = rows.map(r => ({
+        date:r.date, reference:r.reference, creneau:r.creneau, espace:r.espace, unite:r.unite,
+        client:r.client, email:r.email, societe:r.societe, montant_ttc:r.montant_ttc, paiement:r.paiement,
+      }));
+    }
+    download(`${kind}_${from}_${to}.csv`, toCSV(rows));
+    msg.className='msg ok'; msg.textContent=`✅ ${rows.length} ligne(s) exportée(s).`;
+  }catch(e){ msg.className='msg err'; msg.textContent='Erreur : '+e.message; }
+  finally{ btn.disabled=false; btn.textContent=orig; }
+}
+
+async function exportClients(){
+  const btn = document.getElementById('cli-btn'), msg = document.getElementById('cli-msg');
+  msg.className='msg'; msg.textContent='';
+  btn.disabled=true; const orig=btn.textContent; btn.textContent='Préparation…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/export/clients`, {headers:HEADERS, cache:'no-store'});
+    if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const data = await r.json();
+    const rows = data.rows || [];
+    if(!rows.length){ msg.className='msg err'; msg.textContent='Aucun client.'; return; }
+    const today = new Date().toISOString().slice(0,10);
+    download(`clients_${today}.csv`, toCSV(rows));
+    msg.className='msg ok'; msg.textContent=`✅ ${rows.length} client(s) exporté(s).`;
+  }catch(e){ msg.className='msg err'; msg.textContent='Erreur : '+e.message; }
+  finally{ btn.disabled=false; btn.textContent=orig; }
+}
+
+(function(){
+  const s = getSession();
+  if(!s || !s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  const today = new Date().toISOString().slice(0,10);
+  const jan1 = today.slice(0,4)+'-01-01';
+  ['cpt-from','res-from'].forEach(id=>document.getElementById(id).value = jan1);
+  ['cpt-to','res-to'].forEach(id=>document.getElementById(id).value = today);
+})();
+</script>
+</body>
+</html>
