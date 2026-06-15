@@ -75,6 +75,10 @@
     {
       "source": "/admin-clients",
       "destination": "/admin-clients.html"
+    },
+    {
+      "source": "/admin-hub",
+      "destination": "/admin-hub.html"
     }
   ]
 }
