@@ -359,6 +359,14 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
       <button class="btn btn-ghost" onclick="goStep(2)">← Retour</button>
       <button class="btn" id="btn-pay" onclick="payAndConfirm()">Payer & confirmer →</button>
     </div>
+    <details style="margin-top:16px;font-size:12px;line-height:1.6;color:rgba(255,255,255,.6)">
+      <summary style="cursor:pointer;color:rgba(255,255,255,.78)">Conditions d'annulation &amp; remboursement</summary>
+      <div style="margin-top:8px">
+        Annulation : remboursement intégral si plus de 14&nbsp;jours avant la date, 50&nbsp;% entre 7 et 14&nbsp;jours, aucun remboursement à moins de 7&nbsp;jours.
+        Dans tous les cas, les frais bancaires liés au paiement (commission Stripe) ne sont pas remboursables et sont déduits du montant remboursé.
+        Toute demande d'annulation est à adresser à <span style="color:rgba(255,255,255,.85)">contact@coworking-sens.com</span>.
+      </div>
+    </details>
     <a id="stripe-fallback" href="#" style="display:none;margin-top:14px;text-align:center;background:#C9B584;color:#03234D;text-decoration:none;padding:12px 22px;border-radius:999px;font-weight:700;">Si le paiement ne s'ouvre pas, cliquez ici →</a>
   </div>
 

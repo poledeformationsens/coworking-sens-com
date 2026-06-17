@@ -279,6 +279,12 @@
         <input type="number" id="rc-amount" step="0.01" min="0" style="flex:1;padding:9px;border:1px solid var(--light);border-radius:6px;">
         <label style="font-size:12px;white-space:nowrap;"><input type="checkbox" id="rc-full" checked onchange="onFullToggle()"> Total</label>
       </div>
+      <div id="rc-fee-wrap" style="display:none;margin-top:8px;background:#F8F7F4;border:1px solid var(--light);border-radius:6px;padding:8px 10px;">
+        <label style="display:inline;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--navy);">
+          <input type="checkbox" id="rc-deduct-fee" onchange="onDeductFee()"> Déduire les frais Stripe du remboursement
+        </label>
+        <div id="rc-fee-note" style="font-size:12px;color:var(--slate);margin-top:4px;"></div>
+      </div>
     </div>
     <div class="field" style="margin-bottom:12px;">
       <label>Motif (optionnel)</label>
@@ -589,6 +595,16 @@ function onEventClick(info) {
 
 // ===== Annulation / remboursement =====
 let _currentResa = null;
+let _feeInfo = null;   // {amount, fee, net, source} renvoyé par le backend (commission Stripe réelle)
+
+async function fetchFeeInfo() {
+  _feeInfo = null;
+  if (!_currentResa) return;
+  try {
+    const r = await fetch(`${API_BASE}/admin/reservations/${_currentResa.id}/refund-estimate`, {headers: HEADERS, cache: 'no-store'});
+    if (r.ok) { _feeInfo = await r.json(); applyAmountMode(); }
+  } catch (e) {}
+}
 
 function openCancelModal() {
   if (!_currentResa) return;
@@ -601,13 +617,17 @@ function openCancelModal() {
   else if (r.payment_method === 'stripe') m = 'stripe';
   else m = 'virement';
   document.getElementById('rc-method').value = m;
+  const isStripe = (m === 'stripe');
+  // Pour un remboursement carte : on déduit les frais Stripe par défaut
+  document.getElementById('rc-full').checked = !isStripe;
+  document.getElementById('rc-deduct-fee').checked = isStripe;
   document.getElementById('rc-amount').value = r.amount.toFixed(2);
-  document.getElementById('rc-full').checked = true;
   document.getElementById('rc-reason').value = '';
   document.getElementById('rc-notify').checked = true;
   document.getElementById('rc-error').style.display = 'none';
+  _feeInfo = null;
   onMethodChange();
-  onFullToggle();
+  if (isStripe) fetchFeeInfo();   // récupère la commission Stripe réelle
   document.getElementById('modal-cancel').classList.add('open');
 }
 
@@ -615,18 +635,49 @@ function closeCancelModal() {
   document.getElementById('modal-cancel').classList.remove('open');
 }
 
+// Frais Stripe (cartes européennes) : 1,5 % + 0,25 €
+const STRIPE_RATE = 0.015, STRIPE_FIXED = 0.25;
+function stripeFee(amount){ return Math.round((amount*STRIPE_RATE + STRIPE_FIXED)*100)/100; }
+function netAfterFee(amount){ return Math.max(0, Math.round((amount - stripeFee(amount))*100)/100); }
+
 function onMethodChange() {
   const m = document.getElementById('rc-method').value;
   // ticket et "aucun" : pas de montant à saisir
   const showAmount = (m === 'stripe' || m === 'virement');
   document.getElementById('rc-amount-wrap').style.display = showAmount ? 'block' : 'none';
+  // option "déduire les frais Stripe" : uniquement pour un remboursement carte
+  document.getElementById('rc-fee-wrap').style.display = (m === 'stripe') ? 'block' : 'none';
+  if (m !== 'stripe') document.getElementById('rc-deduct-fee').checked = false;
+  if (m === 'stripe' && !_feeInfo) fetchFeeInfo();
+  applyAmountMode();
 }
 
 function onFullToggle() {
+  if (document.getElementById('rc-full').checked) document.getElementById('rc-deduct-fee').checked = false;
+  applyAmountMode();
+}
+function onDeductFee() {
+  if (document.getElementById('rc-deduct-fee').checked) document.getElementById('rc-full').checked = false;
+  applyAmountMode();
+}
+function applyAmountMode() {
+  if (!_currentResa) return;
+  const amt = _currentResa.amount;
   const full = document.getElementById('rc-full').checked;
+  const deduct = document.getElementById('rc-deduct-fee').checked;
   const inp = document.getElementById('rc-amount');
-  if (full && _currentResa) inp.value = _currentResa.amount.toFixed(2);
-  inp.disabled = full;
+  // Commission réelle si dispo (backend), sinon estimation locale
+  const useReal = _feeInfo && Math.abs((_feeInfo.amount||0) - amt) < 0.01;
+  const fee = useReal ? _feeInfo.fee : stripeFee(amt);
+  const net = useReal ? _feeInfo.net : netAfterFee(amt);
+  if (deduct) { inp.value = net.toFixed(2); inp.disabled = true; }
+  else if (full) { inp.value = amt.toFixed(2); inp.disabled = true; }
+  else { inp.disabled = false; }
+  const label = (useReal && _feeInfo.source === 'stripe') ? 'réels' : 'estimés';
+  document.getElementById('rc-fee-note').innerHTML =
+    `Frais Stripe ${label} : <b>${fee.toFixed(2).replace('.',',')} €</b>` +
+    (label === 'estimés' ? ' (1,5 % + 0,25 €)' : '') + '. ' +
+    `Montant remboursé si déduction : <b>${net.toFixed(2).replace('.',',')} €</b>.`;
 }
 
 async function submitCancel() {

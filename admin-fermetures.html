@@ -30,6 +30,12 @@
   .empty{padding:30px;text-align:center;color:var(--slate)}
   .ok{color:var(--green);font-size:13px;margin-top:8px;display:none}
   .err{color:var(--red);font-size:13px;margin-top:8px;display:none}
+  .warn{display:none;margin-top:14px;background:#FFF6E5;border:1px solid #F0C36D;border-left:4px solid #E0922B;border-radius:8px;padding:12px 14px;font-size:13px;color:#7a4a00}
+  .warn b{color:#03234D}
+  .warn ul{margin:8px 0 0;padding-left:18px}
+  .warn li{margin:3px 0}
+  .warn.checking{background:#F4F8FB;border-color:#cfe0ef;border-left-color:#5A6A85;color:var(--slate)}
+  .warn.clear{background:#EAF7EF;border-color:#bfe6cd;border-left-color:var(--green);color:#1f6b42}
   #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
   #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
 </style>
@@ -100,6 +106,7 @@
         <input id="f-reason" type="text" placeholder="Congés, jour férié, privatisation…" required>
       </div>
     </div>
+    <div class="warn" id="conflict-box"></div>
     <button class="btn" onclick="addClosure()">Fermer cette date</button>
     <div class="ok" id="ok-msg">✅ Fermeture enregistrée.</div>
     <div class="err" id="err-msg"></div>
@@ -163,6 +170,60 @@ function render(rows){
     }).join('') + '</tbody></table>';
 }
 
+// ---- Vérification instantanée des réservations en conflit ----
+function buildDays(date, dateEnd){
+  const days=[]; if(!date) return days;
+  let d=new Date(date+'T00:00:00'); const end=new Date((dateEnd||date)+'T00:00:00');
+  while(d<=end && days.length<90){ days.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  return days;
+}
+function periodHours(){
+  const p=document.getElementById('f-period').value;
+  if(p==='morning') return ['08:00','12:00'];
+  if(p==='afternoon') return ['14:00','18:00'];
+  return [null,null];
+}
+function spaceMatch(closureSpace, evSpace){ return !closureSpace || closureSpace===evSpace; }
+function hoursOverlap(evStart, evEnd, cf, ct){
+  if(!cf && !ct) return true;            // fermeture journée entière
+  const es=(evStart||'').slice(11,16), ee=(evEnd||'').slice(11,16);
+  return es < ct && ee > cf;             // chevauchement standard
+}
+async function findConflicts(){
+  const date=document.getElementById('f-date').value;
+  if(!date) return [];
+  const dateEnd=document.getElementById('f-date-end').value || date;
+  if(dateEnd < date) return [];
+  const days=buildDays(date, dateEnd); if(!days.length) return [];
+  const space=document.getElementById('f-space').value;
+  const [cf,ct]=periodHours();
+  const r=await fetch(`${API_BASE}/calendar?from=${days[0]}&to=${days[days.length-1]}&include_test=false`,{headers:HEADERS,cache:'no-store'});
+  if(!r.ok) return [];
+  const data=await r.json();
+  const set=new Set(days);
+  return (data.events||[])
+    .filter(e=>e.extendedProps && e.extendedProps.type==='reservation')
+    .filter(e=>{const d=(e.start||'').slice(0,10); return set.has(d) && spaceMatch(space, e.extendedProps.space) && hoursOverlap(e.start,e.end,cf,ct);})
+    .map(e=>({date:(e.start||'').slice(0,10), hf:(e.start||'').slice(11,16), ht:(e.end||'').slice(11,16), name:e.extendedProps.client_name||'?', ref:e.extendedProps.reference||'', space:e.extendedProps.space_unit||e.extendedProps.space||'', email:e.extendedProps.client_email||''}))
+    .sort((a,b)=>(a.date+a.hf).localeCompare(b.date+b.hf));
+}
+function confDate(d){ return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'short'}); }
+let _confTimer=null;
+function scheduleConflictCheck(){
+  clearTimeout(_confTimer);
+  const box=document.getElementById('conflict-box');
+  const date=document.getElementById('f-date').value;
+  if(!date){ box.style.display='none'; return; }
+  box.className='warn checking'; box.style.display='block'; box.innerHTML='⏳ Vérification des réservations sur la période…';
+  _confTimer=setTimeout(async()=>{
+    try{
+      const c=await findConflicts();
+      if(!c.length){ box.className='warn clear'; box.innerHTML='✅ Aucune réservation sur cette période — la fermeture ne gêne personne.'; }
+      else{ box.className='warn'; box.innerHTML=`⚠️ <b>${c.length} réservation${c.length>1?'s':''}</b> sur cette période :<ul>${c.map(x=>`<li>${confDate(x.date)} · <b>${x.name}</b> — ${x.space}${(x.hf&&x.ht)?` ${x.hf}–${x.ht}`:''}${x.ref?` (${x.ref})`:''}</li>`).join('')}</ul><div style="margin-top:8px">Tu peux quand même fermer (confirmation demandée), puis prévenir / annuler ces clients.</div>`; }
+    }catch(e){ box.style.display='none'; }
+  }, 350);
+}
+
 async function addClosure(){
   const ok = document.getElementById('ok-msg'), err = document.getElementById('err-msg');
   ok.style.display='none'; err.style.display='none';
@@ -181,6 +242,15 @@ async function addClosure(){
   else if(period==='afternoon'){ hour_from='14:00'; hour_to='18:00'; }
   const reason = (document.getElementById('f-reason').value||'').trim();
   if(!reason){ err.textContent='Merci d\'indiquer la raison de la fermeture (ex. congés, privatisation).'; err.style.display='block'; return; }
+  // Vérification instantanée : réservations en conflit sur la période
+  let conflicts=[];
+  try{ conflicts = await findConflicts(); }catch(e){}
+  if(conflicts.length){
+    const txt = `⚠️ ${conflicts.length} réservation(s) tombe(nt) pendant cette fermeture :\n\n` +
+      conflicts.map(c=>`• ${confDate(c.date)} — ${c.name} (${c.space}${c.hf&&c.ht?`, ${c.hf}-${c.ht}`:''})${c.ref?' '+c.ref:''}`).join('\n') +
+      `\n\nFermer quand même ? (pense à prévenir / annuler ces clients ensuite)`;
+    if(!confirm(txt)) return;
+  }
   const btn = document.querySelector('button.btn'); const orig = btn?btn.textContent:'';
   if(btn){ btn.disabled=true; btn.textContent = days.length>1 ? `Fermeture (${days.length} jours)…` : 'Enregistrement…'; }
   try{
@@ -215,6 +285,13 @@ async function del(id){
   HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
   // date par défaut = aujourd'hui
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  // Vérification instantanée des réservations dès qu'on modifie les critères
+  ['f-date','f-date-end','f-space','f-period'].forEach(id=>{
+    const el=document.getElementById(id);
+    el.addEventListener('change', scheduleConflictCheck);
+    el.addEventListener('input', scheduleConflictCheck);
+  });
+  scheduleConflictCheck();
   load();
 })();
 </script>
