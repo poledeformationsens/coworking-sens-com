@@ -89,6 +89,7 @@
       <a href="admin-clients.html" class="active">👤 Clients</a>
       <a href="admin-societes.html">🏢 Sociétés</a>
       <a href="admin-tarifs.html">💶 Tarifs</a>
+      <a href="admin-documents.html">📄 Documents</a>
       <a href="admin-exports.html">📤 Exports</a>
     </nav>
   </div>
@@ -111,7 +112,7 @@ const API_BASE = '/api/coworking';
 const STORAGE_KEY = 'cw_admin_session';
 const GOOGLE_REVIEW_LINK = 'https://www.google.com/maps?cid=830252294857105393';
 let HEADERS = {'Content-Type':'application/json'};
-let CLIENTS = [], RESAS_BY_EMAIL = {};
+let CLIENTS = [], RESAS_BY_EMAIL = {}, DOCS_BY_EMAIL = {};
 
 // Avis Google réels (fiche L'Atelier du Coworking)
 const REVIEWS = [
@@ -145,16 +146,19 @@ function toast(msg){ const t=document.getElementById('toast'); t.textContent=msg
 async function load(){
   try{
     const yr = new Date().getFullYear();
-    const [rc, rp, ra] = await Promise.all([
+    const [rc, rp, ra, rd] = await Promise.all([
       fetch(`${API_BASE}/admin/export/clients`, {headers:HEADERS, cache:'no-store'}),
       fetch(`${API_BASE}/admin/packs`, {headers:HEADERS, cache:'no-store'}),
       fetch(`${API_BASE}/admin/export/accounting?date_from=2024-01-01&date_to=${yr+1}-12-31&test_mode=false`, {headers:HEADERS, cache:'no-store'}),
+      fetch(`${API_BASE}/admin/documents`, {headers:HEADERS, cache:'no-store'}),
     ]);
     if(rc.status===401||rc.status===403){ document.getElementById('login').style.display='flex'; return; }
     if(!rc.ok) throw new Error('Erreur '+rc.status);
     const clients = (await rc.json()).rows || [];
     let packs = []; if(rp.ok){ const jp = await rp.json(); packs = jp.packs || jp || []; }
     let resas = []; if(ra.ok){ resas = (await ra.json()).rows || []; }
+    DOCS_BY_EMAIL = {};
+    if(rd && rd.ok){ const jd = await rd.json(); (jd.documents||[]).forEach(doc=>{ const em=(doc.email||'').toLowerCase(); if(!em) return; (DOCS_BY_EMAIL[em]=DOCS_BY_EMAIL[em]||[]).push(doc); }); }
     const tickets = {}, stats = {};
     RESAS_BY_EMAIL = {};
     (Array.isArray(packs)?packs:[]).forEach(p=>{
@@ -218,6 +222,15 @@ function openClient(email){
   const resaList = resas.length
     ? resas.slice(0,20).map(r=>`<div class="resa-row"><span>${fdate(r.date)} · ${esc(r.espace||'')}${r.unite?(' '+esc(r.unite)):''} · ${esc(r.creneau||'')}</span><strong>${eur(r.montant_ttc)}</strong></div>`).join('')
     : '<div class="muted">Aucune réservation enregistrée.</div>';
+  const docs = (DOCS_BY_EMAIL[email]||[]).slice();
+  const TL = {devis:'Devis', facture:'Facture', avoir:'Avoir'};
+  const docList = docs.length
+    ? docs.map(d=>{
+        const neg = Number(d.amount||0) < 0;
+        const pdf = d.pdf_url ? `<a class="btn alt" style="padding:3px 10px;font-size:12px;text-decoration:none" href="${esc(d.pdf_url)}" target="_blank" rel="noopener">PDF ↗</a>` : '';
+        return `<div class="resa-row"><span>${fdate(d.date)} · <strong>${TL[d.type]||d.type}</strong> ${esc(d.reference||'')}</span><span style="display:flex;gap:10px;align-items:center"><strong style="${neg?'color:#C0392B':''}">${eur(d.amount)}</strong>${pdf}</span></div>`;
+      }).join('')
+    : '<div class="muted">Aucun document (facture, avoir, devis).</div>';
   document.getElementById('sheet').innerHTML = `
     <div class="sheet-head">
       <button class="x" onclick="closeModal()">×</button>
@@ -242,6 +255,9 @@ function openClient(email){
 
       <h3>Réservations (${resas.length})</h3>
       ${resaList}
+
+      <h3>Documents (${docs.length})</h3>
+      ${docList}
 
       <h3>Notes & tags <span class="muted" style="text-transform:none;letter-spacing:0">(privé, admin uniquement)</span></h3>
       <input id="crm-tags" type="text" placeholder="Tags séparés par des virgules : VIP, entreprise, à relancer…" value="${esc(c.tags||'')}"

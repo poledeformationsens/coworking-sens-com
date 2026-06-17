@@ -90,6 +90,10 @@
     {
       "source": "/admin-prospection",
       "destination": "/admin-prospection.html"
+    },
+    {
+      "source": "/admin-documents",
+      "destination": "/admin-documents.html"
     }
   ]
 }

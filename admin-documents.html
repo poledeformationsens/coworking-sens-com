@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documents — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; --blue:#2563EB; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1280px;margin:24px auto;padding:0 18px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .kpi{background:#fff;border:1px solid var(--light);border-radius:12px;padding:14px 16px;cursor:pointer;transition:.15s}
+  .kpi:hover{border-color:var(--gold)}
+  .kpi.active{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+  .kpi .label{font-size:12px;color:var(--slate)}
+  .kpi .value{font-size:24px;font-weight:800;margin-top:2px}
+  .toolbar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:16px}
+  input,select{padding:9px 12px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:14px;color:var(--navy);background:#fff}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;overflow:hidden}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px 12px;text-align:left;font-size:13px;border-bottom:1px solid #f0ebe0;vertical-align:middle}
+  th{color:var(--slate);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em}
+  tr.row:hover{background:#fbfaf7}
+  .badge{display:inline-block;font-size:11px;font-weight:700;padding:3px 10px;border-radius:12px;text-transform:uppercase;letter-spacing:.03em}
+  .b-devis{background:#E7EEFB;color:var(--blue)} .b-facture{background:#E6F3EC;color:var(--green)} .b-avoir{background:#FBE9E7;color:var(--red)}
+  .st{font-size:11px;color:var(--slate)}
+  .amount{font-variant-numeric:tabular-nums;font-weight:700}
+  .amount.neg{color:var(--red)}
+  .pdf{display:inline-block;background:var(--navy);color:#fff;text-decoration:none;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700}
+  .pdf:hover{background:#06306b}
+  .muted{color:var(--slate);font-size:12px}
+  .chip{padding:6px 14px;border-radius:14px;border:1px solid var(--light);background:#fff;font-size:12.5px;font-weight:600;color:var(--slate);cursor:pointer}
+  .chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .ttest{font-size:10px;background:#eee;color:var(--slate);padding:1px 6px;border-radius:8px;margin-left:6px}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+</style>
+</head>
+<body>
+
+<div id="login"><div class="box">
+  <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Documents</h2>
+  <p class="muted">Session admin requise.</p>
+  <a class="pdf" href="admin-devis-dashboard.html" style="margin-top:10px">Se connecter sur le dashboard</a>
+</div></div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="44" height="44">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-hub.html">✨ Hub</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-fermetures.html">🚫 Fermetures</a>
+      <a href="admin-stats.html">📊 Statistiques</a>
+      <a href="admin-prospection.html">🎯 Prospection</a>
+      <a href="admin-evenements.html">🎉 Événements</a>
+      <a href="admin-clients.html">👤 Clients</a>
+      <a href="admin-societes.html">🏢 Sociétés</a>
+      <a href="admin-tarifs.html">💶 Tarifs</a>
+      <a href="admin-documents.html" class="active">📄 Documents</a>
+      <a href="admin-exports.html">📤 Exports</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="kpis" id="kpis"></div>
+
+  <div class="toolbar">
+    <input id="search" placeholder="Rechercher (client, référence)…" oninput="render()" style="flex:1;min-width:220px">
+    <span class="chip active" data-type="" onclick="setType('')">Tous</span>
+    <span class="chip" data-type="devis" onclick="setType('devis')">Devis</span>
+    <span class="chip" data-type="facture" onclick="setType('facture')">Factures</span>
+    <span class="chip" data-type="avoir" onclick="setType('avoir')">Avoirs</span>
+    <span class="muted" id="status"></span>
+  </div>
+
+  <div class="card">
+    <table>
+      <thead><tr>
+        <th>Date</th><th>Type</th><th>Référence</th><th>Client</th>
+        <th style="text-align:right">Montant TTC</th><th>Statut</th><th></th>
+      </tr></thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+  <p class="muted" style="margin-top:12px">💡 Les factures historiques (importées de Cosoft) génèrent leur PDF à la volée. Les avoirs sont en négatif. Clique « PDF » pour ouvrir le document.</p>
+</div>
+
+<script>
+const API='/api/coworking', KEY='cw_admin_session';
+let H={'Content-Type':'application/json'}, DATA=[], FILTER={type:''};
+const TYPE_LABEL={devis:'Devis',facture:'Facture',avoir:'Avoir'};
+
+function getSession(){try{const s=JSON.parse(localStorage.getItem(KEY)||'null');if(s&&s.expires&&s.expires<Date.now())return null;return s;}catch(e){return null;}}
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function eur(n){const v=Number(n||0);return v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'});}
+function fmtDate(d){if(!d)return '—';try{return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return d;}}
+
+async function load(){
+  const st=document.getElementById('status'); st.textContent='Chargement…';
+  try{
+    const r=await fetch(`${API}/admin/documents`,{headers:H,cache:'no-store'});
+    if(r.status===401||r.status===403){document.getElementById('login').style.display='flex';return;}
+    const d=await r.json(); DATA=d.documents||[]; st.textContent=''; renderKpis(); render();
+  }catch(e){st.textContent='Erreur : '+e.message;}
+}
+
+function renderKpis(){
+  const f=DATA.filter(d=>!d.test);
+  const nb=t=>f.filter(d=>d.type===t).length;
+  const caFac=f.filter(d=>d.type==='facture').reduce((s,d)=>s+Number(d.amount||0),0);
+  const totAv=f.filter(d=>d.type==='avoir').reduce((s,d)=>s+Number(d.amount||0),0);
+  const cards=[
+    ['Total documents',f.length,null],
+    ['Devis',nb('devis'),'devis'],
+    ['Factures',nb('facture'),'facture'],
+    ['Avoirs',nb('avoir'),'avoir'],
+    ['CA facturé',eur(caFac),null],
+    ['Total avoirs',eur(totAv),null],
+  ];
+  document.getElementById('kpis').innerHTML=cards.map(([l,v,t])=>`<div class="kpi ${FILTER.type===t&&t?'active':''}" onclick="setType(${t?`'${t}'`:'null'})"><div class="label">${l}</div><div class="value">${v}</div></div>`).join('');
+}
+function setType(t){FILTER.type=(t==null||FILTER.type===t)?'':t;document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',(c.dataset.type||'')===FILTER.type));renderKpis();render();}
+
+function render(){
+  const q=(document.getElementById('search').value||'').toLowerCase();
+  let rows=DATA.slice();
+  if(FILTER.type) rows=rows.filter(d=>d.type===FILTER.type);
+  if(q) rows=rows.filter(d=>[d.reference,d.client,d.email].some(x=>(x||'').toLowerCase().includes(q)));
+  const tb=document.getElementById('tbody');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="7" class="muted" style="padding:24px;text-align:center">Aucun document.</td></tr>';return;}
+  tb.innerHTML=rows.map(d=>{
+    const neg=Number(d.amount||0)<0;
+    const pdf=d.pdf_url?`<a class="pdf" href="${esc(d.pdf_url)}" target="_blank" rel="noopener">PDF ↗</a>`:'<span class="muted">—</span>';
+    return `<tr class="row">
+      <td class="muted">${fmtDate(d.date)}</td>
+      <td><span class="badge b-${d.type}">${TYPE_LABEL[d.type]||d.type}</span>${d.test?'<span class="ttest">test</span>':''}</td>
+      <td><b>${esc(d.reference||'—')}</b>${d.linked?`<div class="muted">↳ ${esc(d.linked)}</div>`:''}</td>
+      <td>${esc(d.client||'—')}<div class="muted">${esc(d.email||'')}</div></td>
+      <td style="text-align:right" class="amount ${neg?'neg':''}">${eur(d.amount)}</td>
+      <td><span class="st">${esc(d.status||'')}</span></td>
+      <td style="text-align:right">${pdf}</td>
+    </tr>`;
+  }).join('');
+}
+
+(function(){const s=getSession();if(!s||!s.token){document.getElementById('login').style.display='flex';return;}H={'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};load();})();
+</script>
+</body>
+</html>
