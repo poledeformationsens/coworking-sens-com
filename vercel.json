@@ -40,6 +40,10 @@
       "destination": "/annuaire.html"
     },
     {
+      "source": "/evenement",
+      "destination": "/evenement.html"
+    },
+    {
       "source": "/admin-devis-dashboard",
       "destination": "/admin-devis-dashboard.html"
     },

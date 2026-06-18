@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Événements — Admin · L'Atelier du Coworking</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; }
   *{box-sizing:border-box}
@@ -32,6 +33,19 @@
   .ok{color:var(--green);font-size:13px;display:none;margin-top:8px}
   #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
   #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+  .btn.share{background:#fff;color:var(--green);border:1px solid var(--light);padding:6px 12px;font-size:12.5px;margin:0}
+  #share{position:fixed;inset:0;background:rgba(3,35,77,.45);display:none;align-items:center;justify-content:center;z-index:120;padding:16px}
+  #share.open{display:flex}
+  #share .box{background:#fff;border-radius:14px;padding:24px;width:min(420px,94vw);text-align:center}
+  #share h3{font-family:'Playfair Display',serif;margin:0 0 4px;font-size:19px}
+  #share .ev{font-size:13px;color:var(--slate);margin-bottom:14px}
+  #share .qr{display:flex;justify-content:center;margin:6px 0 14px}
+  #share .qr img,#share .qr canvas{border:1px solid var(--light);border-radius:10px;padding:8px;background:#fff}
+  #share .link{font-size:12px;color:var(--slate);word-break:break-all;background:var(--cream);border:1px solid var(--light);border-radius:8px;padding:8px 10px;margin-bottom:12px}
+  #share .row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+  #share a.s,#share button.s{flex:1;min-width:120px;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:700;font-size:13px;cursor:pointer;border:none}
+  .s-wa{background:#25D366;color:#fff} .s-mail{background:var(--navy);color:#fff} .s-copy{background:#fff;color:var(--navy);border:1px solid var(--light)!important} .s-qr{background:var(--gold);color:var(--navy)}
+  #share .close{margin-top:14px;background:none;border:none;color:var(--slate);cursor:pointer;font-size:13px}
 </style>
 </head>
 <body>
@@ -96,6 +110,20 @@
   </div>
 </div>
 
+<div id="share"><div class="box">
+  <h3>Partager l'événement</h3>
+  <div class="ev" id="share-ev"></div>
+  <div class="qr" id="share-qr"></div>
+  <div class="link" id="share-link"></div>
+  <div class="row">
+    <a class="s s-wa" id="share-wa" target="_blank" rel="noopener">📱 WhatsApp</a>
+    <a class="s s-mail" id="share-mail">✉️ Email</a>
+    <button class="s s-copy" onclick="copyShare(this)">🔗 Copier le lien</button>
+    <button class="s s-qr" onclick="downloadQR()">⬇️ Télécharger le QR</button>
+  </div>
+  <button class="close" onclick="closeShare()">Fermer</button>
+</div></div>
+
 <script>
 const API_BASE = '/api/coworking';
 const STORAGE_KEY = 'cw_admin_session';
@@ -126,6 +154,7 @@ function render(events){
       <td>${e.registered_count}${e.capacity?(' / '+e.capacity):''}</td>
       <td>${e.active?'✅':'—'}</td>
       <td style="text-align:right;white-space:nowrap">
+        <button class="btn share" onclick='openShare(${e.id}, ${JSON.stringify(e.title)})'>📤 Partager</button>
         <button class="btn ghost" onclick='showRegs(${e.id}, ${JSON.stringify(e.title)})'>Inscrits</button>
         <button class="btn ghost" onclick='editEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Modifier</button>
         <button class="btn ghost del" onclick="delEvent(${e.id})">Suppr.</button>
@@ -197,6 +226,31 @@ async function showRegs(id, title){
       rows.map(x=>`<tr><td>${esc(x.name)||'—'}</td><td>${esc(x.customer_email)}</td><td class="muted">${x.created_at?new Date(x.created_at).toLocaleDateString('fr-FR'):''}</td></tr>`).join('')+'</tbody></table>';
   }catch(e){ list.innerHTML='<div class="empty">Erreur : '+e.message+'</div>'; }
 }
+
+// ===== Partage d'un événement (WhatsApp / Email / QR) =====
+const PUBLIC_BASE='https://coworking-sens.com';
+let _shareUrl='';
+function openShare(id, title){
+  const url=`${PUBLIC_BASE}/evenement?id=${id}`; _shareUrl=url;
+  document.getElementById('share-ev').textContent=title||'';
+  document.getElementById('share-link').textContent=url;
+  const msg=`🎉 ${title} — L'Atelier du Coworking à Sens.\nInfos & inscription : ${url}`;
+  document.getElementById('share-wa').href=`https://wa.me/?text=${encodeURIComponent(msg)}`;
+  document.getElementById('share-mail').href=`mailto:?subject=${encodeURIComponent('Invitation : '+(title||'événement')+" — L'Atelier du Coworking")}&body=${encodeURIComponent(msg)}`;
+  const qr=document.getElementById('share-qr'); qr.innerHTML='';
+  try{ new QRCode(qr,{text:url,width:180,height:180,colorDark:'#03234D',colorLight:'#ffffff'}); }catch(e){ qr.textContent='QR indisponible'; }
+  document.getElementById('share').classList.add('open');
+}
+function closeShare(){ document.getElementById('share').classList.remove('open'); }
+function copyShare(btn){ navigator.clipboard.writeText(_shareUrl).then(()=>{ const o=btn.textContent; btn.textContent='✅ Copié'; setTimeout(()=>btn.textContent=o,1500); }); }
+function downloadQR(){
+  const c=document.querySelector('#share-qr canvas');
+  const img=document.querySelector('#share-qr img');
+  const data=c?c.toDataURL('image/png'):(img?img.src:null);
+  if(!data) return;
+  const a=document.createElement('a'); a.href=data; a.download='qr-evenement.png'; a.click();
+}
+document.getElementById('share').addEventListener('click', e=>{ if(e.target.id==='share') closeShare(); });
 
 (function(){
   const s=getSession();

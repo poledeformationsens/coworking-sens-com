@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Événements — L'Atelier du Coworking Sens</title>
+<meta name="description" content="Les événements de L'Atelier du Coworking à Sens : matinales network, ateliers, rencontres. Inscrivez-vous en ligne.">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  .hero{background:var(--navy);color:#fff;text-align:center;padding:30px 18px 26px}
+  .hero img{width:64px;height:64px;display:block;margin:0 auto 8px}
+  .hero .name{font-family:'Playfair Display',serif;font-size:13px;letter-spacing:.22em;text-transform:uppercase}
+  .hero .tag{font-size:11px;color:var(--gold);letter-spacing:.24em;text-transform:uppercase;margin-top:5px}
+  .wrap{max-width:680px;margin:24px auto;padding:0 16px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:14px;padding:24px;margin-bottom:16px}
+  .cat{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+  h1{font-family:'Playfair Display',serif;font-size:26px;margin:0 0 10px;line-height:1.2}
+  .when{font-size:15px;color:var(--navy);font-weight:600;margin-bottom:4px}
+  .where{font-size:14px;color:var(--slate);margin-bottom:14px}
+  .desc{font-size:15px;line-height:1.7;color:#333;white-space:pre-wrap}
+  .spots{display:inline-block;margin-top:14px;font-size:13px;color:var(--slate);background:var(--cream);border:1px solid var(--light);border-radius:99px;padding:5px 13px}
+  .full{color:var(--red);font-weight:700}
+  label{display:block;font-size:12.5px;color:var(--slate);margin:12px 0 4px}
+  input{width:100%;padding:11px 13px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:15px;color:var(--navy)}
+  .btn{display:inline-block;background:var(--navy);color:#fff;border:none;border-radius:999px;padding:13px 26px;font-weight:700;font-size:15px;cursor:pointer;text-decoration:none;margin-top:16px}
+  .btn.gold{background:var(--gold);color:var(--navy)}
+  .btn[disabled]{opacity:.5;cursor:not-allowed}
+  .msg{margin-top:14px;font-size:14px;display:none;border-radius:8px;padding:12px 14px}
+  .msg.ok{display:block;background:#EAF7EF;border:1px solid #bfe6cd;color:#1f6b42}
+  .msg.err{display:block;background:#FBE9E7;border:1px solid #f2bcb4;color:var(--red)}
+  .ev-link{display:block;text-decoration:none;color:inherit}
+  .ev-row{border:1px solid var(--light);border-radius:12px;padding:16px 18px;margin-bottom:12px;background:#fff;transition:.15s}
+  .ev-row:hover{border-color:var(--gold);transform:translateY(-1px)}
+  .foot{text-align:center;font-size:12.5px;color:var(--slate);margin:24px 0}
+  .foot a{color:var(--slate)}
+  .back{display:inline-block;margin-top:10px;font-size:13px;color:var(--gold);text-decoration:none}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="L'Atelier du Coworking">
+  <div class="name">L'Atelier du Coworking</div>
+  <div class="tag">Sens · Événements</div>
+</div>
+
+<div class="wrap" id="app"><div class="card">Chargement…</div></div>
+
+<div class="foot">
+  L'Atelier du Coworking — 20 rue Pasteur, 89100 Sens<br>
+  <a href="https://coworking-sens.com">Réserver un espace</a> · <a href="mailto:contact@coworking-sens.com">contact@coworking-sens.com</a>
+</div>
+
+<script>
+const API='/api/coworking';
+const app=document.getElementById('app');
+const params=new URLSearchParams(location.search);
+const EID=params.get('id');
+
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function frDate(d,hf,ht){
+  if(!d) return '';
+  let s=new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if(hf) s+= ' · '+hf+(ht?('–'+ht):'');
+  return s.charAt(0).toUpperCase()+s.slice(1);
+}
+function spotsLabel(e){
+  if(e.full) return '<span class="spots full">Complet</span>';
+  if(e.capacity) return `<span class="spots">${Math.max(e.capacity-e.registered_count,0)} place(s) restante(s)</span>`;
+  return '<span class="spots">Entrée libre · inscription conseillée</span>';
+}
+
+async function loadOne(){
+  try{
+    const r=await fetch(`${API}/events/${EID}/public`,{cache:'no-store'});
+    if(!r.ok){ app.innerHTML='<div class="card">Cet événement n\'est pas disponible. <a class="back" href="/evenement">← Voir tous les événements</a></div>'; return; }
+    const e=await r.json(); renderOne(e);
+  }catch(err){ app.innerHTML='<div class="card">Erreur de chargement.</div>'; }
+}
+function renderOne(e){
+  const formOrFull = e.full
+    ? '<p class="full" style="margin-top:18px">Cet événement est complet. Écrivez-nous pour être sur liste d\'attente : <a href="mailto:contact@coworking-sens.com">contact@coworking-sens.com</a></p>'
+    : `<div id="form">
+         <label>Votre nom</label><input id="r-name" placeholder="Prénom Nom">
+         <label>Votre email</label><input id="r-email" type="email" placeholder="vous@email.fr">
+         <button class="btn gold" id="r-btn" onclick="register()">Je m'inscris</button>
+         <div class="msg" id="r-msg"></div>
+       </div>`;
+  app.innerHTML=`<div class="card">
+    ${e.category?`<span class="cat">${esc(e.category)}</span>`:''}
+    <h1>${esc(e.title)}</h1>
+    <div class="when">📅 ${frDate(e.date,e.hour_from,e.hour_to)}</div>
+    <div class="where">📍 ${esc(e.location||"L'Atelier du Coworking, Sens")}</div>
+    ${e.description?`<div class="desc">${esc(e.description)}</div>`:''}
+    <div>${spotsLabel(e)}</div>
+    <h2 style="font-family:'Playfair Display',serif;font-size:18px;margin:22px 0 0">Participer</h2>
+    ${formOrFull}
+    <a class="back" href="/evenement">← Tous les événements</a>
+  </div>`;
+}
+async function register(){
+  const name=(document.getElementById('r-name').value||'').trim();
+  const email=(document.getElementById('r-email').value||'').trim();
+  const msg=document.getElementById('r-msg'); msg.className='msg';
+  if(!name||!email||!email.includes('@')){ msg.className='msg err'; msg.textContent='Merci d\'indiquer votre nom et un email valide.'; return; }
+  const btn=document.getElementById('r-btn'); btn.disabled=true; btn.textContent='Inscription…';
+  try{
+    const r=await fetch(`${API}/events/${EID}/register-public`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    document.getElementById('form').innerHTML='<div class="msg ok" style="display:block">✅ Inscription confirmée ! Vous allez recevoir un email de confirmation. À très bientôt à L\'Atelier du Coworking.</div>';
+  }catch(e){ msg.className='msg err'; msg.textContent='Erreur : '+e.message; btn.disabled=false; btn.textContent='Je m\'inscris'; }
+}
+
+async function loadList(){
+  try{
+    const r=await fetch(`${API}/events/public`,{cache:'no-store'});
+    const d=await r.json(); const evs=d.events||[];
+    if(!evs.length){ app.innerHTML='<div class="card">Aucun événement à venir pour le moment. Revenez bientôt !</div>'; return; }
+    app.innerHTML='<div class="card"><h1 style="font-size:22px;margin:0 0 16px">Nos prochains événements</h1>'+
+      evs.map(e=>`<a class="ev-link" href="/evenement?id=${e.id}"><div class="ev-row">
+        ${e.category?`<span class="cat">${esc(e.category)}</span>`:''}
+        <div style="font-weight:700;font-size:16px">${esc(e.title)}</div>
+        <div class="where" style="margin:4px 0 0">📅 ${frDate(e.date,e.hour_from,e.hour_to)}</div>
+        <div>${spotsLabel(e)}</div>
+      </div></a>`).join('')+'</div>';
+  }catch(e){ app.innerHTML='<div class="card">Erreur de chargement.</div>'; }
+}
+
+if(EID) loadOne(); else loadList();
+</script>
+</body>
+</html>
