@@ -154,7 +154,7 @@ function render(events){
       <td>${e.registered_count}${e.capacity?(' / '+e.capacity):''}</td>
       <td>${e.active?'✅':'—'}</td>
       <td style="text-align:right;white-space:nowrap">
-        <button class="btn share" onclick='openShare(${e.id}, ${JSON.stringify(e.title)})'>📤 Partager</button>
+        <button class="btn share" onclick='openShare(${JSON.stringify(e).replace(/'/g,"&#39;")})'>📤 Partager</button>
         <button class="btn ghost" onclick='showRegs(${e.id}, ${JSON.stringify(e.title)})'>Inscrits</button>
         <button class="btn ghost" onclick='editEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Modifier</button>
         <button class="btn ghost del" onclick="delEvent(${e.id})">Suppr.</button>
@@ -230,15 +230,28 @@ async function showRegs(id, title){
 // ===== Partage d'un événement (WhatsApp / Email / QR) =====
 const PUBLIC_BASE='https://coworking-sens.com';
 let _shareUrl='';
-function openShare(id, title){
-  const url=`${PUBLIC_BASE}/evenement?id=${id}`; _shareUrl=url;
-  document.getElementById('share-ev').textContent=title||'';
+function frLong(d, hf, ht){
+  if(!d) return '';
+  let s=new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  if(hf) s+=' · '+hf+(ht?('–'+ht):'');
+  return s.charAt(0).toUpperCase()+s.slice(1);
+}
+function openShare(e){
+  const url=`${PUBLIC_BASE}/evenement?id=${e.id}`; _shareUrl=url;
+  const title=e.title||'événement';
+  const when=frLong(e.date, e.hour_from, e.hour_to);
+  const loc=e.location||"L'Atelier du Coworking, 20 rue Pasteur, Sens";
+  document.getElementById('share-ev').textContent=title+(when?' · '+when:'');
   document.getElementById('share-link').textContent=url;
-  const msg=`🎉 ${title} — L'Atelier du Coworking à Sens.\nInfos & inscription : ${url}`;
-  document.getElementById('share-wa').href=`https://wa.me/?text=${encodeURIComponent(msg)}`;
-  document.getElementById('share-mail').href=`mailto:?subject=${encodeURIComponent('Invitation : '+(title||'événement')+" — L'Atelier du Coworking")}&body=${encodeURIComponent(msg)}`;
+  // WhatsApp : message concis mais complet
+  const wa=`🎉 ${title} — L'Atelier du Coworking à Sens\n📅 ${when}\n📍 ${loc}\n\nInfos & inscription gratuite : ${url}\n\nN'hésitez pas à partager ce lien à d'autres entrepreneurs pour faire grandir le réseau !`;
+  document.getElementById('share-wa').href=`https://wa.me/?text=${encodeURIComponent(wa)}`;
+  // Email : message d'accompagnement complet
+  const subject=`Invitation : ${title}${when?(' — '+when):''} à L'Atelier du Coworking Sens`;
+  const body=`Bonjour,\n\nJe vous invite à la ${title} de L'Atelier du Coworking à Sens :\n\n📅 ${when}\n📍 ${loc}\n${e.description?('\n'+e.description+'\n'):''}\nInfos et inscription gratuite ici :\n${url}\n\nN'hésitez pas à transmettre ce lien à d'autres entrepreneurs et indépendants autour de vous : plus on est nombreux, plus le réseau grandit ! 🚀\n\nÀ très bientôt,\nDavid — L'Atelier du Coworking, Sens\ncontact@coworking-sens.com`;
+  document.getElementById('share-mail').href=`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   const qr=document.getElementById('share-qr'); qr.innerHTML='';
-  try{ new QRCode(qr,{text:url,width:180,height:180,colorDark:'#03234D',colorLight:'#ffffff'}); }catch(e){ qr.textContent='QR indisponible'; }
+  try{ new QRCode(qr,{text:url,width:180,height:180,colorDark:'#03234D',colorLight:'#ffffff'}); }catch(err){ qr.textContent='QR indisponible'; }
   document.getElementById('share').classList.add('open');
 }
 function closeShare(){ document.getElementById('share').classList.remove('open'); }
