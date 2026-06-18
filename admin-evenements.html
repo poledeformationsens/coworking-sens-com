@@ -243,13 +243,15 @@ function openShare(e){
   const loc=e.location||"L'Atelier du Coworking, 20 rue Pasteur, Sens";
   document.getElementById('share-ev').textContent=title+(when?' · '+when:'');
   document.getElementById('share-link').textContent=url;
-  // WhatsApp : message concis mais complet
-  const wa=`🎉 ${title} — L'Atelier du Coworking à Sens\n📅 ${when}\n📍 ${loc}\n\nInfos & inscription gratuite : ${url}\n\nN'hésitez pas à partager ce lien à d'autres entrepreneurs pour faire grandir le réseau !`;
+  // WhatsApp : message concis (sans emoji, pour un affichage fiable partout)
+  const wa=`${title} — L'Atelier du Coworking à Sens\n${when}\n${loc}\n\nInfos & inscription gratuite : ${url}\n\nN'hésitez pas à partager ce lien à d'autres entrepreneurs pour faire grandir le réseau !`;
   document.getElementById('share-wa').href=`https://wa.me/?text=${encodeURIComponent(wa)}`;
-  // Email : message d'accompagnement complet
+  // Email : message d'accompagnement complet, ouvert dans Gmail (compose)
   const subject=`Invitation : ${title}${when?(' — '+when):''} à L'Atelier du Coworking Sens`;
-  const body=`Bonjour,\n\nJe vous invite à la ${title} de L'Atelier du Coworking à Sens :\n\n📅 ${when}\n📍 ${loc}\n${e.description?('\n'+e.description+'\n'):''}\nInfos et inscription gratuite ici :\n${url}\n\nN'hésitez pas à transmettre ce lien à d'autres entrepreneurs et indépendants autour de vous : plus on est nombreux, plus le réseau grandit ! 🚀\n\nÀ très bientôt,\nDavid — L'Atelier du Coworking, Sens\ncontact@coworking-sens.com`;
-  document.getElementById('share-mail').href=`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  const body=`Bonjour,\n\nJe vous invite à la ${title} de L'Atelier du Coworking à Sens :\n\nDate : ${when}\nLieu : ${loc}\n${e.description?('\n'+e.description+'\n'):''}\nInfos et inscription gratuite ici :\n${url}\n\nN'hésitez pas à transmettre ce lien à d'autres entrepreneurs et indépendants autour de vous : plus on est nombreux, plus le réseau grandit !\n\nÀ très bientôt,\nDavid — L'Atelier du Coworking, Sens\ncontact@coworking-sens.com`;
+  const mailEl=document.getElementById('share-mail');
+  mailEl.href=`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  mailEl.target='_blank'; mailEl.rel='noopener';
   const qr=document.getElementById('share-qr'); qr.innerHTML='';
   try{ new QRCode(qr,{text:url,width:180,height:180,colorDark:'#03234D',colorLight:'#ffffff'}); }catch(err){ qr.textContent='QR indisponible'; }
   document.getElementById('share').classList.add('open');
