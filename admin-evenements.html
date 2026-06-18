@@ -250,7 +250,7 @@ function openShare(e){
   document.getElementById('share-wa').href=`https://wa.me/?text=${encodeURIComponent(wa)}`;
   // Email : message d'accompagnement complet, ouvert dans Gmail (compose)
   const subject=`Invitation : ${title}${when?(' — '+when):''} à L'Atelier du Coworking Sens`;
-  const body=`Bonjour,\n\nJe vous invite à la ${title} de L'Atelier du Coworking à Sens :\n\n${EM.cal} ${when}\n${EM.pin} ${loc}\n${e.description?('\n'+e.description+'\n'):''}\nInfos et inscription gratuite ici :\n${url}\n\n${EM.rocket} N'hésitez pas à transmettre ce lien à d'autres entrepreneurs et indépendants autour de vous : plus on est nombreux, plus le réseau grandit !\n\nÀ très bientôt,\nDavid — L'Atelier du Coworking, Sens\ncontact@coworking-sens.com`;
+  const body=`Bonjour,\n\nJe vous invite à la ${title} de L'Atelier du Coworking à Sens :\n\n${EM.cal} ${when}\n${EM.pin} ${loc}\n${e.description?('\n'+e.description+'\n'):''}\nInfos et inscription gratuite ici :\n${url}\n\n${EM.rocket} N'hésitez pas à transmettre ce lien à d'autres entrepreneurs et indépendants autour de vous : plus on est nombreux, plus le réseau grandit !\n\n`;
   const mailEl=document.getElementById('share-mail');
   mailEl.href=`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   mailEl.target='_blank'; mailEl.rel='noopener';
