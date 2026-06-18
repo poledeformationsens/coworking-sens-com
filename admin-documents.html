@@ -35,6 +35,9 @@
   .amount.neg{color:var(--red)}
   .pdf{display:inline-block;background:var(--navy);color:#fff;text-decoration:none;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700}
   .pdf:hover{background:#06306b}
+  .resend{display:inline-block;background:var(--gold);color:var(--navy);border:none;border-radius:7px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-right:6px}
+  .resend:hover{filter:brightness(.95)}
+  .resend:disabled{opacity:.6;cursor:default}
   .muted{color:var(--slate);font-size:12px}
   .chip{padding:6px 14px;border-radius:14px;border:1px solid var(--light);background:#fff;font-size:12.5px;font-weight:600;color:var(--slate);cursor:pointer}
   .chip.active{background:var(--navy);color:#fff;border-color:var(--navy)}
@@ -143,6 +146,7 @@ function render(){
   tb.innerHTML=rows.map(d=>{
     const neg=Number(d.amount||0)<0;
     const pdf=d.pdf_url?`<a class="pdf" href="${esc(d.pdf_url)}" target="_blank" rel="noopener">PDF ↗</a>`:'<span class="muted">—</span>';
+    const resend=(d.email&&d.pdf_url)?`<button class="resend" onclick="resendDoc('${esc(d.reference)}',this)" title="Renvoyer par email à ${esc(d.email)}">✉️ Renvoyer</button>`:'';
     return `<tr class="row">
       <td class="muted">${fmtDate(d.date)}</td>
       <td><span class="badge b-${d.type}">${TYPE_LABEL[d.type]||d.type}</span>${d.test?'<span class="ttest">test</span>':''}</td>
@@ -150,9 +154,27 @@ function render(){
       <td>${esc(d.client||'—')}<div class="muted">${esc(d.email||'')}</div></td>
       <td style="text-align:right" class="amount ${neg?'neg':''}">${eur(d.amount)}</td>
       <td><span class="st">${esc(d.status||'')}</span></td>
-      <td style="text-align:right">${pdf}</td>
+      <td style="text-align:right;white-space:nowrap">${resend}${pdf}</td>
     </tr>`;
   }).join('');
+}
+
+async function resendDoc(ref,btn){
+  const d=DATA.find(x=>x.reference===ref);
+  if(!d)return;
+  if(!d.email){alert("Pas d'adresse email enregistrée pour ce client.");return;}
+  if(!confirm(`Renvoyer ${d.reference} par email à ${d.email} ?`))return;
+  const label=btn?btn.textContent:'';
+  if(btn){btn.disabled=true;btn.textContent='Envoi…';}
+  try{
+    const r=await fetch(`${API}/admin/documents/resend`,{method:'POST',headers:H,body:JSON.stringify({reference:d.reference,email:d.email,pdf_url:d.pdf_url,client:d.client,doc_type:d.type})});
+    const j=await r.json().catch(()=>({}));
+    if(!r.ok||j.ok===false)throw new Error(j.detail||('Erreur '+r.status));
+    if(btn){btn.textContent='✓ Envoyé';btn.style.background='var(--green)';btn.style.color='#fff';}
+  }catch(e){
+    alert("Échec de l'envoi : "+e.message);
+    if(btn){btn.disabled=false;btn.textContent=label||'✉️ Renvoyer';}
+  }
 }
 
 (function(){const s=getSession();if(!s||!s.token){document.getElementById('login').style.display='flex';return;}H={'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};load();})();
