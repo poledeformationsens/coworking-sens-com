@@ -172,10 +172,12 @@ function render(rows){
 }
 
 // ---- Vérification instantanée des réservations en conflit ----
+function nextDay(iso){ const [y,m,d]=iso.split('-').map(Number); const t=new Date(Date.UTC(y,m-1,d)); t.setUTCDate(t.getUTCDate()+1); return t.toISOString().slice(0,10); }
 function buildDays(date, dateEnd){
+  // Itère sur les dates en restant sur les chaînes AAAA-MM-JJ (pas de conversion UTC → évite le décalage de fuseau)
   const days=[]; if(!date) return days;
-  let d=new Date(date+'T00:00:00'); const end=new Date((dateEnd||date)+'T00:00:00');
-  while(d<=end && days.length<90){ days.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  const end=dateEnd||date; let cur=date, guard=0;
+  while(cur<=end && guard<90){ days.push(cur); cur=nextDay(cur); guard++; }
   return days;
 }
 function periodHours(){
@@ -232,10 +234,8 @@ async function addClosure(){
   if(!date){ err.textContent='Choisis une date.'; err.style.display='block'; return; }
   let dateEnd = document.getElementById('f-date-end').value || date;
   if(dateEnd < date){ err.textContent='La date de fin doit être après la date de début.'; err.style.display='block'; return; }
-  // Construit la liste des jours de la plage (max 90 jours par sécurité)
-  const days=[]; let d=new Date(date+'T00:00:00');
-  const end=new Date(dateEnd+'T00:00:00');
-  while(d<=end && days.length<90){ days.push(d.toISOString().slice(0,10)); d.setDate(d.getDate()+1); }
+  // Construit la liste des jours de la plage (max 90 jours par sécurité) — sans décalage de fuseau
+  const days=buildDays(date, dateEnd);
   const space = document.getElementById('f-space').value;
   const period = document.getElementById('f-period').value;
   let hour_from=null, hour_to=null;
