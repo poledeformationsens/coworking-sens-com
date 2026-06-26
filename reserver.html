@@ -236,19 +236,19 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
     <div class="slot-grid" id="slot-grid">
       <div class="slot-card" data-slot="morning">
         <div class="slot-name">Matinée</div>
-        <div class="slot-hours">8h - 12h (4h)</div>
+        <div class="slot-hours">4h · départ au choix</div>
         <div class="slot-price" id="price-morning">16 €</div>
         <span class="slot-left" data-left="morning"></span>
       </div>
       <div class="slot-card" data-slot="afternoon">
         <div class="slot-name">Après-midi</div>
-        <div class="slot-hours">14h - 18h (4h)</div>
+        <div class="slot-hours">4h · départ au choix</div>
         <div class="slot-price" id="price-afternoon">16 €</div>
         <span class="slot-left" data-left="afternoon"></span>
       </div>
       <div class="slot-card selected" data-slot="day">
         <div class="slot-name">Journée</div>
-        <div class="slot-hours">8h - 18h (10h)</div>
+        <div class="slot-hours">10h · départ au choix</div>
         <div class="slot-price" id="price-day">29 €</div>
         <span class="slot-left" data-left="day"></span>
       </div>
@@ -257,6 +257,12 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
         <div class="slot-hours">de votre choix</div>
         <div class="slot-price" id="price-hour">8 €/h</div>
       </div>
+    </div>
+
+    <div id="start-time-box" style="display:none;background:var(--cream);border:1px solid rgba(201,181,132,.45);border-radius:8px;padding:13px 16px;margin-bottom:14px">
+      <label class="label" style="margin:0 0 8px">Heure de début</label>
+      <select class="input" id="start-time" style="max-width:240px;display:inline-block;width:auto"></select>
+      <span id="start-time-range" style="margin-left:12px;font-size:13px;color:#6E7A93"></span>
     </div>
 
     <div class="custom-hour-row" id="custom-hours">
@@ -475,6 +481,29 @@ const NAMES = {
 // Unité transmise au backend (capacité par unité) — null = pas d'unité
 const SPACE_UNIT = {'bureau-1':'Bureau 1','bureau-2':'Bureau 2','salle-reunion':'','coworking':''};
 const SLOT_RANGE = {morning:{from:'08:00',to:'12:00'}, afternoon:{from:'14:00',to:'18:00'}, day:{from:'08:00',to:'18:00'}};
+// Créneaux modulables : heures de début possibles par type (durée fixe → même prix)
+const SLOT_STARTS = { morning:[8,9,10], afternoon:[14,15,16,17], day:[8,9,10,11] };
+const SLOT_DURATION_H = { morning:4, afternoon:4, day:10 };
+let selectedStart = 8;
+function _pad2(n){ return (n<10?'0':'')+n; }
+function currentRange(){
+  if(selectedSlot==='hour') return getHourFromTo();
+  const dur = SLOT_DURATION_H[selectedSlot];
+  if(!dur) return {from:'08:00', to:'18:00'};
+  return {from:_pad2(selectedStart)+':00', to:_pad2(selectedStart+dur)+':00'};
+}
+function populateStartTimes(){
+  const box=document.getElementById('start-time-box'), sel=document.getElementById('start-time');
+  if(!box||!sel) return;
+  const starts = SLOT_STARTS[selectedSlot];
+  if(!starts){ box.style.display='none'; return; }
+  if(!starts.includes(selectedStart)) selectedStart = starts[0];
+  const dur = SLOT_DURATION_H[selectedSlot];
+  sel.innerHTML = starts.map(h=>`<option value="${h}" ${h===selectedStart?'selected':''}>${h}h00 → ${h+dur}h00</option>`).join('');
+  const tag=document.getElementById('start-time-range');
+  if(tag) tag.textContent = dur===10 ? 'journée complète (10h)' : 'demi-journée (4h)';
+  box.style.display='block';
+}
 const TVA = 1.20;
 
 // Forfaits prépayés (packs) — mapping espace → slug capacité backend
@@ -523,7 +552,7 @@ function goStep(n){
     if(i+1 < n) el.classList.add('done');
     if(i+1 === n) el.classList.add('active');
   });
-  if(n===2){ updateSlotPrices(); updateSavingsHint(); loadAvailability(); }
+  if(n===2){ updateSlotPrices(); updateSavingsHint(); populateStartTimes(); loadAvailability(); }
   if(n===3) updateRecap();
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -617,16 +646,15 @@ async function loadAvailability(){
     console.warn('Dispo indisponible, on laisse réserver (vérif au paiement)', e);
   } finally {
     loading.style.display = 'none';
+    populateStartTimes();
   }
 }
 
 // Vérifie un créneau (standard ou horaire perso) juste avant de continuer
 async function validateBeforeContinue(){
   const date = document.getElementById('resa-date').value;
-  let hf, ht;
-  if(selectedSlot === 'hour'){ const r = getHourFromTo(); hf=r.from; ht=r.to; }
-  else if(SLOT_RANGE[selectedSlot]){ hf=SLOT_RANGE[selectedSlot].from; ht=SLOT_RANGE[selectedSlot].to; }
-  else return false;
+  if(!selectedSlot) return false;
+  const _r = currentRange(); const hf=_r.from, ht=_r.to;
   try {
     const res = await fetch(`${API}/validate-slot`, {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -694,7 +722,9 @@ function applySavingsSuggestion(){
   const target = document.querySelector('.slot-card[data-slot="' + targetSlot + '"]');
   if(target) target.classList.add('selected');
   selectedSlot = targetSlot;
+  if(SLOT_STARTS[selectedSlot]) selectedStart = SLOT_STARTS[selectedSlot][0];
   document.getElementById('custom-hours').classList.remove('show');
+  populateStartTimes();
   document.getElementById('savings-hint').classList.remove('show');
 }
 
@@ -706,10 +736,12 @@ function updateRecap(){
   const d = dateInput.value ? new Date(dateInput.value) : new Date();
   const dateStr = d.toLocaleDateString('fr-FR',{day:'numeric',month:'long'});
   let detail = '';
-  if(selectedSlot === 'morning') detail = 'Matinée (8h-12h)';
-  else if(selectedSlot === 'afternoon') detail = 'Après-midi (14h-18h)';
-  else if(selectedSlot === 'day') detail = 'Journée (8h-18h)';
-  else if(selectedSlot === 'hour'){ const {from,to} = getHourFromTo(); detail = 'De ' + from + ' à ' + to; }
+  if(selectedSlot === 'hour'){ const {from,to} = getHourFromTo(); detail = 'De ' + from + ' à ' + to; }
+  else {
+    const r = currentRange();
+    const lbl = selectedSlot==='day' ? 'Journée' : selectedSlot==='morning' ? 'Matinée' : 'Après-midi';
+    detail = lbl + ' (' + r.from.replace(':00','h') + '–' + r.to.replace(':00','h') + ')';
+  }
   document.getElementById('recap-space').textContent = NAMES[selectedSpace];
   document.getElementById('recap-detail').textContent = detail + ' · ' + dateStr;
   document.getElementById('recap-price').textContent = fmt(computeCurrentPriceTTC());
@@ -758,13 +790,14 @@ async function payWithPack(){
     const res = await fetch(`${API}/client/book-with-pack`, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
-      body: JSON.stringify({space:selectedSpace, slot:selectedSlot, date, test_mode:TEST_MODE}),
+      body: JSON.stringify({space:selectedSpace, slot:selectedSlot, date, hour_from:currentRange().from, hour_to:currentRange().to, test_mode:TEST_MODE}),
     });
     if(!res.ok){ const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Réservation impossible'); }
     const data = await res.json();
     _packsCache = null;  // force le rechargement des crédits
     lastBookingSnapshot = {
       space:selectedSpace, slot:selectedSlot, date,
+      hourFrom:currentRange().from, hourTo:currentRange().to,
       email:(CLIENT_SESSION && CLIENT_SESSION.email) || '',
       ref:data.reference, paidWithPack:true, remaining:data.remaining,
     };
@@ -796,14 +829,14 @@ function updateConfirmation(){
   let horaire = '', startH='08', endH='18';
   const slotForConf = (snap && snap.slot) ? snap.slot : selectedSlot;
   const spaceForConf = (snap && snap.space) ? snap.space : selectedSpace;
-  if(slotForConf === 'morning'){horaire='8 h 00 → 12 h 00'; startH='08'; endH='12';}
-  else if(slotForConf === 'afternoon'){horaire='14 h 00 → 18 h 00'; startH='14'; endH='18';}
-  else if(slotForConf === 'day'){horaire='8 h 00 → 18 h 00'; startH='08'; endH='18';}
-  else if(slotForConf === 'hour'){
-    const from = (snap && snap.hourFrom) ? snap.hourFrom : '09:00';
-    const to = (snap && snap.hourTo) ? snap.hourTo : '17:00';
-    horaire = from + ' → ' + to; startH = from.split(':')[0]; endH = to.split(':')[0];
+  let _hf = (snap && snap.hourFrom) ? snap.hourFrom : '';
+  let _ht = (snap && snap.hourTo) ? snap.hourTo : '';
+  if(!_hf || !_ht){
+    const fb = SLOT_RANGE[slotForConf];
+    if(fb){ _hf = fb.from; _ht = fb.to; } else { _hf = '09:00'; _ht = '17:00'; }
   }
+  horaire = _hf.replace(':',' h ') + ' → ' + _ht.replace(':',' h ');
+  startH = _hf.split(':')[0]; endH = _ht.split(':')[0];
   const mail = (snap && snap.email) ? snap.email : '';
   const amount = (snap && typeof snap.amountTTC === 'number') ? snap.amountTTC : computeCurrentPriceTTC();
   const reference = (snap && snap.ref) ? snap.ref : '';
@@ -852,10 +885,24 @@ document.querySelectorAll('#slot-grid .slot-card').forEach(s=>{
     s.classList.add('selected');
     selectedSlot = s.dataset.slot;
     const custom = document.getElementById('custom-hours');
-    if(selectedSlot === 'hour') custom.classList.add('show'); else custom.classList.remove('show');
+    if(selectedSlot === 'hour'){
+      custom.classList.add('show');
+      const stb=document.getElementById('start-time-box'); if(stb) stb.style.display='none';
+    } else {
+      custom.classList.remove('show');
+      if(SLOT_STARTS[selectedSlot]) selectedStart = SLOT_STARTS[selectedSlot][0];
+      populateStartTimes();
+    }
     document.getElementById('hour-error').style.display='none';
     updateSavingsHint();
   });
+});
+
+// Sélecteur d'heure de début (créneaux modulables)
+const _startSel = document.getElementById('start-time');
+if(_startSel) _startSel.addEventListener('change', ()=>{
+  selectedStart = parseInt(_startSel.value,10);
+  if(SLOT_STARTS[selectedSlot] && !SLOT_STARTS[selectedSlot].includes(selectedStart)) selectedStart = SLOT_STARTS[selectedSlot][0];
 });
 
 ['hour-from','hour-to'].forEach(id=>{
@@ -1001,8 +1048,9 @@ async function payAndConfirm(){
     btn.textContent = 'Redirection vers Stripe…';
     const company = selectedClientType === 'pro' ? document.getElementById('pro-societe').value : '';
     const dateInput = document.getElementById('resa-date').value;
-    let hourFrom = '', hourTo = '';
-    if(selectedSlot === 'hour'){ hourFrom = document.getElementById('hour-from').value; hourTo = document.getElementById('hour-to').value; }
+    // Créneaux modulables : on transmet toujours l'horaire réel (journée/demi-journée décalées incluses)
+    const _rng = currentRange();
+    let hourFrom = _rng.from, hourTo = _rng.to;
     const refNum = 'RES-' + new Date().getFullYear() + '-' + String(Math.floor(Math.random()*9000)+1000);
     const bookingSnapshot = {
       ref:refNum, space:selectedSpace, spaceUnit:SPACE_UNIT[selectedSpace]||'', slot:selectedSlot, date:dateInput,
