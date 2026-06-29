@@ -76,18 +76,22 @@
 </style>
 <style>/* ACW-RESPONSIVE */
 @media (max-width:820px){
+  html,body{overflow-x:hidden !important;max-width:100vw !important}
   header{flex-wrap:wrap !important;padding:12px 14px !important;gap:8px !important}
   header h1{font-size:17px !important}
   header img{width:38px !important;height:38px !important}
   nav{gap:6px !important;flex-wrap:nowrap !important;overflow-x:auto !important;width:100% !important;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-top:8px !important}
   nav a{white-space:nowrap !important;font-size:12px !important;padding:6px 10px !important}
-  .wrap{padding:0 12px !important;margin:16px auto !important}
-  .card{padding:14px !important;overflow-x:auto}
+  .wrap{padding:0 12px !important;margin:16px auto !important;max-width:100% !important}
+  .card{padding:14px !important;overflow-x:auto;max-width:100%}
   .grid,.kpis{grid-template-columns:repeat(2,1fr) !important}
   .modal-grid{grid-template-columns:1fr !important}
   .toolbar{flex-wrap:wrap !important}
   .toolbar input,.toolbar select,.toolbar .chip{flex:1 1 100% !important;width:100% !important}
-  table{min-width:520px}
+  .card table{min-width:520px}
+  .fc,.fc table,.fc-scrollgrid,.fc-scrollgrid table,.fc .fc-view-harness{min-width:0 !important;width:100% !important;max-width:100% !important}
+  .fc .fc-daygrid-day-number{font-size:12px}
+  .fc .fc-daygrid-event{font-size:9.5px !important;padding:1px 3px !important}
   .modal,.modal-box,.box{max-width:94vw !important;width:94vw !important}
   h1,h2,.h1{font-size:20px !important}
   .fc .fc-toolbar.fc-header-toolbar{flex-direction:column;gap:8px;align-items:stretch}
