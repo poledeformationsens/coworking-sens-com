@@ -144,6 +144,7 @@
       <div><label>Heure fin</label><input id="e-to" type="time" step="900"></div>
       <div><label>Lieu</label><input id="e-loc" value="L'Atelier du Coworking"></div>
       <div><label>Capacité (vide = illimité)</label><input id="e-cap" type="number" min="1" placeholder="ex. 20"></div>
+      <div><label>Tarif participation (€, 0 = gratuit)</label><input id="e-price" type="number" min="0" step="0.5" value="0"></div>
       <div style="grid-column:1/-1"><label>Description</label><textarea id="e-desc"></textarea></div>
       <div style="grid-column:1/-1"><label><input type="checkbox" id="e-active" checked style="width:auto"> Visible par les membres</label></div>
       <div style="grid-column:1/-1;border-top:1px solid var(--light);margin-top:6px;padding-top:12px">
@@ -226,7 +227,7 @@ function render(events){
   el.innerHTML = '<table><thead><tr><th>Date</th><th>Titre</th><th>Inscrits</th><th>Visible</th><th></th></tr></thead><tbody>' +
     events.map(e=>`<tr>
       <td>${fmtDate(e.date)}${e.hour_from?'<div class="muted">'+e.hour_from+(e.hour_to?'–'+e.hour_to:'')+'</div>':''}</td>
-      <td><b>${esc(e.title)}</b>${e.category?'<div class="muted">'+esc(e.category)+'</div>':''}</td>
+      <td><b>${esc(e.title)}</b>${e.category?'<div class="muted">'+esc(e.category)+'</div>':''}<div class="muted">${(e.price_ttc>0)?('💶 '+Number(e.price_ttc).toFixed(2).replace('.',',')+' €'):'Gratuit'}</div></td>
       <td>${e.registered_count}${e.capacity?(' / '+e.capacity):''}</td>
       <td>${e.active?'✅':'—'}</td>
       <td style="text-align:right;white-space:nowrap">
@@ -242,6 +243,7 @@ function render(events){
 function resetForm(){
   document.getElementById('e-id').value='';
   ['e-title','e-cat','e-date','e-from','e-to','e-cap','e-desc'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('e-price').value='0';
   document.getElementById('e-loc').value="L'Atelier du Coworking";
   document.getElementById('e-active').checked=true;
   document.getElementById('e-recur').value='none';
@@ -325,6 +327,7 @@ function editEvent(e){
   document.getElementById('e-to').value=e.hour_to||'';
   document.getElementById('e-loc').value=e.location||'';
   document.getElementById('e-cap').value=e.capacity||'';
+  document.getElementById('e-price').value=(e.price_ttc!=null?e.price_ttc:0);
   document.getElementById('e-desc').value=e.description||'';
   document.getElementById('e-active').checked=!!e.active;
   document.getElementById('e-recur').value='none'; updateRecurPreview();
@@ -338,6 +341,7 @@ async function saveEvent(){
     title: val('e-title'), category: val('e-cat')||null, date: val('e-date'),
     hour_from: val('e-from')||null, hour_to: val('e-to')||null, location: val('e-loc')||null,
     capacity: val('e-cap') ? parseInt(val('e-cap'),10) : null,
+    price_ttc: val('e-price') ? parseFloat(val('e-price')) : 0,
     description: val('e-desc')||null, active: document.getElementById('e-active').checked,
   };
   if(!body.title || !body.date){ alert('Titre et date requis.'); return; }

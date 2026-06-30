@@ -59,8 +59,11 @@ const API='/api/coworking';
 const app=document.getElementById('app');
 const params=new URLSearchParams(location.search);
 const EID=params.get('id');
+const TEST_MODE=params.get('test')==='1';   // ?test=1 → paiement Stripe en mode test
+let CUR_EVENT=null;
 
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function fmtEUR(v){return Number(v||0).toFixed(2).replace('.',',')+' €';}
 function frDate(d,hf,ht){
   if(!d) return '';
   let s=new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -77,26 +80,42 @@ async function loadOne(){
   try{
     const r=await fetch(`${API}/events/${EID}/public`,{cache:'no-store'});
     if(!r.ok){ app.innerHTML='<div class="card">Cet événement n\'est pas disponible. <a class="back" href="/evenement">← Voir tous les événements</a></div>'; return; }
-    const e=await r.json(); renderOne(e);
+    const e=await r.json(); CUR_EVENT=e; renderOne(e);
   }catch(err){ app.innerHTML='<div class="card">Erreur de chargement.</div>'; }
 }
 function renderOne(e){
-  const formOrFull = e.full
-    ? '<p class="full" style="margin-top:18px">Cet événement est complet. Écrivez-nous pour être sur liste d\'attente : <a href="mailto:contact@coworking-sens.com">contact@coworking-sens.com</a></p>'
-    : `<div id="form">
+  const isPaid = Number(e.price_ttc||0) > 0;
+  const status = params.get('status');
+  const priceBadge = isPaid
+    ? `<span class="spots" style="background:#FFF6E5;border-color:#F0C36D;color:#7a4a00;font-weight:700;margin-left:6px">💶 Participation ${fmtEUR(e.price_ttc)}</span>`
+    : '';
+  let formOrFull;
+  if(status==='success'){
+    formOrFull = '<div class="msg ok" style="display:block">✅ Participation confirmée et réglée ! Un email de confirmation vous a été envoyé. À très bientôt à L\'Atelier du Coworking.</div>';
+  } else if(e.full){
+    formOrFull = '<p class="full" style="margin-top:18px">Cet événement est complet. Écrivez-nous pour être sur liste d\'attente : <a href="mailto:contact@coworking-sens.com">contact@coworking-sens.com</a></p>';
+  } else {
+    const btnLabel = isPaid ? `Participer — ${fmtEUR(e.price_ttc)} →` : "Je m'inscris";
+    const payNote = isPaid ? `<p style="font-size:12.5px;color:var(--slate);margin:10px 0 0">Paiement sécurisé par Stripe. Votre place est confirmée dès le règlement.</p>` : '';
+    formOrFull = `<div id="form">
          <label>Votre nom</label><input id="r-name" placeholder="Prénom Nom">
          <label>Votre email</label><input id="r-email" type="email" placeholder="vous@email.fr">
-         <button class="btn gold" id="r-btn" onclick="register()">Je m'inscris</button>
+         <button class="btn gold" id="r-btn" onclick="register()">${btnLabel}</button>
+         ${payNote}
          <div class="msg" id="r-msg"></div>
        </div>`;
+  }
+  const cancelled = status==='cancelled'
+    ? '<div class="msg err" style="display:block">Paiement annulé — vous n\'avez pas été débité. Vous pouvez réessayer ci-dessous.</div>' : '';
   app.innerHTML=`<div class="card">
     ${e.category?`<span class="cat">${esc(e.category)}</span>`:''}
     <h1>${esc(e.title)}</h1>
     <div class="when">📅 ${frDate(e.date,e.hour_from,e.hour_to)}</div>
     <div class="where">📍 ${esc(e.location||"L'Atelier du Coworking, Sens")}</div>
     ${e.description?`<div class="desc">${esc(e.description)}</div>`:''}
-    <div>${spotsLabel(e)}</div>
+    <div>${spotsLabel(e)}${priceBadge}</div>
     <h2 style="font-family:'Playfair Display',serif;font-size:18px;margin:22px 0 0">Participer</h2>
+    ${cancelled}
     ${formOrFull}
     <a class="back" href="/evenement">← Tous les événements</a>
   </div>`;
@@ -106,7 +125,26 @@ async function register(){
   const email=(document.getElementById('r-email').value||'').trim();
   const msg=document.getElementById('r-msg'); msg.className='msg';
   if(!name||!email||!email.includes('@')){ msg.className='msg err'; msg.textContent='Merci d\'indiquer votre nom et un email valide.'; return; }
-  const btn=document.getElementById('r-btn'); btn.disabled=true; btn.textContent='Inscription…';
+  const btn=document.getElementById('r-btn');
+  const isPaid = CUR_EVENT && Number(CUR_EVENT.price_ttc||0) > 0;
+  // ── Événement payant : redirection vers Stripe ──
+  if(isPaid){
+    btn.disabled=true; btn.textContent='Redirection vers le paiement…';
+    try{
+      const res=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        purchaseType:'event', eventId:EID, eventTitle:CUR_EVENT.title,
+        eventDate:frDate(CUR_EVENT.date,CUR_EVENT.hour_from,CUR_EVENT.hour_to),
+        amountTTC:Number(CUR_EVENT.price_ttc), email, name,
+        testMode:TEST_MODE, returnPath:`/evenement?id=${EID}`,
+      })});
+      const d=await res.json();
+      if(d && d.url){ window.location.href=d.url; }
+      else { throw new Error(d.error||'URL de paiement manquante'); }
+    }catch(e){ msg.className='msg err'; msg.textContent='Erreur : '+e.message; btn.disabled=false; btn.textContent=`Participer — ${fmtEUR(CUR_EVENT.price_ttc)} →`; }
+    return;
+  }
+  // ── Événement gratuit : inscription directe ──
+  btn.disabled=true; btn.textContent='Inscription…';
   try{
     const r=await fetch(`${API}/events/${EID}/register-public`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
     if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
@@ -124,7 +162,7 @@ async function loadList(){
         ${e.category?`<span class="cat">${esc(e.category)}</span>`:''}
         <div style="font-weight:700;font-size:16px">${esc(e.title)}</div>
         <div class="where" style="margin:4px 0 0">📅 ${frDate(e.date,e.hour_from,e.hour_to)}</div>
-        <div>${spotsLabel(e)}</div>
+        <div>${spotsLabel(e)}${Number(e.price_ttc||0)>0?`<span class="spots" style="background:#FFF6E5;border-color:#F0C36D;color:#7a4a00;font-weight:700;margin-left:6px">💶 ${fmtEUR(e.price_ttc)}</span>`:''}</div>
       </div></a>`).join('')+'</div>';
   }catch(e){ app.innerHTML='<div class="card">Erreur de chargement.</div>'; }
 }
