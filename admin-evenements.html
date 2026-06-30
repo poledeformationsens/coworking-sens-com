@@ -160,6 +160,10 @@
           </div>
           <div><label>Nombre d'occurrences</label><input id="e-recur-count" type="number" min="1" max="24" value="6" oninput="updateRecurPreview()"></div>
         </div>
+        <div id="recur-skip-wrap" style="margin-top:8px">
+          <label>Mois à sauter (pause) — ex. juillet &amp; août</label>
+          <div id="skip-months" style="display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:2px"></div>
+        </div>
         <div class="muted" id="recur-preview" style="margin-top:8px"></div>
       </div>
     </div>
@@ -197,6 +201,7 @@
 const API_BASE = '/api/coworking';
 const STORAGE_KEY = 'cw_admin_session';
 let HEADERS = {'Content-Type':'application/json'};
+let EVENTS = [];
 
 function getSession(){ try{ const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); if(s&&s.expires&&s.expires<Date.now()) return null; return s; }catch(e){ return null; } }
 function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -214,6 +219,8 @@ async function load(){
 }
 
 function render(events){
+  EVENTS = events || [];
+  updateRecurPreview();
   const el = document.getElementById('list');
   if(!events.length){ el.innerHTML='<div class="empty">Aucun événement.</div>'; return; }
   el.innerHTML = '<table><thead><tr><th>Date</th><th>Titre</th><th>Inscrits</th><th>Visible</th><th></th></tr></thead><tbody>' +
@@ -239,11 +246,20 @@ function resetForm(){
   document.getElementById('e-active').checked=true;
   document.getElementById('e-recur').value='none';
   document.getElementById('e-recur-count').value='6';
+  document.querySelectorAll('.skip-m').forEach(c=>c.checked=false);
   updateRecurPreview();
   document.getElementById('form-title').textContent='Créer un événement';
 }
 
 // ===== Récurrence =====
+const MONTHS_FR=['Janv','Févr','Mars','Avr','Mai','Juin','Juil','Août','Sept','Oct','Nov','Déc'];
+function buildSkipMonths(){
+  const wrap=document.getElementById('skip-months'); if(!wrap||wrap.children.length) return;
+  wrap.innerHTML=MONTHS_FR.map((m,i)=>
+    `<label style="font-size:12px;font-weight:400;display:inline-flex;align-items:center;gap:4px;margin:0;width:auto;color:var(--navy)">`+
+    `<input type="checkbox" class="skip-m" value="${i}" style="width:auto" onchange="updateRecurPreview()"> ${m}</label>`).join('');
+}
+function getExcludedMonths(){ return new Set([].map.call(document.querySelectorAll('.skip-m:checked'),c=>parseInt(c.value,10))); }
 function toISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 function nthWeekdayOfMonth(year, month, weekday, ordinal){
   const first=new Date(year, month, 1);
@@ -253,31 +269,45 @@ function nthWeekdayOfMonth(year, month, weekday, ordinal){
   if(day>dim) day-=7;                          // si l'occurrence n'existe pas → dernière du mois
   return new Date(year, month, day);
 }
-function computeRecurrenceDates(baseISO, mode, count){
+// Génère `count` occurrences en SAUTANT les mois exclus (plafond d'itérations pour éviter toute boucle infinie)
+function computeRecurrenceDates(baseISO, mode, count, excluded){
+  excluded = excluded || new Set();
   if(!baseISO || mode==='none') return [baseISO];
   const [y,m,d]=baseISO.split('-').map(Number);
   const base=new Date(y, m-1, d);
-  const out=[];
+  const out=[]; const CAP=240;
   if(mode==='weekly'||mode==='biweekly'){
     const step=mode==='weekly'?7:14;
-    for(let i=0;i<count;i++){ const dt=new Date(base); dt.setDate(base.getDate()+i*step); out.push(toISO(dt)); }
+    for(let i=0;i<CAP && out.length<count;i++){ const dt=new Date(base); dt.setDate(base.getDate()+i*step);
+      if(!excluded.has(dt.getMonth())) out.push(toISO(dt)); }
   } else if(mode==='monthly-weekday'){
     const weekday=base.getDay(), ordinal=Math.ceil(base.getDate()/7);
-    for(let i=0;i<count;i++){ const mm=base.getMonth()+i, yy=base.getFullYear()+Math.floor(mm/12), month=((mm%12)+12)%12;
+    for(let i=0;i<CAP && out.length<count;i++){ const mm=base.getMonth()+i, yy=base.getFullYear()+Math.floor(mm/12), month=((mm%12)+12)%12;
+      if(excluded.has(month)) continue;
       out.push(toISO(nthWeekdayOfMonth(yy, month, weekday, ordinal))); }
   } else if(mode==='monthly-date'){
-    for(let i=0;i<count;i++){ const mm=base.getMonth()+i, yy=base.getFullYear()+Math.floor(mm/12), month=((mm%12)+12)%12;
+    for(let i=0;i<CAP && out.length<count;i++){ const mm=base.getMonth()+i, yy=base.getFullYear()+Math.floor(mm/12), month=((mm%12)+12)%12;
+      if(excluded.has(month)) continue;
       const dim=new Date(yy, month+1, 0).getDate(); out.push(toISO(new Date(yy, month, Math.min(base.getDate(), dim)))); }
   } else { out.push(baseISO); }
   return out;
 }
+function existsEvent(title, iso){
+  return (EVENTS||[]).some(e=> e.date===iso && (e.title||'').trim().toLowerCase()===(title||'').trim().toLowerCase());
+}
 function updateRecurPreview(){
   const el=document.getElementById('recur-preview'); if(!el) return;
+  const skipWrap=document.getElementById('recur-skip-wrap');
   const mode=document.getElementById('e-recur').value, base=val('e-date');
+  if(skipWrap) skipWrap.style.display = (mode==='none') ? 'none' : 'block';
   if(mode==='none'||!base){ el.textContent=''; return; }
   let count=parseInt(document.getElementById('e-recur-count').value||'6',10); count=Math.min(Math.max(count,1),24);
-  const dates=computeRecurrenceDates(base, mode, count);
-  el.innerHTML='📅 <b>'+dates.length+' dates</b> seront créées : '+dates.map(fmtDate).join(' · ');
+  const dates=computeRecurrenceDates(base, mode, count, getExcludedMonths());
+  const title=val('e-title');
+  const parts=dates.map(d=> existsEvent(title,d) ? '<s>'+fmtDate(d)+'</s>' : fmtDate(d));
+  const toCreate=dates.filter(d=>!existsEvent(title,d)).length;
+  const skipped=dates.length-toCreate;
+  el.innerHTML='📅 <b>'+toCreate+' à créer</b>'+(skipped?(' · '+skipped+' déjà existant(s) ignoré(s)'):'')+' : '+parts.join(' · ');
 }
 function dupEvent(e){
   editEvent(e);
@@ -315,8 +345,11 @@ async function saveEvent(){
   // --- Création récurrente (nouvel événement uniquement) ---
   if(!id && mode!=='none'){
     let count=parseInt(document.getElementById('e-recur-count').value||'6',10); count=Math.min(Math.max(count,1),24);
-    const dates=computeRecurrenceDates(body.date, mode, count);
-    if(!confirm(`Créer ${dates.length} occurrences de « ${body.title} » ?\n\n`+dates.map(fmtDate).join('\n'))) return;
+    const allDates=computeRecurrenceDates(body.date, mode, count, getExcludedMonths());
+    const dates=allDates.filter(d=>!existsEvent(body.title, d));   // ne pas recréer une date déjà existante
+    const skipped=allDates.length-dates.length;
+    if(!dates.length){ alert('Toutes ces dates existent déjà — rien à créer.'); return; }
+    if(!confirm(`Créer ${dates.length} occurrence(s) de « ${body.title} » ?`+(skipped?`\n(${skipped} date(s) déjà existante(s) ignorée(s))`:'')+`\n\n`+dates.map(fmtDate).join('\n'))) return;
     let okN=0, errN=0;
     for(const dt of dates){
       try{
@@ -324,8 +357,8 @@ async function saveEvent(){
         r.ok ? okN++ : errN++;
       }catch(e){ errN++; }
     }
-    const ok=document.getElementById('ok-msg'); ok.textContent=`✅ ${okN} occurrence(s) créée(s)`+(errN?` · ${errN} en erreur`:''); ok.style.display='block';
-    setTimeout(()=>{ ok.style.display='none'; ok.textContent='✅ Enregistré.'; },4000);
+    const ok=document.getElementById('ok-msg'); ok.textContent=`✅ ${okN} occurrence(s) créée(s)`+(skipped?` · ${skipped} déjà existante(s)`:'')+(errN?` · ${errN} en erreur`:''); ok.style.display='block';
+    setTimeout(()=>{ ok.style.display='none'; ok.textContent='✅ Enregistré.'; },4500);
     resetForm(); load(); return;
   }
   try{
@@ -407,7 +440,9 @@ document.getElementById('share').addEventListener('click', e=>{ if(e.target.id==
   const s=getSession();
   if(!s||!s.token){ document.getElementById('login').style.display='flex'; return; }
   HEADERS={'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  buildSkipMonths();
   document.getElementById('e-date').value=new Date().toISOString().slice(0,10);
+  updateRecurPreview();
   load();
 })();
 </script>
