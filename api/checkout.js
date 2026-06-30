@@ -14,15 +14,21 @@ export default async function handler(req, res) {
       space, spaceUnit, slot, date, hourFrom, hourTo, amountTTC, email, clientType, name, company, reference, testMode, returnPath,
       // Achat d'un forfait prépayé (pack)
       purchaseType, pricingId, packSpace, packCreditType, packCredits, packLabel,
+      // Participation à un événement payant
+      eventId, eventTitle, eventDate,
     } = req.body || {};
 
     const isPack = purchaseType === "pack";
+    const isEvent = purchaseType === "event";
 
-    if (!amountTTC || !email || (!isPack && !space)) {
+    if (!amountTTC || !email || (!isPack && !isEvent && !space)) {
       return res.status(400).json({ error: "Données manquantes (amountTTC, email requis)" });
     }
     if (isPack && (!pricingId || !packSpace || !packCreditType || !packCredits)) {
       return res.status(400).json({ error: "Données forfait manquantes" });
+    }
+    if (isEvent && !eventId) {
+      return res.status(400).json({ error: "Données événement manquantes (eventId requis)" });
     }
 
     const amountCents = Math.round(amountTTC * 100);
@@ -37,7 +43,11 @@ export default async function handler(req, res) {
       day: "Journée (8h-18h)",
       hour: hourFrom && hourTo ? `De ${hourFrom} à ${hourTo}` : "À l'heure",
     };
-    const slotLabel = SLOT_LABELS[slot] || slot;
+    // Créneaux modulables : si des horaires précis sont fournis, ils priment sur le libellé fixe
+    const SLOT_NAME = { morning: "Demi-journée", afternoon: "Demi-journée", day: "Journée", hour: "À l'heure" };
+    const slotLabel = (hourFrom && hourTo)
+      ? `${SLOT_NAME[slot] || ""} ${hourFrom}–${hourTo}`.trim()
+      : (SLOT_LABELS[slot] || slot);
 
     const origin = req.headers.origin || "https://coworking-sens.com";
 
@@ -47,9 +57,15 @@ export default async function handler(req, res) {
       apiVersion: "2024-12-18.acacia",
     });
 
-    const productName = isPack ? packLabel : `${space} — ${slotLabel}`;
+    const productName = isPack
+      ? packLabel
+      : isEvent
+      ? (eventTitle || "Participation événement")
+      : `${space} — ${slotLabel}`;
     const productDesc = isPack
       ? `Forfait prépayé · L'Atelier du Coworking`
+      : isEvent
+      ? `Participation événement · L'Atelier du Coworking${eventDate ? " · " + eventDate : ""}`
       : `Réservation L'Atelier du Coworking · ${date || ""}`;
 
     const metadata = isPack
@@ -64,6 +80,14 @@ export default async function handler(req, res) {
           client_name: name || "",
           company: company || "",
           reference: reference || "",
+          test_mode: testMode ? "true" : "false",
+        }
+      : isEvent
+      ? {
+          purchase_type: "event",
+          event_id: String(eventId),
+          event_title: eventTitle || "",
+          client_name: name || "",
           test_mode: testMode ? "true" : "false",
         }
       : {
@@ -104,7 +128,7 @@ export default async function handler(req, res) {
       success_url: `${origin}${returnPath || "/"}?status=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${origin}${returnPath || "/"}?status=cancelled`,
       locale: "fr",
-      billing_address_collection: "auto",
+      billing_address_collection: clientType === "pro" ? "required" : "auto",
       // TVA française incluse — pas de calcul Stripe Tax pour la v1
     });
 
