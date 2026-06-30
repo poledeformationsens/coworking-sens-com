@@ -63,7 +63,20 @@
   .modal-grid{grid-template-columns:1fr !important}
   .toolbar{flex-wrap:wrap !important}
   .toolbar input,.toolbar select,.toolbar .chip{flex:1 1 100% !important;width:100% !important}
-  .card table{min-width:520px}
+  .row-card{flex-wrap:wrap !important;gap:6px 12px !important;padding:12px 14px !important}
+  .row-card .name{flex:1 1 100% !important;min-width:0 !important;font-size:14px !important}
+  .row-card .meta{min-width:0 !important;flex:1 1 auto !important;text-align:left !important;font-size:13px !important}
+  .row-card .amt{min-width:0 !important;flex:0 0 auto !important;margin-left:auto !important;font-size:15px !important}
+  .row-card .bar{flex:1 1 100% !important}
+  .export-card{padding:14px !important}
+  .podium-row .who{min-width:0 !important}
+  table.tbl-cards,table.tbl-cards tbody{display:block !important;width:100% !important;min-width:0 !important}
+  table.tbl-cards thead{display:none !important}
+  table.tbl-cards tr{display:block !important;border:1px solid var(--light,#E5DDCB) !important;border-radius:10px !important;padding:8px 14px !important;margin-bottom:10px !important;background:#fff !important}
+  table.tbl-cards td{display:block !important;padding:6px 0 !important;border:none !important;border-bottom:1px solid #f3efe6 !important;text-align:left !important;font-size:13.5px !important;min-width:0 !important}
+  table.tbl-cards td:last-child{border-bottom:none !important}
+  table.tbl-cards td::before{content:attr(data-label);display:block;font-weight:700;color:var(--slate,#5A6A85);font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+  table.tbl-cards td[data-label=""]::before,table.tbl-cards td:not([data-label])::before{content:none}
   .fc,.fc table,.fc-scrollgrid,.fc-scrollgrid table,.fc .fc-view-harness{min-width:0 !important;width:100% !important;max-width:100% !important}
   .fc .fc-daygrid-day-number{font-size:12px}
   .fc .fc-daygrid-event{font-size:9.5px !important;padding:1px 3px !important}
@@ -319,6 +332,38 @@ document.getElementById('share').addEventListener('click', e=>{ if(e.target.id==
 </script>
 <script>/* ACW-PWA-REG */
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}
+</script>
+<script>/* ACW-TBL */
+(function(){
+  var MOBILE=820, obs=null, busy=false;
+  function labelize(){
+    if(window.innerWidth>MOBILE) return;
+    if(obs) obs.disconnect();
+    document.querySelectorAll('table').forEach(function(t){
+      if(t.closest('.fc')) return;
+      var ths=t.querySelectorAll('thead th');
+      if(!ths.length) return;
+      var labels=[].map.call(ths,function(th){return th.textContent.trim();});
+      t.classList.add('tbl-cards');
+      t.querySelectorAll('tbody tr').forEach(function(tr){
+        [].forEach.call(tr.children,function(td,i){
+          if(td.getAttribute('data-label')===null) td.setAttribute('data-label',labels[i]||'');
+        });
+      });
+    });
+    if(obs) obs.observe(document.body,{childList:true,subtree:true});
+  }
+  function boot(){
+    labelize();
+    obs=new MutationObserver(function(){
+      if(busy) return; busy=true;
+      requestAnimationFrame(function(){ busy=false; labelize(); });
+    });
+    obs.observe(document.body,{childList:true,subtree:true});
+  }
+  if(document.readyState!=='loading') boot(); else document.addEventListener('DOMContentLoaded',boot);
+  window.addEventListener('resize',function(){ clearTimeout(window.__acwR); window.__acwR=setTimeout(labelize,200); });
+})();
 </script>
 </body>
 </html>
