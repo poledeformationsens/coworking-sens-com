@@ -73,6 +73,7 @@ function frDate(d,hf,ht){
 function spotsLabel(e){
   if(e.full) return '<span class="spots full">Complet</span>';
   if(e.capacity) return `<span class="spots">${Math.max(e.capacity-e.registered_count,0)} place(s) restante(s)</span>`;
+  if(Number(e.price_ttc||0)>0) return '<span class="spots">Sur inscription</span>';
   return '<span class="spots">Entrée libre · inscription conseillée</span>';
 }
 

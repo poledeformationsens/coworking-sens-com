@@ -415,13 +415,18 @@ function openShare(e){
   document.getElementById('share-ev').textContent=title+(when?' · '+when:'');
   document.getElementById('share-link').textContent=url;
   // Emojis codés en Unicode (ASCII-safe dans le source) pour un affichage fiable
-  const EM={party:'\u{1F389}', cal:'\u{1F4C5}', pin:'\u{1F4CD}', rocket:'\u{1F680}'};
+  const EM={party:'\u{1F389}', cal:'\u{1F4C5}', pin:'\u{1F4CD}', rocket:'\u{1F680}', money:'\u{1F4B6}'};
+  // Tarif : "inscription gratuite" ou "Participation X €" selon le prix
+  const priceNum=Number(e.price_ttc||0);
+  const priceStr=priceNum>0?(priceNum.toFixed(2).replace('.',',')+' €'):'';
+  const inscrShort=priceNum>0?`${EM.money} Participation ${priceStr} · inscription : ${url}`:`Infos & inscription gratuite : ${url}`;
+  const inscrLong=priceNum>0?`${EM.money} Participation : ${priceStr}\nInscription en ligne :\n${url}`:`Infos et inscription gratuite ici :\n${url}`;
   // WhatsApp : message concis
-  const wa=`${EM.party} ${title} — L'Atelier du Coworking à Sens\n${EM.cal} ${when}\n${EM.pin} ${loc}\n\nInfos & inscription gratuite : ${url}\n\n${EM.rocket} N'hésitez pas à partager ce lien à d'autres entrepreneurs pour faire grandir le réseau !`;
+  const wa=`${EM.party} ${title} — L'Atelier du Coworking à Sens\n${EM.cal} ${when}\n${EM.pin} ${loc}\n\n${inscrShort}\n\n${EM.rocket} N'hésitez pas à partager ce lien à d'autres entrepreneurs pour faire grandir le réseau !`;
   document.getElementById('share-wa').href=`https://wa.me/?text=${encodeURIComponent(wa)}`;
   // Email : message d'accompagnement complet, ouvert dans Gmail (compose)
   const subject=`Invitation : ${title}${when?(' — '+when):''} à L'Atelier du Coworking Sens`;
-  const body=`Bonjour,\n\nJe vous invite à la ${title} de L'Atelier du Coworking à Sens :\n\n${EM.cal} ${when}\n${EM.pin} ${loc}\n${e.description?('\n'+e.description+'\n'):''}\nInfos et inscription gratuite ici :\n${url}\n\n${EM.rocket} N'hésitez pas à transmettre ce lien à d'autres entrepreneurs et indépendants autour de vous : plus on est nombreux, plus le réseau grandit !\n\n`;
+  const body=`Bonjour,\n\nJe vous invite à la ${title} de L'Atelier du Coworking à Sens :\n\n${EM.cal} ${when}\n${EM.pin} ${loc}\n${e.description?('\n'+e.description+'\n'):''}\n${inscrLong}\n\n${EM.rocket} N'hésitez pas à transmettre ce lien à d'autres entrepreneurs et indépendants autour de vous : plus on est nombreux, plus le réseau grandit !\n\n`;
   const mailEl=document.getElementById('share-mail');
   mailEl.href=`https://mail.google.com/mail/?view=cm&fs=1&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
   mailEl.target='_blank'; mailEl.rel='noopener';
