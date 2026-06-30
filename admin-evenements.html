@@ -139,13 +139,29 @@
     <div class="grid">
       <div style="grid-column:1/-1"><label>Titre</label><input id="e-title" placeholder="Apéro networking"></div>
       <div><label>Catégorie</label><input id="e-cat" placeholder="Réseautage"></div>
-      <div><label>Date</label><input id="e-date" type="date"></div>
+      <div><label>Date</label><input id="e-date" type="date" oninput="updateRecurPreview()"></div>
       <div><label>Heure début</label><input id="e-from" type="time" step="900"></div>
       <div><label>Heure fin</label><input id="e-to" type="time" step="900"></div>
       <div><label>Lieu</label><input id="e-loc" value="L'Atelier du Coworking"></div>
       <div><label>Capacité (vide = illimité)</label><input id="e-cap" type="number" min="1" placeholder="ex. 20"></div>
       <div style="grid-column:1/-1"><label>Description</label><textarea id="e-desc"></textarea></div>
       <div style="grid-column:1/-1"><label><input type="checkbox" id="e-active" checked style="width:auto"> Visible par les membres</label></div>
+      <div style="grid-column:1/-1;border-top:1px solid var(--light);margin-top:6px;padding-top:12px">
+        <label style="font-weight:700;color:var(--navy);font-size:13.5px;margin-top:0">🔁 Récurrence <span class="muted" style="font-weight:400">(à la création uniquement)</span></label>
+        <div class="grid" style="margin-top:4px">
+          <div><label>Répéter</label>
+            <select id="e-recur" onchange="updateRecurPreview()">
+              <option value="none">Aucune — événement unique</option>
+              <option value="weekly">Chaque semaine</option>
+              <option value="biweekly">Toutes les 2 semaines</option>
+              <option value="monthly-weekday">Chaque mois — même jour (ex. 3ᵉ jeudi)</option>
+              <option value="monthly-date">Chaque mois — même date (ex. le 15)</option>
+            </select>
+          </div>
+          <div><label>Nombre d'occurrences</label><input id="e-recur-count" type="number" min="1" max="24" value="6" oninput="updateRecurPreview()"></div>
+        </div>
+        <div class="muted" id="recur-preview" style="margin-top:8px"></div>
+      </div>
     </div>
     <button class="btn" onclick="saveEvent()">Enregistrer</button>
     <button class="btn ghost" style="margin-left:8px" onclick="resetForm()">Annuler</button>
@@ -210,6 +226,7 @@ function render(events){
         <button class="btn share" onclick='openShare(${JSON.stringify(e).replace(/'/g,"&#39;")})'>📤 Partager</button>
         <button class="btn ghost" onclick='showRegs(${e.id}, ${JSON.stringify(e.title)})'>Inscrits</button>
         <button class="btn ghost" onclick='editEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Modifier</button>
+        <button class="btn ghost" onclick='dupEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Dupliquer</button>
         <button class="btn ghost del" onclick="delEvent(${e.id})">Suppr.</button>
       </td>
     </tr>`).join('') + '</tbody></table>';
@@ -220,7 +237,53 @@ function resetForm(){
   ['e-title','e-cat','e-date','e-from','e-to','e-cap','e-desc'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('e-loc').value="L'Atelier du Coworking";
   document.getElementById('e-active').checked=true;
+  document.getElementById('e-recur').value='none';
+  document.getElementById('e-recur-count').value='6';
+  updateRecurPreview();
   document.getElementById('form-title').textContent='Créer un événement';
+}
+
+// ===== Récurrence =====
+function toISO(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function nthWeekdayOfMonth(year, month, weekday, ordinal){
+  const first=new Date(year, month, 1);
+  let day=1+((weekday-first.getDay()+7)%7);   // 1er <weekday> du mois
+  day+=(ordinal-1)*7;
+  const dim=new Date(year, month+1, 0).getDate();
+  if(day>dim) day-=7;                          // si l'occurrence n'existe pas → dernière du mois
+  return new Date(year, month, day);
+}
+function computeRecurrenceDates(baseISO, mode, count){
+  if(!baseISO || mode==='none') return [baseISO];
+  const [y,m,d]=baseISO.split('-').map(Number);
+  const base=new Date(y, m-1, d);
+  const out=[];
+  if(mode==='weekly'||mode==='biweekly'){
+    const step=mode==='weekly'?7:14;
+    for(let i=0;i<count;i++){ const dt=new Date(base); dt.setDate(base.getDate()+i*step); out.push(toISO(dt)); }
+  } else if(mode==='monthly-weekday'){
+    const weekday=base.getDay(), ordinal=Math.ceil(base.getDate()/7);
+    for(let i=0;i<count;i++){ const mm=base.getMonth()+i, yy=base.getFullYear()+Math.floor(mm/12), month=((mm%12)+12)%12;
+      out.push(toISO(nthWeekdayOfMonth(yy, month, weekday, ordinal))); }
+  } else if(mode==='monthly-date'){
+    for(let i=0;i<count;i++){ const mm=base.getMonth()+i, yy=base.getFullYear()+Math.floor(mm/12), month=((mm%12)+12)%12;
+      const dim=new Date(yy, month+1, 0).getDate(); out.push(toISO(new Date(yy, month, Math.min(base.getDate(), dim)))); }
+  } else { out.push(baseISO); }
+  return out;
+}
+function updateRecurPreview(){
+  const el=document.getElementById('recur-preview'); if(!el) return;
+  const mode=document.getElementById('e-recur').value, base=val('e-date');
+  if(mode==='none'||!base){ el.textContent=''; return; }
+  let count=parseInt(document.getElementById('e-recur-count').value||'6',10); count=Math.min(Math.max(count,1),24);
+  const dates=computeRecurrenceDates(base, mode, count);
+  el.innerHTML='📅 <b>'+dates.length+' dates</b> seront créées : '+dates.map(fmtDate).join(' · ');
+}
+function dupEvent(e){
+  editEvent(e);
+  document.getElementById('e-id').value='';
+  document.getElementById('e-recur').value='none'; updateRecurPreview();
+  document.getElementById('form-title').textContent='Dupliquer — nouvel événement (ajuste la date)';
 }
 
 function editEvent(e){
@@ -234,6 +297,7 @@ function editEvent(e){
   document.getElementById('e-cap').value=e.capacity||'';
   document.getElementById('e-desc').value=e.description||'';
   document.getElementById('e-active').checked=!!e.active;
+  document.getElementById('e-recur').value='none'; updateRecurPreview();
   document.getElementById('form-title').textContent='Modifier l\'événement';
   window.scrollTo({top:0,behavior:'smooth'});
 }
@@ -247,6 +311,23 @@ async function saveEvent(){
     description: val('e-desc')||null, active: document.getElementById('e-active').checked,
   };
   if(!body.title || !body.date){ alert('Titre et date requis.'); return; }
+  const mode = document.getElementById('e-recur').value;
+  // --- Création récurrente (nouvel événement uniquement) ---
+  if(!id && mode!=='none'){
+    let count=parseInt(document.getElementById('e-recur-count').value||'6',10); count=Math.min(Math.max(count,1),24);
+    const dates=computeRecurrenceDates(body.date, mode, count);
+    if(!confirm(`Créer ${dates.length} occurrences de « ${body.title} » ?\n\n`+dates.map(fmtDate).join('\n'))) return;
+    let okN=0, errN=0;
+    for(const dt of dates){
+      try{
+        const r=await fetch(`${API_BASE}/admin/events`,{method:'POST',headers:HEADERS,body:JSON.stringify({...body,date:dt})});
+        r.ok ? okN++ : errN++;
+      }catch(e){ errN++; }
+    }
+    const ok=document.getElementById('ok-msg'); ok.textContent=`✅ ${okN} occurrence(s) créée(s)`+(errN?` · ${errN} en erreur`:''); ok.style.display='block';
+    setTimeout(()=>{ ok.style.display='none'; ok.textContent='✅ Enregistré.'; },4000);
+    resetForm(); load(); return;
+  }
   try{
     const url = id ? `${API_BASE}/admin/events/${id}` : `${API_BASE}/admin/events`;
     const r = await fetch(url, {method: id?'PATCH':'POST', headers:HEADERS, body:JSON.stringify(body)});
