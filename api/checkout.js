@@ -125,8 +125,9 @@ export default async function handler(req, res) {
       ],
       customer_email: email,
       metadata,
-      success_url: `${origin}${returnPath || "/"}?status=success&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}${returnPath || "/"}?status=cancelled`,
+      // Si returnPath contient déjà une query (?id=3), on enchaîne avec & au lieu de ?
+      success_url: `${origin}${returnPath || "/"}${(returnPath || "/").includes("?") ? "&" : "?"}status=success&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${origin}${returnPath || "/"}${(returnPath || "/").includes("?") ? "&" : "?"}status=cancelled`,
       locale: "fr",
       billing_address_collection: clientType === "pro" ? "required" : "auto",
       // TVA française incluse — pas de calcul Stripe Tax pour la v1
