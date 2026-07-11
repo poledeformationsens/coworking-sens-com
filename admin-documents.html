@@ -138,13 +138,26 @@
     <span class="chip" data-type="devis" onclick="setType('devis')">Devis</span>
     <span class="chip" data-type="facture" onclick="setType('facture')">Factures</span>
     <span class="chip" data-type="avoir" onclick="setType('avoir')">Avoirs</span>
+  </div>
+  <div class="toolbar" style="margin-top:-6px">
+    <label style="font-size:12px;color:var(--slate)">Du <input id="f-from" type="date" onchange="render()"></label>
+    <label style="font-size:12px;color:var(--slate)">Au <input id="f-to" type="date" onchange="render()"></label>
+    <select id="f-espace" onchange="render()" style="min-width:180px">
+      <option value="">Tous les espaces</option>
+      <option>Espace coworking</option>
+      <option>Bureau 1</option>
+      <option>Bureau 2</option>
+      <option>Salle de réunion</option>
+      <option>Privatisation atelier</option>
+    </select>
+    <button class="chip" onclick="clearFilters()" title="Réinitialiser les filtres">✕ Réinitialiser</button>
     <span class="muted" id="status"></span>
   </div>
 
   <div class="card">
     <table>
       <thead><tr>
-        <th>Date</th><th>Type</th><th>Référence</th><th>Client</th>
+        <th>Date</th><th>Type</th><th>Référence</th><th>Client</th><th>Espace</th>
         <th style="text-align:right">Montant TTC</th><th>Statut</th><th></th>
       </tr></thead>
       <tbody id="tbody"></tbody>
@@ -189,13 +202,27 @@ function renderKpis(){
 }
 function setType(t){FILTER.type=(t==null||FILTER.type===t)?'':t;document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',(c.dataset.type||'')===FILTER.type));renderKpis();render();}
 
+function clearFilters(){
+  document.getElementById('search').value='';
+  document.getElementById('f-from').value='';
+  document.getElementById('f-to').value='';
+  document.getElementById('f-espace').value='';
+  setType('');
+}
+
 function render(){
   const q=(document.getElementById('search').value||'').toLowerCase();
+  const from=document.getElementById('f-from').value, to=document.getElementById('f-to').value;
+  const esp=document.getElementById('f-espace').value;
   let rows=DATA.slice();
   if(FILTER.type) rows=rows.filter(d=>d.type===FILTER.type);
   if(q) rows=rows.filter(d=>[d.reference,d.client,d.email].some(x=>(x||'').toLowerCase().includes(q)));
+  if(from) rows=rows.filter(d=>(d.date||'')>=from);
+  if(to) rows=rows.filter(d=>(d.date||'')<=to);
+  if(esp) rows=rows.filter(d=>(d.espace||'')===esp);
   const tb=document.getElementById('tbody');
-  if(!rows.length){tb.innerHTML='<tr><td colspan="7" class="muted" style="padding:24px;text-align:center">Aucun document.</td></tr>';return;}
+  document.getElementById('status').textContent = rows.length ? `${rows.length} document(s)` : '';
+  if(!rows.length){tb.innerHTML='<tr><td colspan="8" class="muted" style="padding:24px;text-align:center">Aucun document.</td></tr>';return;}
   tb.innerHTML=rows.map(d=>{
     const neg=Number(d.amount||0)<0;
     const pdf=d.pdf_url?`<a class="pdf" href="${esc(d.pdf_url)}" target="_blank" rel="noopener">PDF ↗</a>`:'<span class="muted">—</span>';
@@ -205,6 +232,7 @@ function render(){
       <td><span class="badge b-${d.type}">${TYPE_LABEL[d.type]||d.type}</span>${d.test?'<span class="ttest">test</span>':''}</td>
       <td><b>${esc(d.reference||'—')}</b>${d.linked?`<div class="muted">↳ ${esc(d.linked)}</div>`:''}</td>
       <td>${esc(d.client||'—')}<div class="muted">${esc(d.email||'')}</div></td>
+      <td class="muted">${esc(d.espace||'—')}</td>
       <td style="text-align:right" class="amount ${neg?'neg':''}">${eur(d.amount)}</td>
       <td><span class="st">${esc(d.status||'')}</span></td>
       <td style="text-align:right;white-space:nowrap">${resend}${pdf}</td>
@@ -230,7 +258,16 @@ async function resendDoc(ref,btn){
   }
 }
 
-(function(){const s=getSession();if(!s||!s.token){document.getElementById('login').style.display='flex';return;}H={'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};load();})();
+(function(){
+  const s=getSession();if(!s||!s.token){document.getElementById('login').style.display='flex';return;}
+  H={'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  // Pré-remplissage depuis l'URL (ex. depuis le calendrier : ?ref=2026-8984&type=facture)
+  const p=new URLSearchParams(location.search);
+  if(p.get('ref')) document.getElementById('search').value=p.get('ref');
+  if(p.get('espace')) document.getElementById('f-espace').value=p.get('espace');
+  if(p.get('type')){ FILTER.type=p.get('type'); document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',(c.dataset.type||'')===FILTER.type)); }
+  load();
+})();
 </script>
 <script>/* ACW-PWA-REG */
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}

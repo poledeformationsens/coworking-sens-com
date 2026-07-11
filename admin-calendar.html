@@ -630,8 +630,12 @@ function onEventClick(info) {
   const cancelBtn = document.getElementById('modal-cancel-btn');
   const isResa = props.type === 'reservation';
   const isCancelled = (props.status || '').toLowerCase() === 'cancelled';
-  if (isResa) { link.style.display = 'inline-block'; link.href = 'admin-devis-dashboard.html'; }
-  else { link.style.display = 'none'; }
+  if (isResa) {
+    link.style.display = 'inline-block';
+    link.textContent = 'Voir la facture →';
+    const refNum = (props.reference || '').replace(/^(RES|FAC|DEV)-/, '');
+    link.href = 'admin-documents.html?ref=' + encodeURIComponent(refNum);
+  } else { link.style.display = 'none'; }
   if (isResa && !isCancelled) {
     cancelBtn.style.display = 'inline-block';
     _currentResa = {
