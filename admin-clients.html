@@ -334,7 +334,7 @@ function reviewInviteMailto(c, prenom){
   const body = encodeURIComponent(`Bonjour ${prenom},\n\nMerci d'avoir choisi L'Atelier du Coworking ! Si vous avez apprécié votre passage, votre avis Google nous aiderait beaucoup (cela prend 30 secondes) :\n\n${GOOGLE_REVIEW_LINK}\n\nUn grand merci,\nDavid — L'Atelier du Coworking\n06 23 88 05 03`);
   // Ouvre la fenêtre de rédaction Gmail depuis la boîte du coworking (authuser),
   // fiable contrairement à mailto: qui dépend d'un logiciel de messagerie configuré
-  return `https://mail.google.com/mail/?authuser=ateliercoworking89@gmail.com&view=cm&fs=1&to=${to}&su=${subj}&body=${body}`;
+  return `https://mail.google.com/mail/?authuser=david.landry@coworking-sens.com&view=cm&fs=1&to=${to}&su=${subj}&body=${body}`;
 }
 function closeModal(){ document.getElementById('modal').classList.remove('open'); }
 document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
