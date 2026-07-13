@@ -271,7 +271,7 @@ function openClient(email){
   const reviewBlock = review
     ? `<div class="review"><div class="stars">★★★★★</div><div style="margin-top:6px;font-size:14px">« ${esc(review.t)} »</div><div class="muted" style="margin-top:6px">— Avis Google laissé par ${esc(review.n)}</div></div>`
     : `<div class="noreview"><div style="font-size:14px;margin-bottom:8px">Pas encore d'avis Google de ce client.</div>
-         <a class="btn gold" href="${reviewInviteMailto(c, prenom)}">📣 Inviter à laisser un avis</a></div>`;
+         <a class="btn gold" href="${reviewInviteMailto(c, prenom)}" target="_blank" rel="noopener">📣 Inviter à laisser un avis</a></div>`;
   const resaList = resas.length
     ? resas.slice(0,20).map(r=>`<div class="resa-row"><span>${fdate(r.date)} · ${esc(r.espace||'')}${r.unite?(' '+esc(r.unite)):''} · ${esc(r.creneau||'')}</span><strong>${eur(r.montant_ttc)}</strong></div>`).join('')
     : '<div class="muted">Aucune réservation enregistrée.</div>';
@@ -329,9 +329,11 @@ function openClient(email){
   document.getElementById('modal').classList.add('open');
 }
 function reviewInviteMailto(c, prenom){
+  const to = encodeURIComponent(c.email||'');
   const subj = encodeURIComponent('Votre avis compte pour nous 🙏 — L\'Atelier du Coworking');
   const body = encodeURIComponent(`Bonjour ${prenom},\n\nMerci d'avoir choisi L'Atelier du Coworking ! Si vous avez apprécié votre passage, votre avis Google nous aiderait beaucoup (cela prend 30 secondes) :\n\n${GOOGLE_REVIEW_LINK}\n\nUn grand merci,\nDavid — L'Atelier du Coworking\n06 23 88 05 03`);
-  return `mailto:${c.email||''}?subject=${subj}&body=${body}`;
+  // Ouvre la fenêtre de rédaction Gmail (fiable, contrairement à mailto: qui dépend d'un logiciel de messagerie configuré)
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${to}&su=${subj}&body=${body}`;
 }
 function closeModal(){ document.getElementById('modal').classList.remove('open'); }
 document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
