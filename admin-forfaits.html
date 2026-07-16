@@ -142,16 +142,27 @@
     </div>
   </div>
 
-  <!-- Adhésions Réseau (agent iad) -->
+  <!-- Forfaits agent iad — attribution manuelle (Réseau / Full / ALC) -->
   <div style="background:#fff;border:1px solid var(--light);border-radius:12px;padding:18px;margin-bottom:18px">
-    <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif">🤝 Adhésions Réseau <span style="color:#00B4EC">iad</span></h3>
-    <p class="muted" style="margin:0 0 12px">Adhésion annuelle donnant accès aux rendez-vous Réseau du mardi. Prolonge, fixe une date de fin ou révoque.</p>
-    <div style="display:grid;grid-template-columns:2fr 1fr auto auto auto;gap:10px;align-items:end">
-      <div><label class="muted">Email conseiller</label><input id="r-email" type="email" placeholder="prenom.nom@iadfrance.fr" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
-      <div><label class="muted">Durée (mois)</label><input id="r-months" type="number" min="1" value="12" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
-      <button class="btn" onclick="setReseau('grant')">Activer / prolonger</button>
-      <button class="btn ghost" onclick="setReseau('revoke')">Révoquer</button>
-      <button class="btn ghost" onclick="loadReseau()">↻</button>
+    <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif">🤝 Forfaits agent <span style="color:#00B4EC">iad</span></h3>
+    <p class="muted" style="margin:0 0 12px">Attribue manuellement un forfait à un conseiller — adhésion Réseau (mardi), Full mensuel, ou coworking à la carte. Tout est tagué « iad ».</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end">
+      <div style="flex:2;min-width:220px"><label class="muted">Email conseiller</label><input id="r-email" type="email" placeholder="prenom.nom@iadfrance.fr" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div style="flex:1.6;min-width:190px"><label class="muted">Forfait</label>
+        <select id="r-formula" onchange="onFormulaChange()" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px">
+          <option value="reseau">Réseau — 60 €/an (mardi)</option>
+          <option value="full">Full — 8 demi-journées/mois</option>
+          <option value="alc-half">À la carte — demi-journée</option>
+          <option value="alc-day">À la carte — journée</option>
+        </select>
+      </div>
+      <div style="flex:1;min-width:120px"><label class="muted" id="r-qty-label">Durée (mois)</label><input id="r-qty" type="number" min="1" value="12" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div id="r-validity-wrap" style="flex:1;min-width:120px;display:none"><label class="muted">Validité (mois)</label><input id="r-validity" type="number" min="0" value="1" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div style="display:flex;gap:8px;align-items:end">
+        <button class="btn" onclick="assignIad()">Attribuer</button>
+        <button class="btn ghost" id="r-revoke-btn" onclick="setReseau('revoke')">Révoquer</button>
+        <button class="btn ghost" onclick="loadReseau()" title="Rafraîchir">↻</button>
+      </div>
     </div>
     <span class="muted" id="r-msg" style="display:block;margin-top:8px"></span>
     <div id="reseau-table" style="margin-top:12px"></div>
@@ -303,6 +314,49 @@ async function loadReseau(){
 
 function fillReseau(email){ document.getElementById('r-email').value = email; document.getElementById('r-email').scrollIntoView({behavior:'smooth',block:'center'}); }
 
+// Adapte les champs selon le forfait choisi
+function onFormulaChange(){
+  const f = document.getElementById('r-formula').value;
+  const qtyLabel = document.getElementById('r-qty-label');
+  const qty = document.getElementById('r-qty');
+  const valWrap = document.getElementById('r-validity-wrap');
+  const val = document.getElementById('r-validity');
+  const revoke = document.getElementById('r-revoke-btn');
+  if(f==='reseau'){ qtyLabel.textContent='Durée (mois)'; qty.value=12; valWrap.style.display='none'; revoke.style.display=''; }
+  else if(f==='full'){ qtyLabel.textContent='Demi-journées'; qty.value=8; valWrap.style.display=''; val.value=1; revoke.style.display='none'; }
+  else if(f==='alc-half'){ qtyLabel.textContent='Demi-journées'; qty.value=1; valWrap.style.display=''; val.value=3; revoke.style.display='none'; }
+  else if(f==='alc-day'){ qtyLabel.textContent='Journées'; qty.value=1; valWrap.style.display=''; val.value=3; revoke.style.display='none'; }
+}
+
+// Attribue le forfait iad sélectionné (Réseau via /admin/reseau, sinon /admin/packs/offer)
+async function assignIad(){
+  const msg = document.getElementById('r-msg');
+  const email = document.getElementById('r-email').value.trim();
+  if(!email.includes('@')){ msg.textContent='Email requis.'; return; }
+  const f = document.getElementById('r-formula').value;
+  const qty = parseInt(document.getElementById('r-qty').value||'1',10);
+  msg.textContent='Envoi…';
+  try{
+    if(f==='reseau'){
+      const r = await fetch(`${API_BASE}/admin/reseau`, {method:'POST', headers:HEADERS, body:JSON.stringify({email, months:qty})});
+      if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+      msg.textContent='✅ Adhésion Réseau mise à jour.'; loadReseau();
+    } else {
+      const validity = parseInt(document.getElementById('r-validity').value||'3',10);
+      const map = {
+        'full':     {credit_type:'half-day', label:'Forfait Full agent iad (offert)'},
+        'alc-half': {credit_type:'half-day', label:'Coworking demi-journée (agent iad)'},
+        'alc-day':  {credit_type:'day',      label:'Coworking journée (agent iad)'},
+      }[f];
+      const body = {email, space:'coworking', credit_type:map.credit_type, credits:qty, validity_months:validity, origin:'iad', label:map.label};
+      const r = await fetch(`${API_BASE}/admin/packs/offer`, {method:'POST', headers:HEADERS, body:JSON.stringify(body)});
+      if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+      msg.textContent='✅ Forfait attribué.'; document.getElementById('filter-email').value=email; loadPacks();
+    }
+    setTimeout(()=>msg.textContent='', 3500);
+  }catch(e){ msg.textContent='Erreur : '+e.message; }
+}
+
 async function setReseau(action){
   const msg = document.getElementById('r-msg');
   const email = document.getElementById('r-email').value.trim();
@@ -312,7 +366,7 @@ async function setReseau(action){
     if(!confirm(`Révoquer l’adhésion Réseau de ${email} ?`)) return;
     body.revoke = true;
   } else {
-    body.months = parseInt(document.getElementById('r-months').value||'12',10);
+    body.months = parseInt((document.getElementById('r-qty')||{}).value||'12',10);
   }
   msg.textContent='Envoi…';
   try{
@@ -374,6 +428,7 @@ document.getElementById('filter-email').addEventListener('keydown', e=>{ if(e.ke
   HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`};
   loadPacks();
   loadReseau();
+  onFormulaChange();
 })();
 </script>
 <script>/* ACW-PWA-REG */
