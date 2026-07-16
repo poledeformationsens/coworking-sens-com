@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Forfaits conseillers iad — L'Atelier du Coworking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --iad-blue:#00B4EC;      /* Pantone 2995 C */
+    --iad-coral:#EA584A;     /* Pantone 2348 C — CTA uniquement */
+    --ink:#000000;
+    --white:#FFFFFF;
+    --grey:#5b6b74;
+    --bg:#F4FBFE;
+    --card-border:#d7edf7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Montserrat',Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55}
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+  /* Hero — fond bleu iad → logo blanc */
+  header.hero{background:var(--iad-blue);color:var(--white);padding:34px 0 46px}
+  header.hero .wrap{display:flex;flex-direction:column;align-items:flex-start}
+  header.hero img.logo{height:46px;width:auto;display:block;margin-bottom:26px}
+  header.hero h1{font-weight:800;font-style:italic;font-size:34px;letter-spacing:-0.025em;line-height:1.12;max-width:760px}
+  header.hero p.sub{margin-top:14px;font-size:17px;font-weight:500;max-width:620px;opacity:.96}
+
+  /* Bloc email / gate */
+  .gate{background:var(--white);border:1px solid var(--card-border);border-radius:16px;
+        box-shadow:0 12px 30px rgba(0,180,236,.10);padding:22px;margin:-28px auto 0;position:relative;z-index:2}
+  .gate label{display:block;font-weight:700;font-size:14px;margin-bottom:8px;color:#0a3d52}
+  .gate .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .gate input{flex:1;min-width:220px;padding:14px 16px;border:2px solid var(--card-border);border-radius:10px;
+              font-family:inherit;font-size:15px;color:var(--ink)}
+  .gate input:focus{outline:none;border-color:var(--iad-blue)}
+  .gate small{display:block;margin-top:10px;color:var(--grey);font-size:12.5px}
+  .gate .err{color:var(--iad-coral);font-weight:600;font-size:13px;margin-top:10px;display:none}
+  .badge-ok{display:none;align-items:center;gap:8px;color:#0a7a34;font-weight:700;font-size:13.5px;margin-top:10px}
+
+  /* Cartes forfaits */
+  section.plans{padding:44px 0 20px}
+  section.plans h2{font-weight:800;font-style:italic;color:var(--iad-blue);letter-spacing:-0.025em;font-size:24px;margin-bottom:6px}
+  section.plans .lead{color:var(--grey);font-size:15px;margin-bottom:26px;max-width:640px}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+  .card{background:var(--white);border:1px solid var(--card-border);border-radius:16px;padding:24px;display:flex;flex-direction:column}
+  .card.feature{border:2px solid var(--iad-blue);box-shadow:0 10px 26px rgba(0,180,236,.14)}
+  .card .tag{align-self:flex-start;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;
+             color:var(--iad-blue);background:#e2f6fd;border-radius:20px;padding:5px 12px;margin-bottom:12px}
+  .card h3{font-weight:800;font-size:19px;color:#062a3a}
+  .card .price{margin:12px 0 4px;font-weight:800;font-size:32px;color:var(--ink)}
+  .card .price span{font-size:14px;font-weight:600;color:var(--grey)}
+  .card ul{list-style:none;margin:14px 0 20px;flex:1}
+  .card li{position:relative;padding-left:24px;margin-bottom:9px;font-size:14px}
+  .card li::before{content:"";position:absolute;left:0;top:6px;width:12px;height:12px;border-radius:50%;
+                   background:var(--iad-blue);box-shadow:0 0 0 3px #d7f1fb}
+  .qty{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .qty label{font-size:13px;font-weight:600;color:var(--grey)}
+  .qty select{padding:9px 12px;border:2px solid var(--card-border);border-radius:9px;font-family:inherit;font-weight:600}
+
+  /* CTA standard (bleu) */
+  .btn{border:none;border-radius:10px;padding:14px;font-family:inherit;font-weight:800;font-size:15px;cursor:pointer;
+       background:var(--iad-blue);color:var(--white);transition:filter .15s;width:100%}
+  .btn:hover{filter:brightness(1.06)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+
+  /* Gélule corail — UNE SEULE sur la page (forfait mis en avant) */
+  .gelule{border:none;cursor:pointer;background:var(--iad-coral);color:var(--white);
+          font-family:inherit;font-weight:800;font-style:italic;font-size:15px;letter-spacing:.01em;
+          padding:15px 20px;border-radius:40px;transform:rotate(-10deg);transform-origin:center;
+          box-shadow:0 8px 20px rgba(234,88,74,.34);align-self:center;margin:6px 0 4px;width:auto;min-width:210px;text-align:center}
+  .gelule:hover{filter:brightness(1.05)}
+  .gelule:disabled{opacity:.45;cursor:not-allowed}
+  .feature .btnwrap{display:flex;flex-direction:column;align-items:center;padding-top:6px}
+
+  .note{color:var(--grey);font-size:12.5px;margin-top:8px;text-align:center}
+  footer{background:var(--iad-blue);color:var(--white);margin-top:40px;padding:26px 0}
+  footer .wrap{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;align-items:center;font-size:13px}
+  footer img{height:30px}
+  footer a{text-decoration:underline}
+  @media(max-width:720px){
+    .grid{grid-template-columns:1fr}
+    header.hero h1{font-size:27px}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="logo" src="/logo-iad-blanc.png" alt="iad">
+    <h1>Le coworking de Sens, au tarif conseiller iad.</h1>
+    <p class="sub">Réservé aux conseillers en immobilier iad. Travaillez depuis L'Atelier du Coworking, retrouvez le Réseau chaque mardi, ou passez à la carte — à des conditions négociées pour le réseau.</p>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="gate">
+    <label for="email">Votre adresse e-mail professionnelle iad</label>
+    <div class="row">
+      <input id="email" type="email" placeholder="prenom.nom@iadfrance.fr" autocomplete="email" inputmode="email">
+      <input id="name" type="text" placeholder="Prénom Nom (facultatif)" autocomplete="name" style="flex:.8">
+    </div>
+    <div class="badge-ok" id="okBadge">✓ Adresse iad vérifiée — choisissez votre forfait ci-dessous.</div>
+    <div class="err" id="gateErr"></div>
+    <small>Accès réservé aux adresses <strong>@iadfrance.fr</strong>. Elle sert à créer votre compte et n'est jamais partagée.</small>
+  </div>
+</div>
+
+<section class="plans">
+  <div class="wrap">
+    <h2>Choisissez votre formule</h2>
+    <p class="lead">Renseignez d'abord votre e-mail iad ci-dessus, puis sélectionnez un forfait. Le paiement est sécurisé par Stripe (carte ou prélèvement SEPA selon la formule).</p>
+
+    <div class="grid">
+
+      <!-- FULL — forfait mis en avant : gélule corail (unique) -->
+      <div class="card feature">
+        <span class="tag">Le plus complet</span>
+        <h3>Forfait Full</h3>
+        <div class="price">40 €<span> / mois</span></div>
+        <ul>
+          <li><strong>8 demi-journées</strong> de coworking par mois</li>
+          <li>2 demi-journées maximum par semaine (non cumulables)</li>
+          <li>Prélèvement mensuel automatique (carte ou SEPA)</li>
+          <li>Résiliable à tout moment</li>
+        </ul>
+        <div class="btnwrap">
+          <button class="gelule" data-plan="full" disabled>Je m'abonne →</button>
+          <div class="note">Sans engagement · SEPA ou carte</div>
+        </div>
+      </div>
+
+      <!-- RÉSEAU -->
+      <div class="card">
+        <span class="tag">Vie de réseau</span>
+        <h3>Forfait Réseau</h3>
+        <div class="price">60 €<span> / an</span></div>
+        <ul>
+          <li>Accès aux <strong>rendez-vous Réseau du mardi</strong> (52 séances / an)</li>
+          <li>Inscription automatique à chaque mardi</li>
+          <li>Paiement une fois par an (carte ou SEPA)</li>
+          <li>Idéal pour rester connecté à l'équipe</li>
+        </ul>
+        <button class="btn" data-plan="reseau" disabled>Adhérer →</button>
+        <div class="note">Paiement annuel · renouvellement manuel</div>
+      </div>
+
+      <!-- ALC demi-journée -->
+      <div class="card">
+        <span class="tag">À la carte</span>
+        <h3>Demi-journée</h3>
+        <div class="price">5 €<span> / demi-journée</span></div>
+        <ul>
+          <li>Une matinée ou un après-midi de coworking</li>
+          <li>Sans abonnement, valable 3 mois</li>
+          <li>Non plafonné : utilisez-les quand vous voulez</li>
+        </ul>
+        <div class="qty">
+          <label for="qty-half">Quantité</label>
+          <select id="qty-half">
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>8</option><option>10</option>
+          </select>
+        </div>
+        <button class="btn" data-plan="alc-half" disabled>Acheter →</button>
+      </div>
+
+      <!-- ALC journée -->
+      <div class="card">
+        <span class="tag">À la carte</span>
+        <h3>Journée complète</h3>
+        <div class="price">10 €<span> / journée</span></div>
+        <ul>
+          <li>Une journée entière (8h–18h)</li>
+          <li>Sans abonnement, valable 3 mois</li>
+          <li>Non plafonné : utilisez-les quand vous voulez</li>
+        </ul>
+        <div class="qty">
+          <label for="qty-day">Quantité</label>
+          <select id="qty-day">
+            <option>1</option><option>2</option><option>3</option><option>4</option>
+            <option>5</option><option>6</option><option>8</option><option>10</option>
+          </select>
+        </div>
+        <button class="btn" data-plan="alc-day" disabled>Acheter →</button>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <img src="/logo-iad-blanc.png" alt="iad">
+    <div>L'Atelier du Coworking — 20 rue Pasteur, 89100 Sens · <a href="https://coworking-sens.com">coworking-sens.com</a></div>
+  </div>
+</footer>
+
+<script>
+const API = '/api/coworking';
+const TEST_MODE = new URLSearchParams(location.search).get('test') === '1';
+const IAD_DOMAIN = '@iadfrance.fr';
+
+const emailEl = document.getElementById('email');
+const nameEl  = document.getElementById('name');
+const okBadge = document.getElementById('okBadge');
+const gateErr = document.getElementById('gateErr');
+const buttons = [...document.querySelectorAll('button[data-plan]')];
+
+function isIadEmail(v){ return /^[^\s@]+@iadfrance\.fr$/i.test((v||'').trim()); }
+
+function refreshGate(){
+  const ok = isIadEmail(emailEl.value);
+  buttons.forEach(b => b.disabled = !ok);
+  okBadge.style.display = ok ? 'flex' : 'none';
+  if(!ok && emailEl.value.trim()){
+    gateErr.textContent = 'Une adresse @iadfrance.fr est requise pour accéder aux forfaits conseillers.';
+    gateErr.style.display = 'block';
+  } else { gateErr.style.display = 'none'; }
+}
+emailEl.addEventListener('input', refreshGate);
+
+// Définition des forfaits → payload /api/checkout
+function planPayload(plan, email, name){
+  const base = { email, name, origin:'iad', testMode:TEST_MODE, returnPath:'/iad' };
+  if(plan === 'full') return { ...base,
+    purchaseType:'subscription', amountTTC:40, billingInterval:'month',
+    packSpace:'coworking', packCreditType:'half-day', monthlyCredits:8,
+    packLabel:'Forfait Full agent iad' };
+  if(plan === 'reseau') return { ...base,
+    purchaseType:'membership', amountTTC:60, membershipType:'reseau', membershipMonths:12,
+    packLabel:'Adhésion Réseau agent iad' };
+  if(plan === 'alc-half'){ const q = +document.getElementById('qty-half').value || 1; return { ...base,
+    purchaseType:'pack', pricingId:'iad-alc-half', packSpace:'coworking', packCreditType:'half-day',
+    packCredits:q, amountTTC:5*q, packLabel:'Coworking demi-journée (agent iad)',
+    reference:'IAD-'+new Date().getFullYear()+'-'+(Math.floor(Math.random()*9000)+1000) }; }
+  if(plan === 'alc-day'){ const q = +document.getElementById('qty-day').value || 1; return { ...base,
+    purchaseType:'pack', pricingId:'iad-alc-day', packSpace:'coworking', packCreditType:'day',
+    packCredits:q, amountTTC:10*q, packLabel:'Coworking journée (agent iad)',
+    reference:'IAD-'+new Date().getFullYear()+'-'+(Math.floor(Math.random()*9000)+1000) }; }
+}
+
+async function choose(plan, btn){
+  const email = emailEl.value.trim().toLowerCase();
+  const name  = nameEl.value.trim();
+  if(!isIadEmail(email)){ refreshGate(); emailEl.focus(); return; }
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Un instant…';
+  try{
+    // 1) Verrou + onboarding conseiller iad
+    const reg = await fetch(`${API}/iad/register`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, name })
+    });
+    if(!reg.ok){ const e = await reg.json().catch(()=>({})); throw new Error(e.detail || e.error || 'Adresse iad refusée'); }
+
+    // 2) Création de la session de paiement Stripe
+    const r = await fetch('/api/checkout', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(planPayload(plan, email, name))
+    });
+    if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.error || 'Erreur de paiement'); }
+    const data = await r.json();
+    if(data.url){ window.location.href = data.url; }
+    else throw new Error('URL Stripe manquante');
+  }catch(err){
+    gateErr.textContent = 'Erreur : ' + err.message;
+    gateErr.style.display = 'block';
+    btn.disabled = false; btn.textContent = label;
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+}
+
+buttons.forEach(b => b.addEventListener('click', () => choose(b.dataset.plan, b)));
+
+// Message de retour Stripe
+(function(){
+  const st = new URLSearchParams(location.search).get('status');
+  if(st === 'success'){
+    okBadge.textContent = '✓ Paiement confirmé — vous allez recevoir un e-mail de confirmation. Merci !';
+    okBadge.style.display = 'flex';
+    window.scrollTo({top:0});
+  } else if(st === 'cancelled'){
+    gateErr.textContent = 'Paiement annulé. Vous pouvez réessayer quand vous voulez.';
+    gateErr.style.display = 'block';
+  }
+})();
+refreshGate();
+</script>
+</body>
+</html>

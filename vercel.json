@@ -16,6 +16,14 @@
       "destination": "https://pole-iad-sens.fr/api/coworking/:path*"
     },
     {
+      "source": "/iad",
+      "destination": "/iad.html"
+    },
+    {
+      "source": "/iad/",
+      "destination": "/iad.html"
+    },
+    {
       "source": "/reserver",
       "destination": "/reserver.html"
     },
