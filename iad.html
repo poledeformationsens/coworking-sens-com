@@ -126,8 +126,14 @@
           <li><strong>8 demi-journées</strong> de coworking par mois</li>
           <li>2 demi-journées maximum par semaine (non cumulables)</li>
           <li>Prélèvement mensuel automatique (carte ou SEPA)</li>
+          <li><strong>Tu choisis ta date d'activation</strong> : prélevé seulement à partir de là</li>
           <li>Résiliable à tout moment</li>
         </ul>
+        <div style="margin:2px 0 14px">
+          <label for="act-date" style="display:block;font-size:13px;font-weight:600;color:#062a3a;margin-bottom:6px">Date d'activation de l'abonnement</label>
+          <input type="date" id="act-date" style="width:100%;padding:11px 12px;border:2px solid var(--card-border);border-radius:10px;font-family:inherit;font-size:15px;color:var(--ink)">
+          <div style="font-size:12px;color:var(--grey);margin-top:6px;line-height:1.5">Laisse vide pour démarrer aujourd'hui. Sinon tu signes le mandat SEPA maintenant, mais tu n'es <strong>prélevé et crédité de tes demi-journées qu'à cette date</strong>.</div>
+        </div>
         <div class="btnwrap">
           <button class="gelule" data-plan="full">Je m'abonne →</button>
           <div class="note">Sans engagement · SEPA ou carte</div>
@@ -228,10 +234,10 @@ emailEl.addEventListener('input', refreshGate);
 // Définition des forfaits → payload /api/checkout
 function planPayload(plan, email, name){
   const base = { email, name, origin:'iad', testMode:TEST_MODE, returnPath:'/iad' };
-  if(plan === 'full') return { ...base,
+  if(plan === 'full'){ const act = (document.getElementById('act-date')||{}).value || ''; return { ...base,
     purchaseType:'subscription', amountTTC:40, billingInterval:'month',
     packSpace:'coworking', packCreditType:'half-day', monthlyCredits:8,
-    packLabel:'Forfait Full agent iad' };
+    packLabel:'Forfait Full agent iad', activationDate: act }; }
   if(plan === 'reseau') return { ...base,
     purchaseType:'membership', amountTTC:60, membershipType:'reseau', membershipMonths:12,
     packLabel:'Adhésion Réseau agent iad' };
@@ -299,6 +305,7 @@ buttons.forEach(b => b.addEventListener('click', () => choose(b.dataset.plan, b)
     gateErr.style.display = 'block';
   }
 })();
+try{ document.getElementById('act-date').min = new Date().toISOString().slice(0,10); }catch(e){}
 refreshGate();
 </script>
 </body>
