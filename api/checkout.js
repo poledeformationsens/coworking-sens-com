@@ -23,8 +23,8 @@ export default async function handler(req, res) {
       purchaseType, pricingId, packSpace, packCreditType, packCredits, packLabel,
       // Marqueur d'origine (ex. "iad") — propagé jusqu'au forfait pour le cutover 2027
       origin,
-      // Abonnement (Full) : intervalle de facturation + crédits mensuels
-      billingInterval, monthlyCredits,
+      // Abonnement (Full) : intervalle de facturation + crédits mensuels + date d'activation (début de prélèvement)
+      billingInterval, monthlyCredits, activationDate,
       // Adhésion (Réseau) : type + durée de validité en mois
       membershipType, membershipMonths,
       // Participation à un événement payant
@@ -171,9 +171,28 @@ export default async function handler(req, res) {
 
     // ── Session ABONNEMENT (Full 40 €/mois — carte + prélèvement SEPA) ────────
     if (isSubscription) {
+      // Date d'activation (optionnelle) : le mandat SEPA est signé maintenant,
+      // mais le 1er prélèvement (et donc le crédit des demi-journées) ne se
+      // déclenche qu'à cette date, via une "période d'essai" Stripe jusque-là.
+      const subscriptionData = { metadata };
+      let trialUnix = null;
+      if (activationDate) {
+        // ~08:00 heure de Paris ce jour-là (≈ 06:00 UTC)
+        const t = Math.floor(new Date(`${activationDate}T06:00:00Z`).getTime() / 1000);
+        // On n'applique le décalage que si la date est bien dans le futur (> 1 h).
+        if (!isNaN(t) && t > Math.floor(Date.now() / 1000) + 3600) {
+          trialUnix = t;
+          subscriptionData.trial_end = trialUnix;
+          metadata.activation_date = activationDate;
+        }
+      }
+
       const session = await stripe.checkout.sessions.create({
         mode: "subscription",
         payment_method_types: ["card", "sepa_debit"],
+        // Force la collecte du moyen de paiement (mandat SEPA) même avec une
+        // période d'essai / activation différée.
+        payment_method_collection: "always",
         line_items: [
           {
             price_data: {
@@ -189,7 +208,7 @@ export default async function handler(req, res) {
         metadata,
         // Les métadonnées sont recopiées sur l'abonnement : les échéances
         // futures (invoice.paid) n'ont pas accès aux metadata de la session.
-        subscription_data: { metadata },
+        subscription_data: subscriptionData,
         success_url: `${reqOrigin}${returnPath || "/"}${(returnPath || "/").includes("?") ? "&" : "?"}status=success&session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${reqOrigin}${returnPath || "/"}${(returnPath || "/").includes("?") ? "&" : "?"}status=cancelled`,
         locale: "fr",
