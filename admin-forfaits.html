@@ -25,6 +25,7 @@
   th{background:#fafafa;color:var(--slate);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
   .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:600}
   .b-active{background:#E3F4EA;color:var(--green)} .b-off{background:#eee;color:#888}
+  .b-iad{background:#E2F6FD;color:#0089B8} .b-sub{background:#EDE7F6;color:#5E35B1}
   .muted{color:var(--slate);font-size:12.5px}
   .empty{padding:40px;text-align:center;color:var(--slate)}
   /* modal */
@@ -134,12 +135,31 @@
       <div><label class="muted">Crédits</label><input id="o-credits" type="number" min="1" value="1" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
       <div><label class="muted">Validité (mois, 0=∞)</label><input id="o-validity" type="number" min="0" value="3" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
     </div>
-    <button class="btn" style="margin-top:12px" onclick="offerPack()">Offrir le forfait</button>
-    <span class="muted" id="o-msg" style="margin-left:10px"></span>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <button class="btn" onclick="offerPack()">Offrir le forfait</button>
+      <label class="muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="o-iad"> Origine <strong style="color:#00B4EC">iad</strong> (tague le conseiller réseau)</label>
+      <span class="muted" id="o-msg"></span>
+    </div>
+  </div>
+
+  <!-- Adhésions Réseau (agent iad) -->
+  <div style="background:#fff;border:1px solid var(--light);border-radius:12px;padding:18px;margin-bottom:18px">
+    <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif">🤝 Adhésions Réseau <span style="color:#00B4EC">iad</span></h3>
+    <p class="muted" style="margin:0 0 12px">Adhésion annuelle donnant accès aux rendez-vous Réseau du mardi. Prolonge, fixe une date de fin ou révoque.</p>
+    <div style="display:grid;grid-template-columns:2fr 1fr auto auto auto;gap:10px;align-items:end">
+      <div><label class="muted">Email conseiller</label><input id="r-email" type="email" placeholder="prenom.nom@iadfrance.fr" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div><label class="muted">Durée (mois)</label><input id="r-months" type="number" min="1" value="12" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <button class="btn" onclick="setReseau('grant')">Activer / prolonger</button>
+      <button class="btn ghost" onclick="setReseau('revoke')">Révoquer</button>
+      <button class="btn ghost" onclick="loadReseau()">↻</button>
+    </div>
+    <span class="muted" id="r-msg" style="display:block;margin-top:8px"></span>
+    <div id="reseau-table" style="margin-top:12px"></div>
   </div>
 
   <div class="toolbar">
     <input id="filter-email" type="text" placeholder="Filtrer par email client…" style="flex:1;min-width:220px">
+    <select id="filter-origin" onchange="renderCurrent()"><option value="">Toutes origines</option><option value="iad">iad uniquement</option><option value="site">Site (hors iad)</option></select>
     <label class="muted"><input type="checkbox" id="filter-inactive"> Inclure inactifs</label>
     <button class="btn" onclick="loadPacks()">↻ Rafraîchir</button>
   </div>
@@ -190,6 +210,7 @@ async function offerPack(){
     credit_type: document.getElementById('o-type').value,
     credits: parseInt(document.getElementById('o-credits').value||'0',10),
     validity_months: parseInt(document.getElementById('o-validity').value||'3',10),
+    origin: document.getElementById('o-iad').checked ? 'iad' : null,
   };
   if(!body.email.includes('@') || body.credits<=0){ msg.textContent='Email et nombre de crédits requis.'; return; }
   msg.textContent='Envoi…';
@@ -217,13 +238,24 @@ async function loadPacks(){
     if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
     if(!r.ok) throw new Error('Erreur '+r.status);
     const data = await r.json();
-    render(data.packs||[]);
+    ALL_PACKS = data.packs||[];
+    renderCurrent();
   }catch(e){ el.innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
+}
+
+let ALL_PACKS = [];
+
+function renderCurrent(){
+  const origin = (document.getElementById('filter-origin')||{}).value || '';
+  let packs = ALL_PACKS;
+  if(origin === 'iad')  packs = packs.filter(p => (p.origin||'').toLowerCase()==='iad');
+  if(origin === 'site') packs = packs.filter(p => (p.origin||'').toLowerCase()!=='iad');
+  render(packs);
 }
 
 function render(packs){
   const el = document.getElementById('packs-table');
-  if(!packs.length){ el.innerHTML = '<div class="empty">Aucun forfait.</div>'; return; }
+  if(!packs.length){ el.innerHTML = '<div class="empty">Aucun forfait pour ce filtre.</div>'; return; }
   el.innerHTML = `<table><thead><tr>
     <th>Client</th><th>Forfait</th><th>Crédits</th><th>Expiration</th><th>Montant</th><th>Statut</th><th></th>
   </tr></thead><tbody>` + packs.map(p=>{
@@ -232,16 +264,74 @@ function render(packs){
       ? (p.expired ? '<span class="badge b-off">Expiré</span>' : '<span class="badge b-active">Actif</span>')
       : '<span class="badge b-off">Inactif</span>';
     const testTag = p.test_mode ? ' <span class="muted">(test)</span>' : '';
+    const iadBadge = (p.origin||'').toLowerCase()==='iad' ? ' <span class="badge b-iad">iad</span>' : '';
+    const subBadge = p.stripe_subscription_id ? ' <span class="badge b-sub">Abonnement</span>' : '';
+    const cancelBtn = p.stripe_subscription_id
+      ? `<button class="btn ghost" style="border-color:#EA584A;color:#EA584A" onclick='cancelSub(${JSON.stringify(p.id)})'>Résilier</button> `
+      : '';
     return `<tr>
       <td>${p.customer_email}${testTag}</td>
-      <td>${p.label||p.space}<div class="muted">${p.space} · ${p.credit_type==='day'?'journée':'demi-journée'}</div></td>
+      <td>${p.label||p.space}${iadBadge}${subBadge}<div class="muted">${p.space} · ${p.credit_type==='day'?'journée':'demi-journée'}</div></td>
       <td><strong>${remaining}</strong> / ${p.total_credits}</td>
       <td>${fmtDate(p.expires_at)}</td>
       <td>${fmtMoney(p.amount_ttc)}</td>
       <td>${statusBadge}</td>
-      <td><button class="btn ghost" onclick='openModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Ajuster</button></td>
+      <td style="white-space:nowrap">${cancelBtn}<button class="btn ghost" onclick='openModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Ajuster</button></td>
     </tr>`;
   }).join('') + '</tbody></table>';
+}
+
+// ── Adhésions Réseau ────────────────────────────────────────────────────────
+async function loadReseau(){
+  const el = document.getElementById('reseau-table');
+  el.innerHTML = '<div class="muted">Chargement…</div>';
+  try{
+    const r = await fetch(`${API_BASE}/admin/reseau`, {headers:HEADERS, cache:'no-store'});
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const data = await r.json();
+    const members = data.members||[];
+    if(!members.length){ el.innerHTML = '<div class="muted">Aucune adhésion Réseau pour l’instant.</div>'; return; }
+    el.innerHTML = `<table><thead><tr><th>Conseiller</th><th>Valable jusqu’au</th><th>Statut</th><th></th></tr></thead><tbody>`
+      + members.map(m=>`<tr>
+          <td>${m.email}${m.name?`<div class="muted">${m.name}</div>`:''}</td>
+          <td>${fmtDate(m.reseau_until)}</td>
+          <td>${m.active?'<span class="badge b-active">Actif</span>':'<span class="badge b-off">Expiré</span>'}</td>
+          <td><button class="btn ghost" onclick='fillReseau(${JSON.stringify(m.email)})'>Gérer</button></td>
+        </tr>`).join('') + '</tbody></table>';
+  }catch(e){ el.innerHTML = `<div class="muted">Erreur : ${e.message}</div>`; }
+}
+
+function fillReseau(email){ document.getElementById('r-email').value = email; document.getElementById('r-email').scrollIntoView({behavior:'smooth',block:'center'}); }
+
+async function setReseau(action){
+  const msg = document.getElementById('r-msg');
+  const email = document.getElementById('r-email').value.trim();
+  if(!email.includes('@')){ msg.textContent='Email requis.'; return; }
+  const body = { email };
+  if(action==='revoke'){
+    if(!confirm(`Révoquer l’adhésion Réseau de ${email} ?`)) return;
+    body.revoke = true;
+  } else {
+    body.months = parseInt(document.getElementById('r-months').value||'12',10);
+  }
+  msg.textContent='Envoi…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/reseau`, {method:'POST', headers:HEADERS, body:JSON.stringify(body)});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    msg.textContent = action==='revoke' ? '✅ Adhésion révoquée.' : '✅ Adhésion mise à jour.';
+    loadReseau();
+    setTimeout(()=>msg.textContent='', 3000);
+  }catch(e){ msg.textContent='Erreur : '+e.message; }
+}
+
+async function cancelSub(packId){
+  if(!confirm('Résilier cet abonnement Full ? Le conseiller garde le mois déjà payé, puis plus aucune échéance.')) return;
+  try{
+    const r = await fetch(`${API_BASE}/admin/packs/${packId}/cancel-subscription`, {method:'POST', headers:HEADERS});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    alert('✅ Abonnement résilié (fin de période).');
+    loadPacks();
+  }catch(e){ alert('Erreur : '+e.message); }
 }
 
 function openModal(p){
@@ -283,6 +373,7 @@ document.getElementById('filter-email').addEventListener('keydown', e=>{ if(e.ke
   TOKEN = s.token;
   HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`};
   loadPacks();
+  loadReseau();
 })();
 </script>
 <script>/* ACW-PWA-REG */
