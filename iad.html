@@ -129,7 +129,7 @@
           <li>Résiliable à tout moment</li>
         </ul>
         <div class="btnwrap">
-          <button class="gelule" data-plan="full" disabled>Je m'abonne →</button>
+          <button class="gelule" data-plan="full">Je m'abonne →</button>
           <div class="note">Sans engagement · SEPA ou carte</div>
         </div>
       </div>
@@ -145,7 +145,7 @@
           <li>Paiement une fois par an (carte ou SEPA)</li>
           <li>Idéal pour rester connecté à l'équipe</li>
         </ul>
-        <button class="btn" data-plan="reseau" disabled>Adhérer →</button>
+        <button class="btn" data-plan="reseau">Adhérer →</button>
         <div class="note">Paiement annuel · renouvellement manuel</div>
       </div>
 
@@ -166,7 +166,7 @@
             <option>5</option><option>6</option><option>8</option><option>10</option>
           </select>
         </div>
-        <button class="btn" data-plan="alc-half" disabled>Acheter →</button>
+        <button class="btn" data-plan="alc-half">Acheter →</button>
       </div>
 
       <!-- ALC journée -->
@@ -186,7 +186,7 @@
             <option>5</option><option>6</option><option>8</option><option>10</option>
           </select>
         </div>
-        <button class="btn" data-plan="alc-day" disabled>Acheter →</button>
+        <button class="btn" data-plan="alc-day">Acheter →</button>
       </div>
 
     </div>
@@ -215,7 +215,8 @@ function isIadEmail(v){ return /^[^\s@]+@iadfrance\.fr$/i.test((v||'').trim()); 
 
 function refreshGate(){
   const ok = isIadEmail(emailEl.value);
-  buttons.forEach(b => b.disabled = !ok);
+  // Les boutons restent TOUJOURS cliquables : la validation se fait au clic
+  // (sinon un clic sur un bouton grisé ne donne aucun retour à l'utilisateur).
   okBadge.style.display = ok ? 'flex' : 'none';
   if(!ok && emailEl.value.trim()){
     gateErr.textContent = 'Une adresse @iadfrance.fr est requise pour accéder aux forfaits conseillers.';
@@ -247,7 +248,16 @@ function planPayload(plan, email, name){
 async function choose(plan, btn){
   const email = emailEl.value.trim().toLowerCase();
   const name  = nameEl.value.trim();
-  if(!isIadEmail(email)){ refreshGate(); emailEl.focus(); return; }
+  if(!isIadEmail(email)){
+    // Email manquant/invalide : on remonte vers le champ avec un message clair.
+    gateErr.textContent = email
+      ? 'Cette adresse n’est pas une adresse @iadfrance.fr.'
+      : 'Renseignez d’abord votre e-mail @iadfrance.fr en haut de page pour choisir un forfait.';
+    gateErr.style.display = 'block';
+    window.scrollTo({ top:0, behavior:'smooth' });
+    emailEl.focus();
+    return;
+  }
   const label = btn.textContent;
   btn.disabled = true; btn.textContent = 'Un instant…';
   try{
