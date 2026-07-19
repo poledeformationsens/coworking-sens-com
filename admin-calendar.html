@@ -649,7 +649,49 @@ function onEventClick(info) {
     cancelBtn.style.display = 'none';
     _currentResa = null;
   }
+  const resaId = props.resa_id || (e.id || '').replace('resa-', '');
+  if (isResa && resaId) {
+    document.getElementById('modal-content').innerHTML +=
+      '<div id="access-block" style="margin-top:14px;border-top:1px solid #eee;padding-top:12px"><div class="field"><label>Codes d\'accès</label><span style="color:#999">Chargement…</span></div></div>';
+    loadAccess(resaId);
+  }
   document.getElementById('modal-detail').classList.add('open');
+}
+
+function _escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function loadAccess(resaId){
+  const el = document.getElementById('access-block');
+  try{
+    const r = await fetch(`${API_BASE}/admin/reservations/${resaId}/access`, {headers: HEADERS, cache:'no-store'});
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    const d = await r.json();
+    const pin = d.pin_code
+      ? `<b style="font-family:monospace;font-size:22px;letter-spacing:3px;color:#03234D">${_escapeHtml(d.pin_code)}</b>`
+      : '<span style="color:#999">Aucun code enregistré pour cette réservation</span>';
+    const comment = d.comment ? `<div class="field"><label>Commentaire client</label>${_escapeHtml(d.comment)}</div>` : '';
+    const waMsg = encodeURIComponent(d.whatsapp_message || '');
+    let waPhone = (d.phone || '').replace(/[^0-9]/g, '');
+    if(waPhone.startsWith('0')) waPhone = '33' + waPhone.slice(1);
+    const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${waMsg}` : `https://wa.me/?text=${waMsg}`;
+    const waLabel = waPhone ? '💬 WhatsApp' : '💬 WhatsApp (choisir le contact)';
+    if(el) el.innerHTML =
+      `${comment}<div class="field"><label>Code d'accès Igloohome</label>${pin}</div>
+       <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+         <button class="btn btn-secondary" onclick="resendCodesEmail('${resaId}', this)">📧 Renvoyer par email</button>
+         <a class="btn btn-secondary" style="text-decoration:none" href="${waUrl}" target="_blank" rel="noopener">${waLabel}</a>
+       </div>`;
+  }catch(e){ if(el) el.innerHTML = '<div class="field" style="color:#c0392b">Codes indisponibles : '+e.message+'</div>'; }
+}
+
+async function resendCodesEmail(resaId, btn){
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Envoi…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/reservations/${resaId}/resend-email`, {method:'POST', headers: HEADERS});
+    if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.detail || 'Erreur'); }
+    const d = await r.json();
+    btn.textContent = '✅ Envoyé à ' + (d.email || 'client');
+  }catch(e){ alert('Erreur : ' + e.message); btn.disabled = false; btn.textContent = old; }
 }
 
 // ===== Annulation / remboursement =====

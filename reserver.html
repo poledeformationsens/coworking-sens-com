@@ -353,6 +353,8 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
       <div style="margin-bottom:12px"><label class="label">Téléphone</label><input class="input" id="pro-tel" placeholder="06 12 34 56 78" /></div>
     </div>
 
+    <div style="margin:4px 0 12px"><label class="label">Commentaire (facultatif)</label><textarea class="input" rows="2" id="resa-comment" placeholder="Une précision pour votre réservation ? (ex. arrivée tardive, besoin particulier…)"></textarea></div>
+
     <div class="recap">
       <div class="recap-label">Récapitulatif</div>
       <div class="recap-row"><span id="recap-space">Bureau 1</span><span id="recap-detail">Journée (8h-18h) · 26 mai</span></div>
@@ -790,7 +792,7 @@ async function payWithPack(){
     const res = await fetch(`${API}/client/book-with-pack`, {
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':'Bearer '+tok},
-      body: JSON.stringify({space:selectedSpace, slot:selectedSlot, date, hour_from:currentRange().from, hour_to:currentRange().to, test_mode:TEST_MODE}),
+      body: JSON.stringify({space:selectedSpace, slot:selectedSlot, date, hour_from:currentRange().from, hour_to:currentRange().to, test_mode:TEST_MODE, comment:(document.getElementById('resa-comment')||{}).value || ''}),
     });
     if(!res.ok){ const e = await res.json().catch(()=>({})); throw new Error(e.detail || 'Réservation impossible'); }
     const data = await res.json();
@@ -1066,6 +1068,7 @@ async function payAndConfirm(){
         slot: selectedSlot, date: dateInput, hourFrom, hourTo,
         amountTTC: computeCurrentPriceTTC(),
         email, clientType: selectedClientType, name, company,
+        comment: (document.getElementById('resa-comment')||{}).value || '',
         reference: refNum, testMode: TEST_MODE, returnPath: window.location.pathname,
       }),
     });
