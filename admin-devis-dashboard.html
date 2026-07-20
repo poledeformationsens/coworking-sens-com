@@ -828,6 +828,7 @@ function actionButtons(d) {
       `;
     case 'validated':
       return `
+        <button class="btn btn-primary" onclick="sendAccess('${id}')" title="Envoyer le code d'accès au client maintenant, sans attendre le paiement">🔑 Envoyer accès</button>
         <button class="btn btn-success" onclick="markAcompte('${id}')">Acompte reçu</button>
         <button class="btn btn-success" onclick="markTotal('${id}')">Total reçu</button>
         ${dupBtn}
@@ -836,6 +837,7 @@ function actionButtons(d) {
       `;
     case 'acompte_paid':
       return `
+        <button class="btn btn-secondary" onclick="sendAccess('${id}')" title="Renvoyer le code d'accès au client">🔑 Renvoyer accès</button>
         <button class="btn btn-success" onclick="markSolde('${id}')">Solde reçu</button>
         ${dupBtn} ${delBtn}
       `;
@@ -880,6 +882,12 @@ async function validateDevis(id) {
 async function markAcompte(id) {
   if (!confirm('Marquer l\'acompte reçu ? Le PIN sera généré et envoyé au client.')) return;
   await callApi(`/devis/${id}/mark-acompte`);
+  loadDevis();
+}
+async function sendAccess(id) {
+  if (!confirm('Envoyer le code d\'accès au client maintenant ?\n\nLe créneau sera bloqué et le PIN généré, même si le paiement n\'est pas encore reçu.')) return;
+  const res = await callApi(`/devis/${id}/send-access`);
+  alert('Accès envoyé ✅' + (res && res.pin ? `\nCode : ${res.pin}` : ''));
   loadDevis();
 }
 async function markSolde(id) {
