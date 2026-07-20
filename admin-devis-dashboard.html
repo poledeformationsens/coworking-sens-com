@@ -1109,7 +1109,15 @@ async function lookupClient(email) {
 }
 
 function openNewDevisModal(prefillDate) {
+  // Réinitialise entièrement le formulaire (sinon il garde le dernier devis saisi)
+  const form = document.getElementById('form-new-devis');
+  if (form) form.reset();                       // vide tous les champs, restaure 30% / 7j
   document.getElementById('items-tbody').innerHTML = '';
+  // Masque les champs "pro" et l'indice client tant qu'on n'a rien saisi
+  const pf = document.getElementById('pro-fields');
+  if (pf) pf.style.display = 'none';
+  const hint = document.getElementById('client-hint');
+  if (hint) hint.style.display = 'none';
   // Ne pas ajouter de ligne vide par défaut : le user choisit un tarif OU ajoute du sur-mesure
   if (prefillDate) {
     document.querySelector('input[name="date"]').value = prefillDate;
