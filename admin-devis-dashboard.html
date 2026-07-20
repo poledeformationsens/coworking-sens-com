@@ -819,8 +819,8 @@ function actionButtons(d) {
       `;
     case 'sent':
       return `
-        <button class="btn btn-primary" onclick="validateDevis('${id}')">Valider devis</button>
-        <button class="btn btn-success" onclick="markTotal('${id}')">Total reçu</button>
+        <button class="btn btn-primary" onclick="validateDevis('${id}','acompte')" title="Valider et demander l'acompte">Valider · acompte</button>
+        <button class="btn btn-primary" onclick="validateDevis('${id}','total')" title="Valider et demander le règlement total">Valider · total</button>
         <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
         ${dupBtn}
         <button class="btn btn-danger" onclick="cancelDevis('${id}')">×</button>
@@ -874,9 +874,10 @@ async function sendDevis(id) {
   await callApi(`/devis/${id}/send`);
   loadDevis();
 }
-async function validateDevis(id) {
-  if (!confirm('Valider ce devis ? Le créneau sera bloqué et la facture d\'acompte envoyée.')) return;
-  await callApi(`/devis/${id}/validate`);
+async function validateDevis(id, mode='acompte') {
+  const quoi = mode === 'total' ? 'le règlement TOTAL' : "l'acompte";
+  if (!confirm(`Valider ce devis et envoyer la facture pour ${quoi} ?\nLe créneau sera bloqué.`)) return;
+  await callApi(`/devis/${id}/validate?mode=${mode}`);
   loadDevis();
 }
 async function markAcompte(id) {
