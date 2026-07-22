@@ -843,7 +843,8 @@ function actionButtons(d) {
       `;
     case 'fully_paid':
       return `
-        <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
+        <button class="btn btn-primary" onclick="sendFactureAcquittee('${id}')" title="Envoyer la facture acquittée au client">📧 Envoyer facture acquittée</button>
+        <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">Facture PDF</a>
         ${dupBtn} ${delBtn}
       `;
     case 'cancelled':
@@ -883,6 +884,12 @@ async function validateDevis(id, mode='acompte') {
 async function markAcompte(id) {
   if (!confirm('Marquer l\'acompte reçu ? Le PIN sera généré et envoyé au client.')) return;
   await callApi(`/devis/${id}/mark-acompte`);
+  loadDevis();
+}
+async function sendFactureAcquittee(id) {
+  if (!confirm('Envoyer la facture acquittée au client ?')) return;
+  await callApi(`/devis/${id}/send-facture-acquittee`);
+  alert('Facture acquittée envoyée ✅');
   loadDevis();
 }
 async function sendAccess(id) {
