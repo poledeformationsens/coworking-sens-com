@@ -829,8 +829,9 @@ function onTimeSelect(info) {
   const date = info.startStr.substring(0, 10);
   let hf = '08:00', ht = '18:00';
   if (!info.allDay) {
-    hf = info.start.toTimeString().substring(0, 5);
-    ht = info.end.toTimeString().substring(0, 5);
+    // startStr/endStr sont déjà à l'heure du calendrier (Europe/Paris) → pas de décalage
+    hf = info.startStr.substring(11, 16);
+    ht = info.endStr.substring(11, 16);
   }
   openCreateModal(date, hf, ht);
   if (calendar) calendar.unselect();
@@ -841,9 +842,9 @@ function onDateClick(info) {
   const date = (info.dateStr || '').substring(0, 10);
   let hf = '08:00', ht = '18:00';
   if (info.dateStr && info.dateStr.length > 10) {  // clic en vue semaine/jour (avec heure)
-    hf = info.date.toTimeString().substring(0, 5);
-    const end = new Date(info.date.getTime() + 60 * 60 * 1000);
-    ht = end.toTimeString().substring(0, 5);
+    hf = info.dateStr.substring(11, 16);
+    const [H, M] = hf.split(':').map(Number);
+    ht = String((H + 1) % 24).padStart(2, '0') + ':' + String(M).padStart(2, '0');
   }
   openCreateModal(date, hf, ht);
 }
