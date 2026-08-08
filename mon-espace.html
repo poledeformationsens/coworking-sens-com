@@ -17,6 +17,15 @@
     --coral: #EA584A;
     --green: #1D9E75;
   }
+  /* Thème conseiller iad — appliqué (via body.theme-iad) uniquement aux comptes
+     @iadfrance.fr, pour distinguer clairement leur espace de l'espace coworking.
+     Palette iad : bleu #00B4EC en accent, teintes bleutées, texte lisible. */
+  body.theme-iad {
+    --navy: #0A3D52;   /* bleu iad foncé — texte, en-tête et boutons (contraste OK) */
+    --gold: #00B4EC;   /* accent iad (Pantone 2995 C) — onglet actif, jauges, bordures */
+    --cream: #F4FBFE;  /* fond bleuté très clair */
+    --light: #CDECF8;
+  }
   * { box-sizing: border-box; }
   body {
     margin: 0;
@@ -593,6 +602,12 @@
 
 <!-- TAB PACKS -->
 <div id="tab-packs" class="tab-content" style="display:none;">
+  <!-- Bannière conseillers iad — affichée UNIQUEMENT pour les adresses @iadfrance.fr -->
+  <div id="iad-banner" class="card" style="display:none;background:#00B4EC;color:#fff;border:none">
+    <h2 style="color:#fff;margin-bottom:6px">Conseiller iad ? Vos forfaits dédiés vous attendent</h2>
+    <p style="color:#fff;opacity:.95;font-size:14px;margin:0 0 16px;line-height:1.6">Formule Premium (2 demi-journées de coworking/semaine), adhésion Réseau, salle de réunion à −50 % pour vos réunions d'équipe, et tarifs conseiller à la carte.</p>
+    <a href="/iad" style="display:inline-block;background:#fff;color:#00B4EC;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:800;font-size:14px">Voir mes forfaits conseiller iad →</a>
+  </div>
   <div class="card">
     <h2>Mes forfaits actifs <span class="count" id="count-packs">0</span></h2>
     <div id="my-packs-list"><div class="empty-state">Chargement…</div></div>
@@ -845,6 +860,9 @@
         <span class="lbl">Tarif en ligne</span>
         <span class="val" id="bk-price">—</span>
       </div>
+      <div id="bk-quiet" style="display:none;background:rgba(234,88,74,.10);border:1px solid rgba(234,88,74,.45);border-radius:8px;padding:12px 14px;font-size:12.5px;line-height:1.55;color:#7a2820;margin-top:6px">
+        📵 <strong>Pas d'appel dans l'open space, merci.</strong> Prenez vos appels dans l'espace pause portes fermées, ou en salle de réunion si elle est libre — pour préserver le calme des bureaux privés.
+      </div>
       <div class="modal-actions">
         <button type="button" class="btn-ticket" id="bk-btn-ticket" onclick="bookWithTicket()" style="display:none;">Réserver avec un ticket (−1 crédit) →</button>
         <button type="button" class="btn-pay-online" id="bk-btn-pay" onclick="bookAndPay()" disabled>Réserver &amp; payer en ligne →</button>
@@ -1010,6 +1028,15 @@ function renderApp(data) {
   CUSTOMER_EMAIL = c.email || (SESSION && SESSION.email) || null;
   CUSTOMER_NAME = c.name || null;
   CUSTOMER_CLIENT_TYPE = c.client_type || 'perso';
+  // Bannière forfaits iad : visible UNIQUEMENT pour les conseillers @iadfrance.fr.
+  // Les non-iad ne voient jamais les forfaits réservés au réseau iad.
+  try {
+    const isIad = CUSTOMER_EMAIL && /@iadfrance\.fr$/i.test(CUSTOMER_EMAIL.trim());
+    const iadBanner = document.getElementById('iad-banner');
+    if (isIad && iadBanner) iadBanner.style.display = '';
+    // Thème iad : couleurs iad pour distinguer l'espace conseiller de l'espace coworking.
+    document.body.classList.toggle('theme-iad', !!isIad);
+  } catch(e) {}
   // Onglet « Espace admin » visible uniquement pour le(s) compte(s) gérant
   try {
     const ADMIN_EMAILS = ['david.landry@coworking-sens.com'];
@@ -1223,6 +1250,9 @@ function closeBooking(){ document.getElementById('booking-modal').classList.remo
 function bkSelectSpace(space){
   bk.space = space;
   document.querySelectorAll('#bk-spaces .seg-btn').forEach(b=>b.classList.toggle('active', b.dataset.space===space));
+  // Règle de calme : uniquement pour l'open space coworking
+  const q = document.getElementById('bk-quiet');
+  if(q) q.style.display = (space === 'coworking') ? 'block' : 'none';
   bkFetchAvailability();
 }
 function bkSelectSlot(slot){
@@ -1352,7 +1382,8 @@ async function loadPacks() {
   try {
     const [pr, cr] = await Promise.all([
       fetch(`${API_BASE}/client/packs`, { headers: authHeaders(), cache: 'no-store' }),
-      fetch(`${API_BASE}/packs/catalog`, { cache: 'no-store' }),
+      // Auth transmise : le backend n'inclut les forfaits iad que pour un conseiller iad validé.
+      fetch(`${API_BASE}/packs/catalog`, { headers: authHeaders(), cache: 'no-store' }),
     ]);
     const packs = pr.ok ? (await pr.json()).packs : [];
     const catalog = cr.ok ? (await cr.json()).packs : [];
@@ -1406,15 +1437,29 @@ function renderCatalog(catalog) {
   const el = document.getElementById('packs-catalog');
   if (!catalog.length) { el.innerHTML = `<div class="empty-state">Aucun forfait disponible pour le moment.</div>`; return; }
   el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px">` +
-    catalog.map(p => `
-      <div style="border:1px solid var(--gold);border-radius:12px;padding:16px;display:flex;flex-direction:column">
+    catalog.map(p => {
+      // Abonnement (Premium iad) : pas de prix unitaire (trompeur, inclut réunions + formations)
+      // et bouton renvoyant vers /iad pour la vraie souscription (SEPA/carte, date d'activation).
+      const isSub = p.is_subscription;
+      const unitLine = (isSub || p.unit_price_ttc == null)
+        ? `<div style="font-size:11.5px;color:var(--slate);margin-bottom:12px">Abonnement mensuel · réunions et formations incluses</div>`
+        : `<div style="font-size:11.5px;color:var(--slate);margin-bottom:12px">soit ${formatMoney(p.unit_price_ttc)} / ${p.credit_label}</div>`;
+      const priceLine = isSub
+        ? `<div style="font-size:20px;font-weight:800;color:var(--navy)">${formatMoney(p.price_ttc)}<span style="font-size:12px;font-weight:500;color:var(--slate)"> TTC / mois</span></div>`
+        : `<div style="font-size:20px;font-weight:800;color:var(--navy)">${formatMoney(p.price_ttc)}<span style="font-size:12px;font-weight:500;color:var(--slate)"> TTC</span></div>`;
+      const cta = isSub
+        ? `<a href="${p.subscribe_url || '/iad'}" style="display:block;text-align:center;background:#00B4EC;color:#fff;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:14px;text-decoration:none">S'abonner →</a>`
+        : `<button onclick='buyPack(${JSON.stringify(p).replace(/'/g, "&#39;")})' style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:14px;cursor:pointer">Acheter →</button>`;
+      return `
+      <div style="border:1px solid ${isSub ? '#00B4EC' : 'var(--gold)'};border-radius:12px;padding:16px;display:flex;flex-direction:column">
         <div style="font-weight:700;color:var(--navy);font-size:15px;line-height:1.3">${p.name}</div>
         <div style="font-size:13px;color:var(--slate);margin:6px 0 10px;line-height:1.5;flex:1">${p.description || ''}</div>
         <div style="font-size:13px;color:var(--navy);margin-bottom:4px"><strong>${p.credits}</strong> ${packCreditWord(p.credit_type, p.credits)}</div>
-        <div style="font-size:20px;font-weight:800;color:var(--navy)">${formatMoney(p.price_ttc)}<span style="font-size:12px;font-weight:500;color:var(--slate)"> TTC</span></div>
-        <div style="font-size:11.5px;color:var(--slate);margin-bottom:12px">soit ${formatMoney(p.unit_price_ttc)} / ${p.credit_label}</div>
-        <button onclick='buyPack(${JSON.stringify(p).replace(/'/g, "&#39;")})' style="background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px;font-weight:700;font-size:14px;cursor:pointer">Acheter →</button>
-      </div>`).join('') + `</div>`;
+        ${priceLine}
+        ${unitLine}
+        ${cta}
+      </div>`;
+    }).join('') + `</div>`;
 }
 
 async function buyPack(p) {

@@ -99,14 +99,41 @@
 
 <div class="wrap">
   <div class="gate">
-    <label for="email">Votre adresse e-mail professionnelle iad</label>
+    <label for="email">1. Votre adresse e-mail professionnelle iad</label>
     <div class="row">
       <input id="email" type="email" placeholder="prenom.nom@iadfrance.fr" autocomplete="email" inputmode="email">
-      <input id="name" type="text" placeholder="Prénom Nom (facultatif)" autocomplete="name" style="flex:.8">
+      <input id="name" type="text" placeholder="Prénom Nom" autocomplete="name" style="flex:.8">
     </div>
+
+    <!-- Étape 1 : demander le code -->
+    <div id="step-request" style="margin-top:14px">
+      <button class="btn" id="btn-request" style="max-width:280px">Recevoir mon code de vérification</button>
+    </div>
+
+    <!-- Étape 2 : saisir le code (masquée au départ) -->
+    <div id="step-verify" style="display:none;margin-top:16px">
+      <label for="otp">2. Code reçu par e-mail (6 chiffres)</label>
+      <div class="row">
+        <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+               placeholder="123456" style="flex:.6;letter-spacing:6px;font-weight:700;text-align:center">
+        <button class="btn" id="btn-verify" style="max-width:180px">Vérifier</button>
+      </div>
+      <small style="margin-top:8px">Vous n'avez rien reçu ? <a href="#" id="resend" style="color:var(--iad-blue);font-weight:700;text-decoration:underline">Renvoyer un code</a> (vérifiez vos spams).</small>
+    </div>
+
     <div class="badge-ok" id="okBadge">✓ Adresse iad vérifiée — choisissez votre forfait ci-dessous.</div>
     <div class="err" id="gateErr"></div>
-    <small>Accès réservé aux adresses <strong>@iadfrance.fr</strong>. Elle sert à créer votre compte et n'est jamais partagée.</small>
+
+    <!-- Message « en attente de validation » -->
+    <div id="pendingMsg" style="display:none;margin-top:12px;padding:14px 16px;background:#fff7e6;
+         border:1px solid #ffe0a3;border-radius:12px;color:#7a5200;font-size:13.5px;font-weight:600;line-height:1.5">
+      ✓ Adresse vérifiée et compte créé. Votre accès est <strong>en attente de validation</strong> par
+      l'équipe de L'Atelier du Coworking. Vous recevrez un e-mail dès qu'il sera activé — vous pourrez alors
+      choisir votre forfait ici.
+    </div>
+
+    <small style="margin-top:12px">Accès réservé aux adresses <strong>@iadfrance.fr</strong>. Un code de
+    vérification vous est envoyé pour sécuriser la création de votre compte. Votre e-mail n'est jamais partagé.</small>
   </div>
 </div>
 
@@ -209,29 +236,95 @@
 <script>
 const API = '/api/coworking';
 const TEST_MODE = new URLSearchParams(location.search).get('test') === '1';
-const IAD_DOMAIN = '@iadfrance.fr';
 
-const emailEl = document.getElementById('email');
-const nameEl  = document.getElementById('name');
-const okBadge = document.getElementById('okBadge');
-const gateErr = document.getElementById('gateErr');
-const buttons = [...document.querySelectorAll('button[data-plan]')];
+const emailEl   = document.getElementById('email');
+const nameEl    = document.getElementById('name');
+const otpEl     = document.getElementById('otp');
+const okBadge   = document.getElementById('okBadge');
+const gateErr   = document.getElementById('gateErr');
+const pendingMsg= document.getElementById('pendingMsg');
+const stepReq   = document.getElementById('step-request');
+const stepVer   = document.getElementById('step-verify');
+const btnReq    = document.getElementById('btn-request');
+const btnVer    = document.getElementById('btn-verify');
+const resendEl  = document.getElementById('resend');
+const buttons   = [...document.querySelectorAll('button[data-plan]')];
+
+// État du parcours : 'none' → 'pending' (compte créé, attente admin) → 'validated' (peut acheter)
+let memberStatus = 'none';
 
 function isIadEmail(v){ return /^[^\s@]+@iadfrance\.fr$/i.test((v||'').trim()); }
+function showErr(msg){ gateErr.textContent = msg; gateErr.style.display = 'block'; }
+function hideErr(){ gateErr.style.display = 'none'; }
 
-function refreshGate(){
-  const ok = isIadEmail(emailEl.value);
-  // Les boutons restent TOUJOURS cliquables : la validation se fait au clic
-  // (sinon un clic sur un bouton grisé ne donne aucun retour à l'utilisateur).
-  okBadge.style.display = ok ? 'flex' : 'none';
-  if(!ok && emailEl.value.trim()){
-    gateErr.textContent = 'Une adresse @iadfrance.fr est requise pour accéder aux forfaits conseillers.';
-    gateErr.style.display = 'block';
-  } else { gateErr.style.display = 'none'; }
+// Les forfaits ne sont achetables qu'une fois le compte VALIDÉ par l'admin.
+function setPlansEnabled(on){
+  buttons.forEach(b => { b.disabled = !on; b.style.opacity = on ? '1' : '.45'; });
 }
-emailEl.addEventListener('input', refreshGate);
+setPlansEnabled(false);
 
-// Définition des forfaits → payload /api/checkout
+// --- Étape 1 : demander le code OTP ---
+async function requestOtp(){
+  const email = emailEl.value.trim().toLowerCase();
+  const name  = nameEl.value.trim();
+  hideErr(); pendingMsg.style.display = 'none'; okBadge.style.display = 'none';
+  if(!isIadEmail(email)){ showErr('Une adresse @iadfrance.fr est requise.'); emailEl.focus(); return; }
+  btnReq.disabled = true; const lbl = btnReq.textContent; btnReq.textContent = 'Envoi du code…';
+  try{
+    const r = await fetch(`${API}/iad/request-otp`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, name })
+    });
+    if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.detail || 'Envoi impossible'); }
+    stepReq.style.display = 'none';
+    stepVer.style.display = 'block';
+    otpEl.focus();
+  }catch(err){ showErr('Erreur : ' + err.message); btnReq.disabled = false; btnReq.textContent = lbl; }
+}
+
+// --- Étape 2 : vérifier le code → crée le compte (pending) ---
+async function verifyOtp(){
+  const email = emailEl.value.trim().toLowerCase();
+  const name  = nameEl.value.trim();
+  const code  = (otpEl.value || '').trim();
+  hideErr();
+  if(code.length !== 6){ showErr('Entrez le code à 6 chiffres reçu par e-mail.'); return; }
+  btnVer.disabled = true; const lbl = btnVer.textContent; btnVer.textContent = 'Vérification…';
+  try{
+    const r = await fetch(`${API}/iad/verify-otp`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ email, code, name })
+    });
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok){ throw new Error(data.detail || 'Code incorrect'); }
+    memberStatus = data.status || 'pending';
+    applyStatus();
+  }catch(err){ showErr('Erreur : ' + err.message); btnVer.disabled = false; btnVer.textContent = lbl; }
+}
+
+function applyStatus(){
+  if(memberStatus === 'validated'){
+    stepVer.style.display = 'none'; pendingMsg.style.display = 'none';
+    okBadge.style.display = 'flex';
+    setPlansEnabled(true);
+    document.querySelector('section.plans').scrollIntoView({behavior:'smooth'});
+  } else { // pending / rejected / none
+    stepVer.style.display = 'none';
+    okBadge.style.display = 'none';
+    setPlansEnabled(false);
+    pendingMsg.style.display = 'block';
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+}
+
+btnReq.addEventListener('click', requestOtp);
+btnVer.addEventListener('click', verifyOtp);
+resendEl.addEventListener('click', (e)=>{ e.preventDefault(); stepVer.style.display='none'; stepReq.style.display='block'; btnReq.disabled=false; btnReq.textContent='Recevoir mon code de vérification'; requestOtp(); });
+otpEl && otpEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); verifyOtp(); }});
+// Si on change d'e-mail après coup, on recommence le parcours.
+emailEl.addEventListener('input', ()=>{ memberStatus='none'; setPlansEnabled(false); stepReq.style.display='block'; stepVer.style.display='none'; okBadge.style.display='none'; pendingMsg.style.display='none'; btnReq.disabled=false; btnReq.textContent='Recevoir mon code de vérification'; });
+
+// --- Forfaits → session de paiement Stripe (uniquement si validé) ---
 function planPayload(plan, email, name){
   const base = { email, name, origin:'iad', testMode:TEST_MODE, returnPath:'/iad' };
   if(plan === 'full'){ const act = (document.getElementById('act-date')||{}).value || ''; return { ...base,
@@ -254,59 +347,41 @@ function planPayload(plan, email, name){
 async function choose(plan, btn){
   const email = emailEl.value.trim().toLowerCase();
   const name  = nameEl.value.trim();
-  if(!isIadEmail(email)){
-    // Email manquant/invalide : on remonte vers le champ avec un message clair.
-    gateErr.textContent = email
-      ? 'Cette adresse n’est pas une adresse @iadfrance.fr.'
-      : 'Renseignez d’abord votre e-mail @iadfrance.fr en haut de page pour choisir un forfait.';
-    gateErr.style.display = 'block';
+  if(memberStatus !== 'validated'){
+    showErr('Vérifiez d’abord votre e-mail iad (étape 1 et 2). Votre compte doit être validé par l’équipe avant de souscrire.');
     window.scrollTo({ top:0, behavior:'smooth' });
-    emailEl.focus();
     return;
   }
   const label = btn.textContent;
   btn.disabled = true; btn.textContent = 'Un instant…';
   try{
-    // 1) Verrou + onboarding conseiller iad
-    const reg = await fetch(`${API}/iad/register`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ email, name })
-    });
-    if(!reg.ok){ const e = await reg.json().catch(()=>({})); throw new Error(e.detail || e.error || 'Adresse iad refusée'); }
-
-    // 2) Création de la session de paiement Stripe
     const r = await fetch('/api/checkout', {
       method:'POST', headers:{'Content-Type':'application/json'},
       body: JSON.stringify(planPayload(plan, email, name))
     });
-    if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.error || 'Erreur de paiement'); }
+    if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.error || e.detail || 'Erreur de paiement'); }
     const data = await r.json();
     if(data.url){ window.location.href = data.url; }
     else throw new Error('URL Stripe manquante');
   }catch(err){
-    gateErr.textContent = 'Erreur : ' + err.message;
-    gateErr.style.display = 'block';
+    showErr('Erreur : ' + err.message);
     btn.disabled = false; btn.textContent = label;
     window.scrollTo({top:0, behavior:'smooth'});
   }
 }
-
 buttons.forEach(b => b.addEventListener('click', () => choose(b.dataset.plan, b)));
 
-// Message de retour Stripe
+// Retour Stripe
 (function(){
   const st = new URLSearchParams(location.search).get('status');
   if(st === 'success'){
     okBadge.textContent = '✓ Paiement confirmé — vous allez recevoir un e-mail de confirmation. Merci !';
-    okBadge.style.display = 'flex';
-    window.scrollTo({top:0});
+    okBadge.style.display = 'flex'; window.scrollTo({top:0});
   } else if(st === 'cancelled'){
-    gateErr.textContent = 'Paiement annulé. Vous pouvez réessayer quand vous voulez.';
-    gateErr.style.display = 'block';
+    showErr('Paiement annulé. Vous pouvez réessayer quand vous voulez.');
   }
 })();
 try{ document.getElementById('act-date').min = new Date().toISOString().slice(0,10); }catch(e){}
-refreshGate();
 </script>
 </body>
 </html>
