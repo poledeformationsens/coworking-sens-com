@@ -361,6 +361,11 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
       <div class="recap-row sep total"><span>Total TTC</span><span id="recap-price">34,80 €</span></div>
     </div>
 
+    <!-- Règle de calme — affichée uniquement pour le coworking (open space) -->
+    <div id="cowork-quiet" style="display:none;margin-top:12px;background:rgba(234,88,74,.12);border:1px solid rgba(234,88,74,.5);border-radius:6px;padding:14px 16px;font-size:13px;line-height:1.6;color:#fff">
+      📵 <strong>Merci de ne pas passer d'appel dans l'open space.</strong> Pour préserver le calme des bureaux privés, prenez vos appels dans l'<strong>espace pause portes fermées</strong>, ou dans la <strong>salle de réunion lorsqu'elle est libre</strong>.
+    </div>
+
     <!-- Option forfait (affichée si connecté + crédit disponible) -->
     <div id="pack-option" style="display:none"></div>
 
@@ -747,6 +752,9 @@ function updateRecap(){
   document.getElementById('recap-space').textContent = NAMES[selectedSpace];
   document.getElementById('recap-detail').textContent = detail + ' · ' + dateStr;
   document.getElementById('recap-price').textContent = fmt(computeCurrentPriceTTC());
+  // Règle de calme : uniquement pour l'open space coworking (bureaux privés & salle exclus)
+  const quiet = document.getElementById('cowork-quiet');
+  if(quiet) quiet.style.display = (selectedSpace === 'coworking') ? 'block' : 'none';
   refreshPackOption();
 }
 
