@@ -99,26 +99,34 @@
 
 <div class="wrap">
   <div class="gate">
-    <label for="email">1. Votre adresse e-mail professionnelle iad</label>
-    <div class="row">
-      <input id="email" type="email" placeholder="prenom.nom@iadfrance.fr" autocomplete="email" inputmode="email">
-      <input id="name" type="text" placeholder="Prénom Nom" autocomplete="name" style="flex:.8">
+    <!-- Barre « connecté » — visible quand un e-mail vérifié est mémorisé sur l'appareil -->
+    <div id="connected-bar" style="display:none;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:4px">
+      <div style="font-size:15px;color:#0a3d52;font-weight:700">Connecté : <span id="conn-email" style="color:var(--iad-blue)"></span></div>
+      <a href="#" id="logout" style="color:var(--grey);font-size:12.5px;text-decoration:underline">Changer d'e-mail</a>
     </div>
 
-    <!-- Étape 1 : demander le code -->
-    <div id="step-request" style="margin-top:14px">
-      <button class="btn" id="btn-request" style="max-width:280px">Recevoir mon code de vérification</button>
-    </div>
-
-    <!-- Étape 2 : saisir le code (masquée au départ) -->
-    <div id="step-verify" style="display:none;margin-top:16px">
-      <label for="otp">2. Code reçu par e-mail (6 chiffres)</label>
+    <div id="signup-block">
+      <label for="email">1. Votre adresse e-mail professionnelle iad</label>
       <div class="row">
-        <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
-               placeholder="123456" style="flex:.6;letter-spacing:6px;font-weight:700;text-align:center">
-        <button class="btn" id="btn-verify" style="max-width:180px">Vérifier</button>
+        <input id="email" type="email" placeholder="prenom.nom@iadfrance.fr" autocomplete="email" inputmode="email">
+        <input id="name" type="text" placeholder="Prénom Nom" autocomplete="name" style="flex:.8">
       </div>
-      <small style="margin-top:8px">Vous n'avez rien reçu ? <a href="#" id="resend" style="color:var(--iad-blue);font-weight:700;text-decoration:underline">Renvoyer un code</a> (vérifiez vos spams).</small>
+
+      <!-- Étape 1 : demander le code -->
+      <div id="step-request" style="margin-top:14px">
+        <button class="btn" id="btn-request" style="max-width:280px">Recevoir mon code de vérification</button>
+      </div>
+
+      <!-- Étape 2 : saisir le code (masquée au départ) -->
+      <div id="step-verify" style="display:none;margin-top:16px">
+        <label for="otp">2. Code reçu par e-mail (6 chiffres)</label>
+        <div class="row">
+          <input id="otp" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6"
+                 placeholder="123456" style="flex:.6;letter-spacing:6px;font-weight:700;text-align:center">
+          <button class="btn" id="btn-verify" style="max-width:180px">Vérifier</button>
+        </div>
+        <small style="margin-top:8px">Vous n'avez rien reçu ? <a href="#" id="resend" style="color:var(--iad-blue);font-weight:700;text-decoration:underline">Renvoyer un code</a> (vérifiez vos spams).</small>
+      </div>
     </div>
 
     <div class="badge-ok" id="okBadge">✓ Adresse iad vérifiée — choisissez votre forfait ci-dessous.</div>
@@ -132,7 +140,7 @@
       choisir votre forfait ici.
     </div>
 
-    <small style="margin-top:12px">Accès réservé aux adresses <strong>@iadfrance.fr</strong>. Un code de
+    <small id="signup-note" style="margin-top:12px">Accès réservé aux adresses <strong>@iadfrance.fr</strong>. Un code de
     vérification vous est envoyé pour sécuriser la création de votre compte. Votre e-mail n'est jamais partagé.</small>
   </div>
 </div>
@@ -250,9 +258,35 @@ const btnReq    = document.getElementById('btn-request');
 const btnVer    = document.getElementById('btn-verify');
 const resendEl  = document.getElementById('resend');
 const buttons   = [...document.querySelectorAll('button[data-plan]')];
+const connectedBar = document.getElementById('connected-bar');
+const connEmail = document.getElementById('conn-email');
+const logoutEl  = document.getElementById('logout');
+const signupBlock = document.getElementById('signup-block');
+const signupNote  = document.getElementById('signup-note');
 
 // État du parcours : 'none' → 'pending' (compte créé, attente admin) → 'validated' (peut acheter)
 let memberStatus = 'none';
+
+// Mémorisation : une fois l'e-mail vérifié par code, on le retient sur l'appareil.
+// Le conseiller n'a plus jamais à ressaisir e-mail + code : il est « connecté ».
+function showConnected(email){
+  connEmail.textContent = email;
+  connectedBar.style.display = 'flex';
+  signupBlock.style.display = 'none';
+  if(signupNote) signupNote.style.display = 'none';
+}
+function doLogout(){
+  try{ localStorage.removeItem('iad_email'); }catch(e){}
+  connectedBar.style.display = 'none';
+  signupBlock.style.display = '';
+  if(signupNote) signupNote.style.display = '';
+  emailEl.value = ''; nameEl.value = '';
+  memberStatus = 'none'; setPlansEnabled(false);
+  okBadge.style.display = 'none'; pendingMsg.style.display = 'none';
+  stepReq.style.display = 'block'; stepVer.style.display = 'none';
+  btnReq.disabled = false; btnReq.textContent = 'Recevoir mon code de vérification';
+  hideErr();
+}
 
 function isIadEmail(v){ return /^[^\s@]+@iadfrance\.fr$/i.test((v||'').trim()); }
 function showErr(msg){ gateErr.textContent = msg; gateErr.style.display = 'block'; }
@@ -304,6 +338,9 @@ async function verifyOtp(){
     });
     const data = await r.json().catch(()=>({}));
     if(!r.ok){ throw new Error(data.detail || 'Code incorrect'); }
+    // Vérifié : on mémorise l'e-mail → plus besoin de code aux visites suivantes.
+    try{ localStorage.setItem('iad_email', email); }catch(e){}
+    showConnected(email);
     memberStatus = data.status || 'pending';
     applyStatus();
   }catch(err){ showErr('Erreur : ' + err.message); btnVer.disabled = false; btnVer.textContent = lbl; }
@@ -335,9 +372,14 @@ function applyStatus(){
     stepReq.style.display='none'; stepVer.style.display='none'; okBadge.style.display='none';
     setPlansEnabled(false);
     pendingMsg.style.display='block';
-  } else { // none / rejected → 1re inscription : parcours par code
-    stepReq.style.display='block'; stepVer.style.display='none'; okBadge.style.display='none'; pendingMsg.style.display='none';
+  } else { // none / rejected
     setPlansEnabled(false);
+    if(localStorage.getItem('iad_email')){
+      // On était « connecté » mais le compte est introuvable/refusé → retour inscription propre.
+      doLogout();
+    } else {
+      stepReq.style.display='block'; stepVer.style.display='none'; okBadge.style.display='none'; pendingMsg.style.display='none';
+    }
   }
 }
 
@@ -345,6 +387,7 @@ btnReq.addEventListener('click', requestOtp);
 btnVer.addEventListener('click', verifyOtp);
 resendEl.addEventListener('click', (e)=>{ e.preventDefault(); stepVer.style.display='none'; stepReq.style.display='block'; btnReq.disabled=false; btnReq.textContent='Recevoir mon code de vérification'; requestOtp(); });
 otpEl && otpEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); verifyOtp(); }});
+logoutEl && logoutEl.addEventListener('click', (e)=>{ e.preventDefault(); doLogout(); emailEl.focus(); });
 
 // À la saisie de l'e-mail : on interroge le statut (débloque direct si validé).
 let statusTimer = null;
@@ -357,10 +400,11 @@ emailEl.addEventListener('input', ()=>{
   if(isIadEmail(emailEl.value)) statusTimer = setTimeout(()=>checkStatus(true), 450);
 });
 
-// Au chargement : pré-remplit le dernier e-mail vérifié et re-teste le statut.
+// Au chargement : si un e-mail vérifié est mémorisé, on affiche l'état « connecté »
+// et on re-teste le statut (débloque direct si validé, sinon « en attente »).
 try{
   const saved = localStorage.getItem('iad_email');
-  if(saved && !emailEl.value){ emailEl.value = saved; checkStatus(true); }
+  if(saved){ emailEl.value = saved; showConnected(saved); checkStatus(true); }
 }catch(e){}
 
 // --- Forfaits → session de paiement Stripe (uniquement si validé) ---
