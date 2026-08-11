@@ -1,5 +1,5 @@
 /* Atelier Coworking — service worker (PWA admin) */
-const CACHE = 'acw-admin-v1';
+const CACHE = 'acw-admin-v2';
 const SHELL = [
   '/admin-devis-dashboard.html',
   '/admin-hub.html',
