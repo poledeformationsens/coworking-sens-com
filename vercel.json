@@ -68,6 +68,14 @@
       "destination": "/admin-forfaits.html"
     },
     {
+      "source": "/admin-iad",
+      "destination": "/admin-iad.html"
+    },
+    {
+      "source": "/admin-iad/",
+      "destination": "/admin-iad.html"
+    },
+    {
       "source": "/admin-fermetures",
       "destination": "/admin-fermetures.html"
     },
