@@ -186,10 +186,10 @@
       <!-- ALC demi-journée -->
       <div class="card">
         <span class="tag">À la carte</span>
-        <h3>Demi-journée</h3>
+        <h3>Demi-journée de formation</h3>
         <div class="price">5 €<span> / demi-journée</span></div>
         <ul>
-          <li>Une matinée ou un après-midi de coworking</li>
+          <li>Accès à une <strong>demi-journée de formation</strong></li>
           <li>Sans abonnement, valable 3 mois</li>
           <li>Non plafonné : utilisez-les quand vous voulez</li>
         </ul>
@@ -206,10 +206,10 @@
       <!-- ALC journée -->
       <div class="card">
         <span class="tag">À la carte</span>
-        <h3>Journée complète</h3>
+        <h3>Journée de formation</h3>
         <div class="price">10 €<span> / journée</span></div>
         <ul>
-          <li>Une journée entière (8h–18h)</li>
+          <li>Accès à une <strong>journée entière de formation</strong> (8h–18h)</li>
           <li>Sans abonnement, valable 3 mois</li>
           <li>Non plafonné : utilisez-les quand vous voulez</li>
         </ul>
@@ -336,12 +336,12 @@ function planPayload(plan, email, name){
     purchaseType:'membership', amountTTC:60, membershipType:'reseau', membershipMonths:12,
     packLabel:'Adhésion Réseau agent iad' };
   if(plan === 'alc-half'){ const q = +document.getElementById('qty-half').value || 1; return { ...base,
-    purchaseType:'pack', pricingId:'iad-alc-half', packSpace:'coworking', packCreditType:'half-day',
-    packCredits:q, amountTTC:5*q, packLabel:'Coworking demi-journée (agent iad)',
+    purchaseType:'pack', pricingId:'iad-alc-half', packSpace:'formation', packCreditType:'half-day',
+    packCredits:q, amountTTC:5*q, packLabel:'Formation demi-journée (agent iad)',
     reference:'IAD-'+new Date().getFullYear()+'-'+(Math.floor(Math.random()*9000)+1000) }; }
   if(plan === 'alc-day'){ const q = +document.getElementById('qty-day').value || 1; return { ...base,
-    purchaseType:'pack', pricingId:'iad-alc-day', packSpace:'coworking', packCreditType:'day',
-    packCredits:q, amountTTC:10*q, packLabel:'Coworking journée (agent iad)',
+    purchaseType:'pack', pricingId:'iad-alc-day', packSpace:'formation', packCreditType:'day',
+    packCredits:q, amountTTC:10*q, packLabel:'Formation journée (agent iad)',
     reference:'IAD-'+new Date().getFullYear()+'-'+(Math.floor(Math.random()*9000)+1000) }; }
 }
 
