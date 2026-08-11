@@ -140,7 +140,7 @@
 <section class="plans">
   <div class="wrap">
     <h2>Choisissez votre formule</h2>
-    <p class="lead">Renseignez d'abord votre e-mail iad ci-dessus, puis sélectionnez un forfait. Le paiement est sécurisé par Stripe (carte ou prélèvement SEPA selon la formule).</p>
+    <p class="lead"><strong>1.</strong> Renseignez votre e-mail iad ci-dessus et cliquez « Recevoir mon code ». <strong>2.</strong> Saisissez le code reçu par e-mail. <strong>3.</strong> Une fois votre compte vérifié et validé, choisissez votre forfait. Paiement sécurisé par Stripe (carte ou prélèvement SEPA).</p>
 
     <div class="grid">
 
@@ -258,9 +258,15 @@ function isIadEmail(v){ return /^[^\s@]+@iadfrance\.fr$/i.test((v||'').trim()); 
 function showErr(msg){ gateErr.textContent = msg; gateErr.style.display = 'block'; }
 function hideErr(){ gateErr.style.display = 'none'; }
 
-// Les forfaits ne sont achetables qu'une fois le compte VALIDÉ par l'admin.
+// Les forfaits ne sont achetables qu'une fois le compte VÉRIFIÉ + VALIDÉ.
+// On garde les boutons CLIQUABLES même verrouillés : au clic, choose() renvoie
+// vers l'étape de vérification avec un message clair (sinon un bouton grisé
+// ne donne aucun retour et laisse l'utilisateur bloqué sans comprendre).
 function setPlansEnabled(on){
-  buttons.forEach(b => { b.disabled = !on; b.style.opacity = on ? '1' : '.45'; });
+  buttons.forEach(b => {
+    b.style.opacity = on ? '1' : '.6';
+    b.title = on ? '' : 'Vérifiez d’abord votre e-mail iad (étapes 1 et 2 en haut de page).';
+  });
 }
 setPlansEnabled(false);
 
@@ -303,18 +309,35 @@ async function verifyOtp(){
   }catch(err){ showErr('Erreur : ' + err.message); btnVer.disabled = false; btnVer.textContent = lbl; }
 }
 
+// Vérifie le statut serveur d'un e-mail iad SANS redemander de code.
+// C'est ce qui évite au conseiller déjà validé de refaire la vérification :
+// il tape son e-mail, et si son compte est validé, ses forfaits se débloquent.
+async function checkStatus(silent){
+  const email = emailEl.value.trim().toLowerCase();
+  if(!isIadEmail(email)) return;
+  try{
+    const r = await fetch(`${API}/iad/status?email=${encodeURIComponent(email)}`, {cache:'no-store'});
+    const data = await r.json().catch(()=>({status:'none'}));
+    memberStatus = data.status || 'none';
+  }catch(e){ if(!silent) showErr('Vérification impossible pour le moment.'); return; }
+  applyStatus();
+}
+
 function applyStatus(){
+  hideErr();
   if(memberStatus === 'validated'){
-    stepVer.style.display = 'none'; pendingMsg.style.display = 'none';
-    okBadge.style.display = 'flex';
+    // Débloqué : e-mail suffisant, on mémorise pour la prochaine fois.
+    stepReq.style.display='none'; stepVer.style.display='none'; pendingMsg.style.display='none';
+    okBadge.style.display='flex';
     setPlansEnabled(true);
-    document.querySelector('section.plans').scrollIntoView({behavior:'smooth'});
-  } else { // pending / rejected / none
-    stepVer.style.display = 'none';
-    okBadge.style.display = 'none';
+    try{ localStorage.setItem('iad_email', emailEl.value.trim().toLowerCase()); }catch(e){}
+  } else if(memberStatus === 'pending'){
+    stepReq.style.display='none'; stepVer.style.display='none'; okBadge.style.display='none';
     setPlansEnabled(false);
-    pendingMsg.style.display = 'block';
-    window.scrollTo({top:0, behavior:'smooth'});
+    pendingMsg.style.display='block';
+  } else { // none / rejected → 1re inscription : parcours par code
+    stepReq.style.display='block'; stepVer.style.display='none'; okBadge.style.display='none'; pendingMsg.style.display='none';
+    setPlansEnabled(false);
   }
 }
 
@@ -322,8 +345,23 @@ btnReq.addEventListener('click', requestOtp);
 btnVer.addEventListener('click', verifyOtp);
 resendEl.addEventListener('click', (e)=>{ e.preventDefault(); stepVer.style.display='none'; stepReq.style.display='block'; btnReq.disabled=false; btnReq.textContent='Recevoir mon code de vérification'; requestOtp(); });
 otpEl && otpEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); verifyOtp(); }});
-// Si on change d'e-mail après coup, on recommence le parcours.
-emailEl.addEventListener('input', ()=>{ memberStatus='none'; setPlansEnabled(false); stepReq.style.display='block'; stepVer.style.display='none'; okBadge.style.display='none'; pendingMsg.style.display='none'; btnReq.disabled=false; btnReq.textContent='Recevoir mon code de vérification'; });
+
+// À la saisie de l'e-mail : on interroge le statut (débloque direct si validé).
+let statusTimer = null;
+emailEl.addEventListener('input', ()=>{
+  memberStatus='none'; setPlansEnabled(false);
+  okBadge.style.display='none'; pendingMsg.style.display='none'; stepVer.style.display='none';
+  stepReq.style.display='block'; hideErr();
+  btnReq.disabled=false; btnReq.textContent='Recevoir mon code de vérification';
+  clearTimeout(statusTimer);
+  if(isIadEmail(emailEl.value)) statusTimer = setTimeout(()=>checkStatus(true), 450);
+});
+
+// Au chargement : pré-remplit le dernier e-mail vérifié et re-teste le statut.
+try{
+  const saved = localStorage.getItem('iad_email');
+  if(saved && !emailEl.value){ emailEl.value = saved; checkStatus(true); }
+}catch(e){}
 
 // --- Forfaits → session de paiement Stripe (uniquement si validé) ---
 function planPayload(plan, email, name){
@@ -349,7 +387,9 @@ async function choose(plan, btn){
   const email = emailEl.value.trim().toLowerCase();
   const name  = nameEl.value.trim();
   if(memberStatus !== 'validated'){
-    showErr('Vérifiez d’abord votre e-mail iad (étape 1 et 2). Votre compte doit être validé par l’équipe avant de souscrire.');
+    showErr(memberStatus === 'pending'
+      ? 'Votre compte est en attente de validation par l’équipe. Vous recevrez un e-mail dès qu’il sera actif.'
+      : 'Renseignez votre e-mail iad en haut de page pour débloquer les forfaits.');
     window.scrollTo({ top:0, behavior:'smooth' });
     return;
   }
