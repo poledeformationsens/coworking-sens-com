@@ -147,11 +147,12 @@
       <!-- FULL — forfait mis en avant : gélule corail (unique) -->
       <div class="card feature">
         <span class="tag">Le plus complet</span>
-        <h3>Forfait Full</h3>
+        <h3>Forfait Premium</h3>
         <div class="price">40 €<span> / mois</span></div>
         <ul>
           <li><strong>8 demi-journées</strong> de coworking par mois</li>
           <li>2 demi-journées maximum par semaine (non cumulables)</li>
+          <li><strong>Accès aux réunions, aux formations</strong> et aux réunions de partage</li>
           <li>Prélèvement mensuel automatique (carte ou SEPA)</li>
           <li><strong>Tu choisis ta date d'activation</strong> : prélevé seulement à partir de là</li>
           <li>Résiliable à tout moment</li>
@@ -330,7 +331,7 @@ function planPayload(plan, email, name){
   if(plan === 'full'){ const act = (document.getElementById('act-date')||{}).value || ''; return { ...base,
     purchaseType:'subscription', amountTTC:40, billingInterval:'month',
     packSpace:'coworking', packCreditType:'half-day', monthlyCredits:8,
-    packLabel:'Forfait Full agent iad', activationDate: act }; }
+    packLabel:'Forfait Premium agent iad', activationDate: act }; }
   if(plan === 'reseau') return { ...base,
     purchaseType:'membership', amountTTC:60, membershipType:'reseau', membershipMonths:12,
     packLabel:'Adhésion Réseau agent iad' };

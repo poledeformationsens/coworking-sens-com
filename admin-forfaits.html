@@ -145,13 +145,16 @@
   <!-- Forfaits agent iad — attribution manuelle (Réseau / Full / ALC) -->
   <div style="background:#fff;border:1px solid var(--light);border-radius:12px;padding:18px;margin-bottom:18px">
     <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif">🤝 Forfaits agent <span style="color:#00B4EC">iad</span></h3>
-    <p class="muted" style="margin:0 0 12px">Attribue manuellement un forfait à un conseiller — adhésion Réseau (mardi), Full mensuel, ou coworking à la carte. Tout est tagué « iad ».</p>
+    <p class="muted" style="margin:0 0 12px">Attribue manuellement un forfait à un conseiller — adhésion Réseau (mardi), Premium mensuel, ou coworking à la carte. Tout est tagué « iad ».</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:end">
       <div style="flex:2;min-width:220px"><label class="muted">Email conseiller</label><input id="r-email" type="email" placeholder="prenom.nom@iadfrance.fr" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
-      <div style="flex:1.6;min-width:190px"><label class="muted">Forfait</label>
+      <div style="flex:1.6;min-width:190px"><label class="muted" style="display:flex;align-items:center;gap:6px">Forfait
+        <span style="display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;border-radius:50%;background:#00B4EC;color:#fff;font-size:10px;font-weight:800;font-style:italic;cursor:help"
+              title="Premium (40 €/mois) : 8 demi-journées de coworking/mois (2/semaine max), + accès aux réunions, aux formations et aux réunions de partage.&#10;Réseau (60 €/an) : accès aux rendez-vous Réseau du mardi.&#10;À la carte : demi-journée ou journée de coworking, sans engagement.">i</span>
+      </label>
         <select id="r-formula" onchange="onFormulaChange()" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px">
           <option value="reseau">Réseau — 60 €/an (mardi)</option>
-          <option value="full">Full — 8 demi-journées/mois</option>
+          <option value="full">Premium — 8 demi-journées/mois + réunions & formations</option>
           <option value="alc-half">À la carte — demi-journée</option>
           <option value="alc-day">À la carte — journée</option>
         </select>
@@ -344,7 +347,7 @@ async function assignIad(){
     } else {
       const validity = parseInt(document.getElementById('r-validity').value||'3',10);
       const map = {
-        'full':     {credit_type:'half-day', label:'Forfait Full agent iad (offert)'},
+        'full':     {credit_type:'half-day', label:'Forfait Premium agent iad (offert)'},
         'alc-half': {credit_type:'half-day', label:'Coworking demi-journée (agent iad)'},
         'alc-day':  {credit_type:'day',      label:'Coworking journée (agent iad)'},
       }[f];
@@ -379,7 +382,7 @@ async function setReseau(action){
 }
 
 async function cancelSub(packId){
-  if(!confirm('Résilier cet abonnement Full ? Le conseiller garde le mois déjà payé, puis plus aucune échéance.')) return;
+  if(!confirm('Résilier cet abonnement Premium ? Le conseiller garde le mois déjà payé, puis plus aucune échéance.')) return;
   try{
     const r = await fetch(`${API_BASE}/admin/packs/${packId}/cancel-subscription`, {method:'POST', headers:HEADERS});
     if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
