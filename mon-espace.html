@@ -608,6 +608,10 @@
     <p style="color:#fff;opacity:.95;font-size:14px;margin:0 0 16px;line-height:1.6">Formule Premium (2 demi-journées de coworking/semaine), adhésion Réseau, salle de réunion à −50 % pour vos réunions d'équipe, et tarifs conseiller à la carte.</p>
     <a href="/iad" style="display:inline-block;background:#fff;color:#00B4EC;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:800;font-size:14px">Voir mes forfaits conseiller iad →</a>
   </div>
+  <div class="card" id="card-abos" style="display:none">
+    <h2>Mes abonnements</h2>
+    <div id="my-abos"></div>
+  </div>
   <div class="card">
     <h2>Mes forfaits actifs <span class="count" id="count-packs">0</span></h2>
     <div id="my-packs-list"><div class="empty-state">Chargement…</div></div>
@@ -1389,7 +1393,96 @@ async function loadPacks() {
     const catalog = cr.ok ? (await cr.json()).packs : [];
     renderMyPacks(packs);
     renderCatalog(catalog);
+    loadAbos();
   } catch (e) { console.warn('Chargement forfaits', e); }
+}
+
+// ── Abonnements en cours, et le bouton pour s'en défaire ────────────────────
+// Une reconduction tacite n'est acceptable que si le membre peut l'arrêter
+// seul : le bouton est donc ici, pas derrière un email à nous écrire.
+const LIB_PERIODE = { mois: 'par mois', an: 'par an' };
+
+function frDateISO(iso) {
+  if (!iso) return '';
+  try {
+    return new Date(iso + 'T00:00:00').toLocaleDateString('fr-FR',
+      { day: 'numeric', month: 'long', year: 'numeric' });
+  } catch (e) { return iso; }
+}
+
+async function loadAbos() {
+  try {
+    const r = await fetch(`${API_BASE}/client/abonnements`, { headers: authHeaders(), cache: 'no-store' });
+    renderAbos(r.ok ? (await r.json()).abonnements : []);
+  } catch (e) { console.warn('Chargement abonnements', e); }
+}
+
+function renderAbos(abos) {
+  const carte = document.getElementById('card-abos');
+  const el = document.getElementById('my-abos');
+  if (!carte || !el) return;
+  if (!abos || !abos.length) { carte.style.display = 'none'; return; }
+  carte.style.display = '';
+  el.innerHTML = abos.map(a => {
+    const fin = frDateISO(a.fin_periode);
+    let etat, action;
+    if (a.statut === 'sans_reconduction') {
+      etat = `<span style="color:var(--slate)">Aucun prélèvement prévu — vos droits s'arrêtent le <b>${fin}</b>.</span>`;
+      action = `<a class="btn btn-secondary" href="/iad" style="text-decoration:none">Renouveler</a>`;
+    } else if (a.resilie) {
+      etat = `<span style="color:#B45309">Résilié — vos droits restent ouverts jusqu'au <b>${fin}</b>, sans nouveau prélèvement.</span>`;
+      action = '';
+    } else if (a.en_pause) {
+      etat = `<span style="color:#B45309">En pause — aucun prélèvement. Reprise automatique le <b>${frDateISO(a.reprise_le)}</b>.</span>`;
+      action = `<button class="btn btn-secondary" onclick="reprendreAbo('${a.id}')">Reprendre maintenant</button>`;
+    } else {
+      etat = `<span style="color:var(--green,#2E7D52)">Actif — reconduction${fin ? ` le <b>${fin}</b>` : ''}.</span>`;
+      // La pause n'a de sens que sur le mensuel : sur une adhésion annuelle,
+      // il n'y a pas d'échéance à sauter.
+      const pause = a.formule === 'mensuel'
+        ? `<button class="btn btn-secondary" onclick="pauserAbo('${a.id}')">Mettre en pause</button> `
+        : '';
+      action = `${pause}<button class="btn btn-secondary" onclick="resilierAbo('${a.id}','${(a.libelle || '').replace(/'/g, '')}')">Je me désabonne</button>`;
+    }
+    return `<div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap;padding:14px 0;border-bottom:1px solid var(--light)">
+      <div style="flex:1 1 260px;min-width:0">
+        <div style="font-weight:700;font-size:15px">${a.libelle || ''} <span style="font-weight:500;color:var(--slate);font-size:13px">· ${LIB_PERIODE[a.periode] || ''}</span></div>
+        <div style="font-size:13.5px;margin-top:3px">${etat}</div>
+      </div>
+      <div>${action}</div>
+    </div>`;
+  }).join('');
+}
+
+async function abonnementAction(chemin, corps, succes) {
+  try {
+    const r = await fetch(`${API_BASE}/client/abonnements/${chemin}`, {
+      method: 'POST', headers: authHeaders(), body: JSON.stringify(corps),
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) throw new Error(d.detail || 'Erreur ' + r.status);
+    alert(succes(d));
+    loadPacks();
+  } catch (e) { alert('Erreur : ' + e.message); }
+}
+
+function resilierAbo(subId, libelle) {
+  if (!confirm(`Résilier « ${libelle} » ?\n\nVous ne serez plus prélevé. Vos droits restent ouverts jusqu'à la fin de la période déjà réglée — rien n'est perdu.`)) return;
+  abonnementAction('resilier', { subscription_id: subId },
+    d => `C'est fait. Vous ne serez plus prélevé, et vos droits restent ouverts jusqu'au ${frDateISO(d.fin_periode)}.`);
+}
+
+function pauserAbo(subId) {
+  const saisie = prompt("Mettre votre abonnement en pause pendant combien de mois ? (1, 2 ou 3)\n\nAucun prélèvement pendant la pause, et la reprise est automatique.\nAttention : vos crédits ne sont plus rechargés pendant ce temps.\nUne pause est possible une fois tous les douze mois.", "1");
+  if (saisie === null) return;
+  const mois = Math.max(1, Math.min(parseInt(saisie, 10) || 1, 3));
+  abonnementAction('pause', { subscription_id: subId, mois },
+    d => `C'est fait. Aucun prélèvement jusqu'à la reprise, prévue le ${frDateISO(d.reprise_le)}.`);
+}
+
+function reprendreAbo(subId) {
+  if (!confirm("Reprendre votre abonnement dès maintenant ?\n\nLes prélèvements et le rechargement de vos crédits redémarrent à la prochaine échéance.")) return;
+  abonnementAction('reprendre', { subscription_id: subId }, () => "Votre abonnement a repris.");
 }
 
 function renderMyPacks(packs) {
