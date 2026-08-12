@@ -172,15 +172,13 @@
     text-decoration: none;
   }
 
+  .tabs-wrap { position: sticky; top: 0; z-index: 10; background: white; }
   .tabs {
     background: white;
     border-bottom: 1px solid var(--light);
     padding: 0 16px;
     display: flex;
     gap: 0;
-    position: sticky;
-    top: 0;
-    z-index: 10;
     box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     /* Carrousel horizontal : tous les onglets accessibles par glissement (mobile / mode app) */
     flex-wrap: nowrap;
@@ -189,6 +187,16 @@
     scrollbar-width: none;          /* Firefox */
   }
   .tabs::-webkit-scrollbar { display: none; }  /* Safari / Chrome */
+  /* Indicateur « autres onglets à droite » (masqué quand on est au bout) */
+  .tabs-arrow {
+    position: absolute; top: 0; right: 0; height: 100%;
+    display: flex; align-items: center; justify-content: flex-end;
+    padding: 0 10px 0 34px; border: 0; cursor: pointer; z-index: 2;
+    color: var(--navy); font-size: 26px; font-weight: 700; line-height: 1;
+    background: linear-gradient(to right, rgba(255,255,255,0), #fff 55%);
+    animation: tabsNudge 1.6s ease-in-out infinite;
+  }
+  @keyframes tabsNudge { 0%,100%{ transform: translateX(0);} 50%{ transform: translateX(3px);} }
   .tab {
     background: none;
     border: 0;
@@ -555,7 +563,8 @@
   <p class="greeting" id="greeting">Bonjour</p>
 </div>
 
-<div class="tabs">
+<div class="tabs-wrap">
+<div class="tabs" id="tabsBar">
   <button class="tab active" data-tab="overview" onclick="switchTab('overview')">📋 Mes réservations</button>
   <button class="tab" data-tab="calendar" onclick="switchTab('calendar')">📅 Calendrier</button>
   <button class="tab" data-tab="packs" onclick="switchTab('packs')">🎟️ Mes forfaits</button>
@@ -564,6 +573,8 @@
   <button class="tab" onclick="location.href='/annuaire'">👥 Annuaire</button>
   <button class="tab" onclick="location.href='/evenements'">🎉 Événements</button>
   <button class="tab" id="admin-tab-link" style="display:none;color:#C9B584;font-weight:700;" onclick="location.href='/admin-calendar.html'">🛠️ Espace admin</button>
+</div>
+  <button class="tabs-arrow" id="tabsArrow" onclick="nudgeTabs()" aria-label="Voir les autres onglets">›</button>
 </div>
 
 <div class="container">
@@ -1713,6 +1724,16 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
     }catch(e){}
     location.reload();
   };
+
+  // Indicateur « autres onglets à droite » : flèche visible tant qu'on n'est pas au bout.
+  var tb=document.getElementById('tabsBar'), ar=document.getElementById('tabsArrow');
+  function updTabsArrow(){
+    if(!tb||!ar) return;
+    var atEnd = tb.scrollLeft + tb.clientWidth >= tb.scrollWidth - 4;
+    ar.style.display = (tb.scrollWidth > tb.clientWidth + 4 && !atEnd) ? 'flex' : 'none';
+  }
+  window.nudgeTabs=function(){ if(tb) tb.scrollBy({left: Math.max(tb.clientWidth*0.6, 150), behavior:'smooth'}); };
+  if(tb){ tb.addEventListener('scroll', updTabsArrow, {passive:true}); window.addEventListener('resize', updTabsArrow); setTimeout(updTabsArrow, 80); }
 })();
 </script>
 </body>

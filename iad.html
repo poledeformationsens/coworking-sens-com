@@ -91,6 +91,8 @@
 
 <header class="hero">
   <div class="wrap">
+    <a href="/mon-espace" onclick="if(history.length>1){history.back();return false;}"
+       style="display:inline-flex;align-items:center;gap:6px;color:#fff;text-decoration:none;font-weight:700;font-size:14px;background:rgba(255,255,255,.18);padding:8px 14px;border-radius:999px;margin-bottom:18px">← Retour à mon espace</a>
     <img class="logo" src="/logo-iad-blanc.png" alt="iad">
     <h1>Le coworking de Sens, au tarif conseiller iad.</h1>
     <p class="sub">Réservé aux conseillers en immobilier iad. Travaillez depuis L'Atelier du Coworking, retrouvez le Réseau chaque mardi, ou passez à la carte — à des conditions négociées pour le réseau.</p>
@@ -162,14 +164,9 @@
           <li>2 demi-journées maximum par semaine (non cumulables)</li>
           <li><strong>Accès aux réunions, aux formations</strong> et aux réunions de partage</li>
           <li>Prélèvement mensuel automatique (carte ou SEPA)</li>
-          <li><strong>Tu choisis ta date d'activation</strong> : prélevé seulement à partir de là</li>
+          <li>Crédité de vos 8 demi-journées dès la souscription</li>
           <li>Résiliable à tout moment</li>
         </ul>
-        <div style="margin:2px 0 14px">
-          <label for="act-date" style="display:block;font-size:13px;font-weight:600;color:#062a3a;margin-bottom:6px">Date d'activation de l'abonnement</label>
-          <input type="date" id="act-date" style="width:100%;padding:11px 12px;border:2px solid var(--card-border);border-radius:10px;font-family:inherit;font-size:15px;color:var(--ink)">
-          <div style="font-size:12px;color:var(--grey);margin-top:6px;line-height:1.5">Laisse vide pour démarrer aujourd'hui. Sinon tu signes le mandat SEPA maintenant, mais tu n'es <strong>prélevé et crédité de tes demi-journées qu'à cette date</strong>.</div>
-        </div>
         <div class="btnwrap">
           <button class="gelule" data-plan="full">Je m'abonne →</button>
           <div class="note">Sans engagement · SEPA ou carte</div>
@@ -410,10 +407,10 @@ try{
 // --- Forfaits → session de paiement Stripe (uniquement si validé) ---
 function planPayload(plan, email, name){
   const base = { email, name, origin:'iad', testMode:TEST_MODE, returnPath:'/iad' };
-  if(plan === 'full'){ const act = (document.getElementById('act-date')||{}).value || ''; return { ...base,
+  if(plan === 'full'){ return { ...base,
     purchaseType:'subscription', amountTTC:40, billingInterval:'month',
     packSpace:'coworking', packCreditType:'half-day', monthlyCredits:8,
-    packLabel:'Forfait Premium agent iad', activationDate: act }; }
+    packLabel:'Forfait Premium agent iad' }; }
   if(plan === 'reseau') return { ...base,
     purchaseType:'membership', amountTTC:60, membershipType:'reseau', membershipMonths:12,
     packLabel:'Adhésion Réseau agent iad' };
@@ -466,7 +463,6 @@ buttons.forEach(b => b.addEventListener('click', () => choose(b.dataset.plan, b)
     showErr('Paiement annulé. Vous pouvez réessayer quand vous voulez.');
   }
 })();
-try{ document.getElementById('act-date').min = new Date().toISOString().slice(0,10); }catch(e){}
 </script>
 </body>
 </html>
