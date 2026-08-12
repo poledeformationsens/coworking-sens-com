@@ -1630,6 +1630,9 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
 <!-- ============ Installer l'application (PWA) ============ -->
 <button id="pwa-install-btn" onclick="openInstallHelp()" style="display:none;position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:900;background:var(--navy);color:#fff;border:none;border-radius:999px;padding:12px 20px;font-family:'Inter',sans-serif;font-weight:700;font-size:13.5px;box-shadow:0 8px 24px rgba(3,35,77,.35);cursor:pointer">📲 Installer l'application</button>
 
+<!-- Recharger (obtenir la dernière version en cas de mise à jour) -->
+<button id="pwa-reload-btn" onclick="pwaForceReload(this)" title="Recharger pour obtenir la dernière version" style="position:fixed;right:14px;bottom:16px;z-index:900;background:#fff;color:var(--navy);border:1px solid var(--light);border-radius:999px;padding:10px 15px;font-family:'Inter',sans-serif;font-weight:700;font-size:13px;box-shadow:0 6px 18px rgba(3,35,77,.2);cursor:pointer">↻ Recharger</button>
+
 <div id="pwa-modal" class="modal-overlay" onclick="if(event.target===this)closeInstallHelp()">
   <div class="modal-card" style="max-width:440px">
     <div class="modal-head" style="background:linear-gradient(135deg,var(--navy),#06305f);color:#fff;padding:20px 24px;border-radius:16px 16px 0 0;position:relative">
@@ -1685,6 +1688,22 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
     if(!deferred){ return; }
     deferred.prompt();
     deferred.userChoice.finally(function(){ deferred=null; closeInstallHelp(); hideBtn(); });
+  };
+  // Force la récupération de la dernière version : met à jour le service worker,
+  // vide les caches (assets uniquement — la session reste en localStorage), puis recharge.
+  window.pwaForceReload=async function(btn){
+    try{ if(btn){ btn.textContent='↻ …'; btn.disabled=true; } }catch(e){}
+    try{
+      if('serviceWorker' in navigator){
+        const regs = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(regs.map(function(r){ return r.update().catch(function(){}); }));
+      }
+      if(window.caches){
+        const keys = await caches.keys();
+        await Promise.all(keys.map(function(k){ return caches.delete(k); }));
+      }
+    }catch(e){}
+    location.reload();
   };
 })();
 </script>
