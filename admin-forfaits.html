@@ -143,7 +143,28 @@
     </div>
   </div>
 
-  <!-- Forfaits agent iad — attribution manuelle (Réseau / Full / ALC) -->
+  <!-- Facturer un forfait (crédits immédiats + facture à régler plus tard) -->
+  <div style="background:#fff;border:1px solid var(--light);border-radius:12px;padding:18px;margin-bottom:18px">
+    <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif">🧾 Facturer un forfait <span class="muted" style="font-weight:400;font-size:13px">(à régler plus tard)</span></h3>
+    <p class="muted" style="margin:0 0 12px">Donne les crédits tout de suite <strong>ET</strong> émet une facture numérotée (à régler par virement), envoyée automatiquement au client par e-mail.</p>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+      <div><label class="muted">Email client</label><input id="f-email" type="email" placeholder="client@email.fr" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div><label class="muted">Nom (facultatif)</label><input id="f-name" type="text" placeholder="Prénom Nom" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div><label class="muted">Société (facultatif)</label><input id="f-company" type="text" placeholder="Société" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div><label class="muted">Espace</label><select id="f-space" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"><option value="coworking">Coworking</option><option value="bureau">Bureau</option><option value="salle-reunion">Salle de réunion</option></select></div>
+      <div><label class="muted">Type</label><select id="f-type" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"><option value="half-day">Demi-journées</option><option value="day">Journées</option></select></div>
+      <div><label class="muted">Crédits</label><input id="f-credits" type="number" min="1" value="10" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div><label class="muted">Montant TTC (€)</label><input id="f-amount" type="number" min="0" step="0.01" placeholder="132" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+      <div><label class="muted">Validité (mois, 0=∞)</label><input id="f-validity" type="number" min="0" value="3" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px"></div>
+    </div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+      <button class="btn" onclick="invoicePack()">Facturer &amp; envoyer</button>
+      <label class="muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="f-send" checked> Envoyer la facture par e-mail au client</label>
+      <span class="muted" id="f-msg"></span>
+    </div>
+  </div>
+
+  <!-- Forfaits agent iad — attribution manuelle (Réseau / Premium / ALC) -->
   <div style="background:#fff;border:1px solid var(--light);border-radius:12px;padding:18px;margin-bottom:18px">
     <h3 style="margin:0 0 4px;font-family:'Playfair Display',serif">🤝 Forfaits agent <span style="color:#00B4EC">iad</span></h3>
     <p class="muted" style="margin:0 0 12px">Attribue manuellement un forfait à un conseiller — adhésion Réseau (mardi), Premium mensuel, ou coworking à la carte. Tout est tagué « iad ».</p>
@@ -237,6 +258,32 @@ async function offerPack(){
     document.getElementById('filter-email').value = body.email;
     loadPacks();
     setTimeout(()=>msg.textContent='', 3000);
+  }catch(e){ msg.textContent='Erreur : '+e.message; }
+}
+
+async function invoicePack(){
+  const msg = document.getElementById('f-msg');
+  const body = {
+    email: document.getElementById('f-email').value.trim(),
+    name: document.getElementById('f-name').value.trim() || null,
+    company: document.getElementById('f-company').value.trim() || null,
+    space: document.getElementById('f-space').value,
+    credit_type: document.getElementById('f-type').value,
+    credits: parseInt(document.getElementById('f-credits').value||'0',10),
+    amount_ttc: parseFloat(document.getElementById('f-amount').value||'0'),
+    validity_months: parseInt(document.getElementById('f-validity').value||'3',10),
+    send_email: document.getElementById('f-send').checked,
+  };
+  if(!body.email.includes('@') || body.credits<=0 || !(body.amount_ttc>0)){ msg.textContent='Email, crédits et montant TTC requis.'; return; }
+  msg.textContent='Émission de la facture…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/packs/invoice`, {method:'POST', headers:HEADERS, body:JSON.stringify(body)});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    const d = await r.json();
+    msg.innerHTML = '✅ Facturé'+(d.invoice_number?(' — '+d.invoice_number):'')+' · <a href="'+d.pdf_url+'" target="_blank" style="color:var(--navy);font-weight:700">voir la facture</a>'+(body.send_email?' · e-mail envoyé':'');
+    document.getElementById('f-email').value=''; document.getElementById('f-name').value=''; document.getElementById('f-company').value=''; document.getElementById('f-amount').value='';
+    document.getElementById('filter-email').value = body.email;
+    loadPacks();
   }catch(e){ msg.textContent='Erreur : '+e.message; }
 }
 
