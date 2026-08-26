@@ -331,6 +331,9 @@ function render(packs){
     const cancelBtn = p.stripe_subscription_id
       ? `<button class="btn ghost" style="border-color:#EA584A;color:#EA584A" onclick='cancelSub(${JSON.stringify(p.id)})'>Résilier</button> `
       : '';
+    const invBtn = (p.invoice_number && p.stripe_session_id)
+      ? `<a class="btn ghost" href="/facture-forfait/${encodeURIComponent(p.stripe_session_id)}.pdf" target="_blank" title="Facture ${p.invoice_number}" style="text-decoration:none">📄 Facture</a> `
+      : '';
     return `<tr>
       <td>${p.customer_email}${testTag}</td>
       <td>${p.label||p.space}${iadBadge}${subBadge}<div class="muted">${p.space} · ${p.credit_type==='day'?'journée':'demi-journée'}</div></td>
@@ -338,7 +341,7 @@ function render(packs){
       <td>${fmtDate(p.expires_at)}</td>
       <td>${fmtMoney(p.amount_ttc)}</td>
       <td>${statusBadge}</td>
-      <td style="white-space:nowrap">${cancelBtn}<button class="btn ghost" onclick='openModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Ajuster</button></td>
+      <td style="white-space:nowrap">${invBtn}${cancelBtn}<button class="btn ghost" onclick='openModal(${JSON.stringify(p).replace(/'/g,"&#39;")})'>Ajuster</button></td>
     </tr>`;
   }).join('') + '</tbody></table>';
 }
