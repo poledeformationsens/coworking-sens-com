@@ -467,7 +467,7 @@
 <!-- Modal Nouveau Devis -->
 <div class="modal-bg" id="modal-new">
   <div class="modal">
-    <h2>Nouveau devis</h2>
+    <h2 id="modal-title">Nouveau devis</h2>
     <form id="form-new-devis" onsubmit="submitNewDevis(event)">
 
       <div class="modal-grid">
@@ -538,6 +538,19 @@
 
       <!-- Items -->
       <label>Lignes de prestation</label>
+
+      <div style="background:#EAF5FF;border:1px solid #CFE4FB;border-radius:6px;padding:11px 13px;margin-bottom:12px;">
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+          <button type="button" class="btn btn-primary" style="font-size:11px;padding:9px 16px;" onclick="applyAutoTarif()">⚡ Tarif automatique</button>
+          <span style="font-size:12px;color:var(--slate);">calcule le prix d'après l'<b>espace</b> et les <b>horaires</b> choisis ci-dessus.</span>
+          <label style="margin:0 0 0 auto;display:flex;align-items:center;gap:7px;font-size:12px;text-transform:none;letter-spacing:0;font-weight:600;color:var(--navy);white-space:nowrap;">
+            🎁 Heures offertes
+            <input type="number" name="offered_hours" min="0" step="0.5" value="0" style="width:66px" oninput="onOfferedHoursChange()">
+          </label>
+        </div>
+        <div id="auto-tarif-hint" style="margin-top:7px;font-size:12px;color:var(--slate);"></div>
+      </div>
+
       <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center;">
         <select id="pricing-picker" style="flex:1;padding:9px 12px;border:1px solid var(--light);border-radius:4px;font-size:13px;font-family:inherit;color:var(--navy);">
           <option value="">— Choisir un tarif du catalogue —</option>
@@ -583,7 +596,7 @@
 
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" onclick="closeNewDevisModal()">Annuler</button>
-        <button type="submit" class="btn btn-primary">Créer le devis (brouillon)</button>
+        <button type="submit" class="btn btn-primary" id="modal-submit-btn">Créer le devis (brouillon)</button>
       </div>
 
     </form>
@@ -815,6 +828,7 @@ function actionButtons(d) {
     case 'draft':
       return `
         <button class="btn btn-primary" onclick="sendDevis('${id}')">Envoyer</button>
+        <button class="btn btn-secondary" onclick="editDevis('${id}')" title="Modifier ce brouillon">✏️ Modifier</button>
         <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
         ${dupBtn} ${delBtn}
       `;
@@ -1002,11 +1016,86 @@ function syncQtyFromHours() {
   const dur = durationHours();
   if (dur <= 0) return;
   document.querySelectorAll('#items-tbody tr').forEach(tr => {
-    if (tr.dataset.slotType === 'hour') {
+    if (tr.dataset.slotType === 'hour' && tr.dataset.auto !== '1') {
       const qtyInput = tr.querySelector('input[name^="item_qty_"]');
       if (qtyInput) qtyInput.value = Math.round(dur * 10) / 10;  // arrondi à 0.1h
     }
   });
+  maybeAutoTarif();
+}
+
+// ---- Tarif automatique (espace + horaires) + heures offertes ----
+function fmtH(h) {
+  const whole = Math.floor(h);
+  const mins = Math.round((h - whole) * 60);
+  return mins ? `${whole}h${String(mins).padStart(2,'0')}` : `${whole}h`;
+}
+function spaceLabelFr(space) {
+  return {coworking:'Coworking', bureau:'Bureau privé', 'salle-reunion':'Salle de réunion', privatisation:'Privatisation'}[space] || space;
+}
+function hourlyTariffFor(space) {
+  return PRICING_CATALOG.find(p => p.space === space && p.slot_type === 'hour') || null;
+}
+function offeredHoursVal() {
+  const el = document.querySelector('input[name="offered_hours"]');
+  const v = el ? parseFloat(el.value) : 0;
+  return (isNaN(v) || v < 0) ? 0 : v;
+}
+function applyAutoTarif() {
+  const space = document.querySelector('select[name="space"]').value;
+  const hf = document.querySelector('input[name="hour_from"]').value;
+  const ht = document.querySelector('input[name="hour_to"]').value;
+  const hint = document.getElementById('auto-tarif-hint');
+  const setHint = (t) => { if (hint) hint.innerHTML = t; };
+  if (!space || !hf || !ht) { setHint('⚠️ Choisis d’abord l’espace, l’heure de début et l’heure de fin ci-dessus.'); return; }
+  const dur = durationHours();
+  if (dur <= 0) { setHint('⚠️ L’heure de fin doit être après l’heure de début.'); return; }
+  const t = hourlyTariffFor(space);
+  if (!t) { setHint('Aucun tarif horaire pour cet espace dans le catalogue — ajoute une ligne sur-mesure.'); return; }
+  const offered = Math.min(offeredHoursVal(), dur);
+  const billed = Math.round((dur - offered) * 10) / 10;
+  const pu = parseFloat(t.unit_price_ht);
+  let desc = `${spaceLabelFr(space)} — ${hf}→${ht} (${fmtH(dur)})`;
+  if (offered > 0) desc += ` · ${fmtH(offered)} offerte${offered > 1 ? 's' : ''} (facturé ${fmtH(billed)})`;
+  // Retire l'ancienne ligne auto
+  document.querySelectorAll('#items-tbody tr[data-auto="1"]').forEach(tr => tr.remove());
+  itemId++;
+  const tr = document.createElement('tr');
+  tr.dataset.id = itemId;
+  tr.dataset.auto = '1';
+  tr.dataset.slotType = 'hour';
+  tr.innerHTML = `
+    <td><input name="item_desc_${itemId}" value="${desc.replace(/"/g,'&quot;')}" required></td>
+    <td><input name="item_qty_${itemId}" type="number" min="0" step="0.5" value="${billed}" style="width:60px"></td>
+    <td><input name="item_pu_${itemId}" type="number" min="0" step="0.01" value="${pu}" required style="width:90px"></td>
+    <td>
+      <select name="item_tva_${itemId}">
+        <option value="20" ${t.tva_rate==20?'selected':''}>20%</option>
+        <option value="10" ${t.tva_rate==10?'selected':''}>10%</option>
+        <option value="5.5" ${t.tva_rate==5.5?'selected':''}>5,5%</option>
+        <option value="0" ${t.tva_rate==0?'selected':''}>0%</option>
+      </select>
+    </td>
+    <td><button type="button" class="btn btn-danger" style="padding:4px 10px" onclick="this.closest('tr').remove()">×</button></td>
+  `;
+  const tb = document.getElementById('items-tbody');
+  tb.insertBefore(tr, tb.firstChild);
+  const totalHT = billed * pu;
+  setHint(`✅ ${fmtH(billed)} × ${formatMoney(pu)} HT = <b>${formatMoney(totalHT)} HT</b>` + (offered > 0 ? ` &nbsp;·&nbsp; 🎁 ${fmtH(offered)} offerte${offered>1?'s':''}` : ''));
+}
+function onOfferedHoursChange() {
+  if (document.querySelector('#items-tbody tr[data-auto="1"]')) applyAutoTarif();
+}
+// Auto-applique le tarif si aucune ligne saisie, ou rafraîchit la ligne auto existante.
+function maybeAutoTarif() {
+  const hasAuto = document.querySelector('#items-tbody tr[data-auto="1"]');
+  const anyLine = document.querySelector('#items-tbody tr');
+  if (hasAuto || !anyLine) {
+    const space = document.querySelector('select[name="space"]').value;
+    const hf = document.querySelector('input[name="hour_from"]').value;
+    const ht = document.querySelector('input[name="hour_to"]').value;
+    if (space && hf && ht && durationHours() > 0) applyAutoTarif();
+  }
 }
 
 function addItemFromPricing() {
@@ -1091,6 +1180,7 @@ function updateUnitField() {
     star.style.display = 'none';
     select.required = false;
   }
+  maybeAutoTarif();
 }
 
 async function lookupClient(email) {
@@ -1127,6 +1217,11 @@ async function lookupClient(email) {
 
 function openNewDevisModal(prefillDate) {
   // Réinitialise entièrement le formulaire (sinon il garde le dernier devis saisi)
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Nouveau devis';
+  document.getElementById('modal-submit-btn').textContent = 'Créer le devis (brouillon)';
+  const autoHint = document.getElementById('auto-tarif-hint');
+  if (autoHint) autoHint.innerHTML = '';
   const form = document.getElementById('form-new-devis');
   if (form) form.reset();                       // vide tous les champs, restaure 30% / 7j
   document.getElementById('items-tbody').innerHTML = '';
@@ -1145,6 +1240,63 @@ function closeNewDevisModal() {
   document.getElementById('modal-new').classList.remove('open');
 }
 let itemId = 0;
+let editingId = null;
+
+// Reconstruit une ligne manuelle (utilisé pour l'édition d'un devis existant)
+function buildManualItemRow(desc, qty, pu, tva) {
+  itemId++;
+  const tr = document.createElement('tr');
+  tr.dataset.id = itemId;
+  tr.innerHTML = `
+    <td><input name="item_desc_${itemId}" value="${String(desc||'').replace(/"/g,'&quot;')}" required></td>
+    <td><input name="item_qty_${itemId}" type="number" min="0" step="0.5" value="${qty}" style="width:60px"></td>
+    <td><input name="item_pu_${itemId}" type="number" min="0" step="0.01" value="${pu}" required style="width:90px"></td>
+    <td>
+      <select name="item_tva_${itemId}">
+        <option value="20" ${tva==20?'selected':''}>20%</option>
+        <option value="10" ${tva==10?'selected':''}>10%</option>
+        <option value="5.5" ${tva==5.5?'selected':''}>5,5%</option>
+        <option value="0" ${tva==0?'selected':''}>0%</option>
+      </select>
+    </td>
+    <td><button type="button" class="btn btn-danger" style="padding:4px 10px" onclick="this.closest('tr').remove()">×</button></td>
+  `;
+  document.getElementById('items-tbody').appendChild(tr);
+}
+
+// Ouvre le modal en mode ÉDITION, pré-rempli depuis un devis brouillon
+function editDevis(id) {
+  const d = allDevis.find(x => String(x.id) === String(id));
+  if (!d) { alert('Devis introuvable'); return; }
+  if (d.devis_status !== 'draft') { alert('Seuls les brouillons sont modifiables. Duplique le devis pour repartir d’un brouillon.'); return; }
+  openNewDevisModal();                         // reset propre
+  editingId = id;
+  document.getElementById('modal-title').textContent = `Modifier ${d.devis_reference || 'le devis'}`;
+  document.getElementById('modal-submit-btn').textContent = 'Enregistrer les modifications';
+  const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.value = (val == null ? '' : val); };
+  set('input[name="client_name"]', d.name);
+  set('input[name="client_email"]', d.email);
+  set('input[name="client_phone"]', d.phone);
+  const typeSel = document.querySelector('select[name="client_type"]');
+  if (typeSel) { typeSel.value = d.client_type || 'perso'; typeSel.dispatchEvent(new Event('change')); }
+  set('input[name="company"]', d.company);
+  set('input[name="company_siret"]', d.company_siret);
+  set('input[name="company_address"]', d.company_address);
+  set('input[name="date"]', d.date);
+  const spaceSel = document.querySelector('select[name="space"]');
+  if (spaceSel) { spaceSel.value = d.space || 'coworking'; updateUnitField(); }
+  set('input[name="hour_from"]', d.hour_from);
+  set('input[name="hour_to"]', d.hour_to);
+  if (d.space_unit) set('select[name="space_unit"]', d.space_unit);
+  // Acompte % reconstruit depuis les montants
+  if (d.amount_total_ttc && d.amount_total_ttc > 0) {
+    set('input[name="acompte_ratio"]', Math.round((d.amount_acompte_ttc || 0) / d.amount_total_ttc * 100));
+  }
+  // Lignes existantes (en manuel, pour ne pas être écrasées par le tarif auto)
+  document.getElementById('items-tbody').innerHTML = '';
+  (d.items_json || []).forEach(it => buildManualItemRow(it.description, it.quantity, it.unit_price_ht, it.tva_rate));
+}
+
 function addItem() {
   itemId++;
   const tr = document.createElement('tr');
@@ -1201,6 +1353,13 @@ async function submitNewDevis(e) {
     });
   });
 
+  // Garde-fou : montant à 0 € (ligne oubliée ou mal saisie)
+  const totalHT = items.reduce((s, it) => s + (it.unit_price_ht || 0) * (it.quantity || 0), 0);
+  if (items.length === 0 || totalHT === 0) {
+    const ok = confirm('⚠️ Le montant du devis est à 0 €.\n\nAstuce : clique sur « ⚡ Tarif automatique » pour calculer le prix selon l’espace et les horaires.\n\nContinuer quand même avec un devis à 0 € ?');
+    if (!ok) return;
+  }
+
   const body = {
     client_name: fd.get('client_name'),
     client_email: fd.get('client_email'),
@@ -1222,7 +1381,12 @@ async function submitNewDevis(e) {
     test_mode: isTestMode(),
   };
 
-  await callApi('/devis', 'POST', body);
+  if (editingId) {
+    await callApi(`/devis/${editingId}`, 'PATCH', body);
+  } else {
+    await callApi('/devis', 'POST', body);
+  }
+  editingId = null;
   closeNewDevisModal();
   loadDevis();
 }
