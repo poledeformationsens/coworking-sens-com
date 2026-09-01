@@ -396,7 +396,11 @@ async function delEvent(id){
   }catch(e){ alert('Erreur : '+e.message); }
 }
 
+let _regEventId=null, _regEventTitle='';
+function money(v){ const n=Number(v||0); return n.toLocaleString('fr-FR',{style:'currency',currency:'EUR'}); }
+
 async function showRegs(id, title){
+  _regEventId=id; _regEventTitle=title;
   const card=document.getElementById('reg-card'), list=document.getElementById('reg-list');
   document.getElementById('reg-title').textContent=title;
   card.style.display='block'; list.innerHTML='Chargement…';
@@ -406,9 +410,45 @@ async function showRegs(id, title){
     const d = await r.json();
     const rows = d.registrations||[];
     if(!rows.length){ list.innerHTML='<div class="empty">Aucun inscrit.</div>'; return; }
-    list.innerHTML = `<p class="muted">${rows.length} inscrit(s)</p><table><thead><tr><th>Nom</th><th>Email</th><th>Inscrit le</th></tr></thead><tbody>`+
-      rows.map(x=>`<tr><td>${esc(x.name)||'—'}</td><td>${esc(x.customer_email)}</td><td class="muted">${x.created_at?new Date(x.created_at).toLocaleDateString('fr-FR'):''}</td></tr>`).join('')+'</tbody></table>';
+    list.innerHTML = `<p class="muted">${rows.length} inscrit(s)</p>`+
+      `<table><thead><tr><th>Nom</th><th>Email</th><th>Paiement</th><th>Inscrit le</th><th></th></tr></thead><tbody>`+
+      rows.map(x=>{
+        let pay;
+        if(x.refunded){ pay='<span style="color:#B4232A">Remboursé</span>'; }
+        else if(x.paid){ pay=`<b>${money(x.amount_ttc)}</b> payé`; }
+        else { pay='<span class="muted">Gratuit</span>'; }
+        const canRefund = x.paid && !x.refunded && x.stripe_session_id;
+        const refundBtn = canRefund
+          ? `<button class="btn ghost" style="color:#B4232A;border-color:#E4B4B4" onclick='refundReg(${x.id}, ${JSON.stringify(x.name||x.customer_email)}, ${Number(x.amount_ttc||0)})'>💸 Rembourser</button>`
+          : '';
+        const cancelBtn = `<button class="btn ghost" onclick='cancelReg(${x.id}, ${JSON.stringify(x.name||x.customer_email)}, ${x.paid?1:0}, ${x.refunded?1:0})'>✕ Annuler</button>`;
+        return `<tr><td>${esc(x.name)||'—'}</td><td>${esc(x.customer_email)}</td><td>${pay}</td>`+
+               `<td class="muted">${x.created_at?new Date(x.created_at).toLocaleDateString('fr-FR'):''}</td>`+
+               `<td style="white-space:nowrap;text-align:right">${refundBtn} ${cancelBtn}</td></tr>`;
+      }).join('')+'</tbody></table>';
   }catch(e){ list.innerHTML='<div class="empty">Erreur : '+e.message+'</div>'; }
+}
+
+async function refundReg(regId, who, amount){
+  if(!confirm(`Rembourser ${money(amount)} à ${who} ?\n\nLe remboursement Stripe est immédiat (recrédité sous quelques jours) et le participant sera prévenu par email.`)) return;
+  try{
+    const r = await fetch(`${API_BASE}/admin/events/${_regEventId}/registrations/${regId}/refund?notify=true`, {method:'POST', headers:HEADERS});
+    if(!r.ok){ const t=await r.text(); alert('Erreur : '+t); return; }
+    alert('✅ Remboursement effectué.');
+    showRegs(_regEventId, _regEventTitle); load();
+  }catch(e){ alert('Erreur : '+e.message); }
+}
+
+async function cancelReg(regId, who, paid, refunded){
+  let msg = `Annuler l'inscription de ${who} ? La place sera libérée et le participant prévenu par email.`;
+  if(paid && !refunded){ msg += `\n\n⚠️ Cette inscription a été PAYÉE et n'est pas remboursée. Pense à cliquer « Rembourser » AVANT d'annuler si tu veux le rembourser.`; }
+  if(!confirm(msg)) return;
+  try{
+    const r = await fetch(`${API_BASE}/admin/events/${_regEventId}/registrations/${regId}?notify=true`, {method:'DELETE', headers:HEADERS});
+    if(!r.ok){ const t=await r.text(); alert('Erreur : '+t); return; }
+    alert('✅ Inscription annulée, place libérée.');
+    showRegs(_regEventId, _regEventTitle); load();
+  }catch(e){ alert('Erreur : '+e.message); }
 }
 
 // ===== Partage d'un événement (WhatsApp / Email / QR) =====
