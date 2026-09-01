@@ -263,6 +263,7 @@ const signupNote  = document.getElementById('signup-note');
 
 // État du parcours : 'none' → 'pending' (compte créé, attente admin) → 'validated' (peut acheter)
 let memberStatus = 'none';
+let hasPremium = false;
 
 // Mémorisation : une fois l'e-mail vérifié par code, on le retient sur l'appareil.
 // Le conseiller n'a plus jamais à ressaisir e-mail + code : il est « connecté ».
@@ -353,8 +354,22 @@ async function checkStatus(silent){
     const r = await fetch(`${API}/iad/status?email=${encodeURIComponent(email)}`, {cache:'no-store'});
     const data = await r.json().catch(()=>({status:'none'}));
     memberStatus = data.status || 'none';
+    hasPremium = !!data.has_premium;
   }catch(e){ if(!silent) showErr('Vérification impossible pour le moment.'); return; }
   applyStatus();
+  applyPremiumFormation();
+}
+
+// Formation gratuite pour les abonnés Premium : bascule les cartes à la carte en "offert".
+function applyPremiumFormation(){
+  document.querySelectorAll('[data-plan="alc-half"],[data-plan="alc-day"]').forEach(btn=>{
+    if(hasPremium && memberStatus==='validated'){
+      if(!btn.dataset.origLabel) btn.dataset.origLabel = btn.textContent;
+      btn.textContent = 'Réserver (offert Premium) →';
+    } else if(btn.dataset.origLabel){
+      btn.textContent = btn.dataset.origLabel;
+    }
+  });
 }
 
 function applyStatus(){
@@ -436,6 +451,29 @@ async function choose(plan, btn){
   }
   const label = btn.textContent;
   btn.disabled = true; btn.textContent = 'Un instant…';
+
+  // Formation à la carte + abonné Premium → gratuite (aucun paiement, aucun ticket)
+  if((plan === 'alc-half' || plan === 'alc-day') && hasPremium){
+    try{
+      const ctype = plan === 'alc-day' ? 'day' : 'half-day';
+      const qty = +document.getElementById(plan === 'alc-day' ? 'qty-day' : 'qty-half').value || 1;
+      const r = await fetch(`${API}/iad/formation-claim`, {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ email, plan_type: ctype, quantity: qty, test_mode: TEST_MODE })
+      });
+      if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.detail || 'Attribution impossible'); }
+      const d = await r.json();
+      okBadge.textContent = '✓ ' + (d.message || 'Formation créditée gratuitement (Premium).');
+      okBadge.style.display = 'flex'; window.scrollTo({top:0, behavior:'smooth'});
+      btn.disabled = false; btn.textContent = label;
+    }catch(err){
+      showErr('Erreur : ' + err.message);
+      btn.disabled = false; btn.textContent = label;
+      window.scrollTo({top:0, behavior:'smooth'});
+    }
+    return;
+  }
+
   try{
     const r = await fetch('/api/checkout', {
       method:'POST', headers:{'Content-Type':'application/json'},

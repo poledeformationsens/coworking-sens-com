@@ -130,7 +130,17 @@ async function register(){
   const isPaid = CUR_EVENT && Number(CUR_EVENT.price_ttc||0) > 0;
   // ── Événement payant : redirection vers Stripe ──
   if(isPaid){
-    btn.disabled=true; btn.textContent='Redirection vers le paiement…';
+    btn.disabled=true; btn.textContent='Vérification…';
+    // Formation : gratuite pour un abonné Premium → on tente l'inscription directe.
+    // Le backend renvoie 402 si la personne n'est pas éligible → on bascule sur Stripe.
+    try{
+      const rf=await fetch(`${API}/events/${EID}/register-public`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
+      if(rf.ok){
+        document.getElementById('form').innerHTML='<div class="msg ok" style="display:block">✅ Inscription confirmée (offerte — abonné Premium) ! Vous allez recevoir un email de confirmation.</div>';
+        return;
+      }
+    }catch(e){}
+    btn.textContent='Redirection vers le paiement…';
     try{
       const res=await fetch('/api/checkout',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
         purchaseType:'event', eventId:EID, eventTitle:CUR_EVENT.title,
