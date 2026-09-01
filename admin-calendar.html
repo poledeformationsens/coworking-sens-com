@@ -390,6 +390,14 @@
         <label style="display:flex;gap:6px;align-items:center;"><input id="c-pin" type="checkbox" checked> Générer un PIN</label>
         <label style="display:flex;gap:6px;align-items:center;"><input id="c-mail" type="checkbox" checked> Envoyer l'email</label>
       </div>
+      <div id="c-tickets-wrap" style="display:none;grid-column:1/3;background:#EAF5FF;border:1px solid #CFE4FB;border-radius:6px;padding:9px 11px;">
+        <label style="font-size:12px;color:var(--navy);font-weight:600">🎟️ Tickets iad à débiter (salle)</label>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:4px;">
+          <input id="c-tickets" type="number" min="0" step="1" value="0" style="width:90px;padding:8px;border:1px solid var(--light);border-radius:6px;">
+          <span id="c-wallet" style="font-size:12px;color:var(--slate)">—</span>
+        </div>
+        <div style="font-size:11px;color:var(--slate);margin-top:4px;">Demi-journée = 8 tickets (40 €) · Journée = 16 tickets (80 €). Le <b>Montant TTC</b> ci-dessus = ce que tu factures en plus (0 € = offert).</div>
+      </div>
     </div>
     <div id="c-error" style="color:#C0392B;font-size:13px;display:none;margin-top:6px;"></div>
     <div class="modal-footer">
@@ -678,17 +686,22 @@ async function loadAccess(resaId){
     const waLabel = waPhone ? '💬 WhatsApp' : '💬 WhatsApp (choisir le contact)';
     if(el) el.innerHTML =
       `${comment}<div class="field"><label>Code d'accès Igloohome</label>${pin}</div>
+       <div class="field" style="margin-top:8px"><label>Envoyer la confirmation à <span style="color:#999;font-weight:400">(vide = e-mail du client)</span></label>
+         <input id="resend-email" type="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="autre-email@exemple.fr" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-         <button class="btn btn-secondary" onclick="resendCodesEmail('${resaId}', this)">📧 Renvoyer par email</button>
+         <button class="btn btn-secondary" onclick="resendCodesEmail('${resaId}', this)">📧 Renvoyer la confirmation</button>
          <a class="btn btn-secondary" style="text-decoration:none" href="${waUrl}" target="_blank" rel="noopener">${waLabel}</a>
        </div>`;
   }catch(e){ if(el) el.innerHTML = '<div class="field" style="color:#c0392b">Codes indisponibles : '+e.message+'</div>'; }
 }
 
 async function resendCodesEmail(resaId, btn){
+  const emailEl = document.getElementById('resend-email');
+  const custom = emailEl ? emailEl.value.trim() : '';
   const old = btn.textContent; btn.disabled = true; btn.textContent = 'Envoi…';
   try{
-    const r = await fetch(`${API_BASE}/admin/reservations/${resaId}/resend-email`, {method:'POST', headers: HEADERS});
+    const url = `${API_BASE}/admin/reservations/${resaId}/resend-email` + (custom ? ('?email=' + encodeURIComponent(custom)) : '');
+    const r = await fetch(url, {method:'POST', headers: HEADERS});
     if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.detail || 'Erreur'); }
     const d = await r.json();
     btn.textContent = '✅ Envoyé à ' + (d.email || 'client');
@@ -863,9 +876,34 @@ function openCreateModal(date, hf, ht) {
   document.getElementById('c-amount').value = '0';
   document.getElementById('c-pin').checked = true;
   document.getElementById('c-mail').checked = true;
+  document.getElementById('c-tickets').value = '0';
   document.getElementById('c-error').style.display = 'none';
+  cSalleToggle();
   document.getElementById('modal-create').classList.add('open');
 }
+
+// Affiche le champ tickets pour la salle + charge le portefeuille du conseiller
+async function cSalleToggle() {
+  const isSalle = document.getElementById('c-space').value === 'salle-reunion';
+  const wrap = document.getElementById('c-tickets-wrap');
+  if (wrap) wrap.style.display = isSalle ? 'block' : 'none';
+  if (!isSalle) return;
+  const email = (document.getElementById('c-email').value || '').trim();
+  const wEl = document.getElementById('c-wallet');
+  if (!email.includes('@')) { wEl.textContent = 'Saisis l\'email du conseiller pour voir ses tickets.'; return; }
+  wEl.textContent = 'Chargement du portefeuille…';
+  try {
+    const r = await fetch(`${API_BASE}/admin/iad/salle-quote?email=${encodeURIComponent(email)}&test_mode=${isTestMode()}`, { headers: HEADERS, cache: 'no-store' });
+    if (!r.ok) { wEl.textContent = ''; return; }
+    const d = await r.json();
+    if (!d.is_iad_validated) { wEl.textContent = '⚠️ Cet email n\'est pas un conseiller iad validé.'; return; }
+    wEl.innerHTML = `Portefeuille : <b>${d.wallet_tickets} ticket(s)</b> · demi-journée = 8, journée = 16.`;
+  } catch (e) { wEl.textContent = ''; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const sp = document.getElementById('c-space'); if (sp) sp.addEventListener('change', cSalleToggle);
+  const em = document.getElementById('c-email'); if (em) em.addEventListener('blur', cSalleToggle);
+});
 
 function closeCreateModal() {
   document.getElementById('modal-create').classList.remove('open');
@@ -888,6 +926,9 @@ async function submitCreate() {
     send_email: document.getElementById('c-mail').checked,
     test_mode: isTestMode(),
   };
+  if (document.getElementById('c-space').value === 'salle-reunion') {
+    body.iad_debit_tickets = parseInt(document.getElementById('c-tickets').value || '0', 10) || 0;
+  }
   if (!prenom || !nom || !body.email.includes('@')) { err.textContent = 'Prénom, nom et email valides requis.'; err.style.display = 'block'; return; }
   const btn = document.getElementById('c-submit'); const orig = btn.textContent;
   btn.disabled = true; btn.textContent = 'Création…';

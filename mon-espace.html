@@ -624,7 +624,7 @@
   <!-- Bannière conseillers iad — affichée UNIQUEMENT pour les adresses @iadfrance.fr -->
   <div id="iad-banner" class="card" style="display:none;background:#00B4EC;color:#fff;border:none">
     <h2 style="color:#fff;margin-bottom:6px">Conseiller iad ? Vos forfaits dédiés vous attendent</h2>
-    <p style="color:#fff;opacity:.95;font-size:14px;margin:0 0 16px;line-height:1.6">Formule Premium (2 demi-journées de coworking/semaine), adhésion Réseau, salle de réunion à −50 % pour vos réunions d'équipe, et tarifs conseiller à la carte.</p>
+    <p style="color:#fff;opacity:.95;font-size:14px;margin:0 0 16px;line-height:1.6">Formule Premium (2 demi-journées de coworking/semaine), adhésion Réseau, salle de réunion réglée avec vos tickets (8 tickets la demi-journée) pour vos réunions d'équipe, et tarifs conseiller à la carte.</p>
     <a href="/iad" style="display:inline-block;background:#fff;color:#00B4EC;text-decoration:none;padding:12px 22px;border-radius:10px;font-weight:800;font-size:14px">Voir mes forfaits conseiller iad →</a>
   </div>
   <div class="card">
@@ -884,6 +884,7 @@
       </div>
       <div class="modal-actions">
         <button type="button" class="btn-ticket" id="bk-btn-ticket" onclick="bookWithTicket()" style="display:none;">Réserver avec un ticket (−1 crédit) →</button>
+        <button type="button" class="btn-ticket" id="bk-btn-salle" onclick="bookSalleIad()" style="display:none;">Réserver la salle →</button>
         <button type="button" class="btn-pay-online" id="bk-btn-pay" onclick="bookAndPay()" disabled>Réserver &amp; payer en ligne →</button>
       </div>
       <p class="modal-note" id="bk-ticket-note"></p>
@@ -1191,6 +1192,78 @@ let CAL = null;
 let MY_PACKS = [];
 let bk = { date:null, space:null, slot:null };
 let bkAvail = {};
+let IS_IAD_VALIDATED = false;   // conseiller iad validé → salle réglée en tickets
+let SALLE_QUOTE = null;
+
+async function checkIadStatus(){
+  IS_IAD_VALIDATED = false;
+  const em = ((SESSION && SESSION.email) || CUSTOMER_EMAIL || '').toLowerCase();
+  if(!em.endsWith('@iadfrance.fr')) return;
+  try{
+    const r = await fetch(`${API_BASE}/iad/status?email=${encodeURIComponent(em)}`);
+    if(r.ok){ const d = await r.json(); IS_IAD_VALIDATED = (d.status === 'validated'); }
+  }catch(e){}
+}
+
+async function bkSalleQuote(){
+  const fmt = a => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(a);
+  const priceEl = document.getElementById('bk-price');
+  const noteEl = document.getElementById('bk-ticket-note');
+  const salleBtn = document.getElementById('bk-btn-salle');
+  const availEl = document.getElementById('bk-avail');
+  SALLE_QUOTE = null;
+  salleBtn.style.display='block'; salleBtn.disabled=true; salleBtn.textContent='Calcul du tarif…';
+  try{
+    const u = `${API_BASE}/iad/salle-quote?slot=${bk.slot}&date=${bk.date}&test_mode=${C_TEST_MODE}`;
+    const r = await fetch(u, { headers: authHeaders(), cache:'no-store' });
+    if(!r.ok){ throw new Error((await r.json().catch(()=>({}))).detail || 'Devis indisponible'); }
+    const q = await r.json(); SALLE_QUOTE = q;
+    priceEl.textContent = `${fmt(q.price_ttc)} (${q.needed_tickets} tickets)`;
+    if(!q.available){
+      availEl.className='avail-line avail-ko';
+      availEl.textContent='✗ '+(q.reason || 'Salle indisponible sur ce créneau');
+      salleBtn.style.display='none'; noteEl.textContent=''; return;
+    }
+    let note, label;
+    if(q.cash_due_ttc <= 0){
+      note = `Réglé avec ${q.tickets_used} de vos ${q.wallet_tickets} tickets. Aucun paiement.`;
+      label = `Réserver la salle (${q.tickets_used} tickets) →`;
+    } else {
+      note = `Vous avez ${q.wallet_tickets} ticket${q.wallet_tickets>1?'s':''} : ${q.tickets_used} utilisé${q.tickets_used>1?'s':''} + ${fmt(q.cash_due_ttc)} d'appoint à régler par carte.`;
+      label = `Réserver (${q.tickets_used} tickets + ${fmt(q.cash_due_ttc)}) →`;
+    }
+    noteEl.textContent = note;
+    salleBtn.disabled=false; salleBtn.textContent = label;
+  }catch(err){
+    salleBtn.style.display='none'; noteEl.textContent='';
+    document.getElementById('bk-btn-pay').style.display='';  // repli : paiement public
+  }
+}
+
+async function bookSalleIad(){
+  const btn = document.getElementById('bk-btn-salle');
+  const msg = document.getElementById('bk-msg');
+  btn.disabled=true; const orig=btn.textContent; btn.textContent='Réservation…'; msg.textContent='';
+  try{
+    const r = await fetch(`${API_BASE}/iad/salle-book`, {
+      method:'POST', headers: Object.assign({'Content-Type':'application/json'}, authHeaders()),
+      body: JSON.stringify({ date:bk.date, slot:bk.slot, test_mode:C_TEST_MODE }),
+    });
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail || 'Réservation impossible'); }
+    const d = await r.json();
+    if(d.confirmed){
+      msg.style.color='var(--green)';
+      msg.textContent = "✓ Salle réservée ! Code d'accès : " + (d.pin_code || 'envoyé par email');
+      setTimeout(()=>{ closeBooking(); enterApp(); }, 1800);
+    } else if(d.checkout_url){
+      btn.textContent='Redirection vers le paiement…';
+      window.location.href = d.checkout_url;
+    } else { throw new Error('Réponse inattendue'); }
+  }catch(err){
+    msg.style.color='#c0392b'; msg.textContent = 'Erreur : '+err.message;
+    btn.disabled=false; btn.textContent=orig;
+  }
+}
 
 function calColor(slug){
   return {'coworking':'#C9B584','bureau':'#2563EB','salle-reunion':'#7C3AED','privatisation':'#EA584A'}[slug] || '#5A6A85';
@@ -1258,11 +1331,14 @@ async function openBooking(dateStr){
   document.getElementById('bk-avail').className = 'avail-line avail-neutral';
   document.getElementById('bk-avail').textContent = 'Choisissez un espace et un créneau.';
   document.getElementById('bk-btn-ticket').style.display = 'none';
+  document.getElementById('bk-btn-salle').style.display = 'none';
+  document.getElementById('bk-btn-pay').style.display = '';
   document.getElementById('bk-btn-pay').disabled = true;
   document.getElementById('bk-ticket-note').textContent = '';
   document.getElementById('bk-msg').textContent = '';
   document.getElementById('booking-modal').classList.add('open');
   await ensureMyPacks();
+  await checkIadStatus();
 }
 function closeBooking(){ document.getElementById('booking-modal').classList.remove('open'); }
 
@@ -1321,6 +1397,17 @@ function bkRefresh(){
   availEl.className='avail-line avail-ok';
   availEl.textContent='✓ Disponible' + (bk.space==='coworking' && rem!=null ? ' — '+rem+' place'+(rem>1?'s':'')+' restante'+(rem>1?'s':'') : '');
   payBtn.disabled=false;
+
+  // Salle de réunion pour un conseiller iad validé → règlement en tickets (+ appoint)
+  if(bk.space==='salle-reunion' && IS_IAD_VALIDATED){
+    payBtn.style.display='none';
+    ticketBtn.style.display='none';
+    bkSalleQuote();   // async : met à jour prix, note et bouton « Réserver la salle »
+    return;
+  }
+  payBtn.style.display='';
+  document.getElementById('bk-btn-salle').style.display='none';
+
   // ticket ?
   const pack = usablePackFor(bk.space, bk.slot);
   if(pack){
