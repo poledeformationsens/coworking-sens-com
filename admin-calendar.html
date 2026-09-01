@@ -3,56 +3,52 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Calendrier — Pôle de Formation et de Réseau — Sens</title>
+<title>Calendrier — L'Atelier du Coworking</title>
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/main.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,600;0,700;0,800;1,700;1,800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
-    --navy: #006B9A;
-    --gold: #00B4EC;
-    --cream: #F1ECE5;
+    --navy: #03234D;
+    --gold: #C9B584;
+    --cream: #F8F7F4;
     --slate: #5A6A85;
-    --light: #E5E9EF;
+    --light: #E5DDCB;
     --coral: #EA584A;
     --green: #1D9E75;
-    --charcoal: #1E2A3A;
   }
   * { box-sizing: border-box; }
   body {
-    font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+    font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
     margin: 0;
     background: var(--cream);
-    color: var(--charcoal);
+    color: var(--navy);
   }
   header {
-    background: #fff;
-    color: var(--charcoal);
-    padding: 12px 28px;
+    background: var(--navy);
+    color: white;
+    padding: 18px 32px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 12px;
-    border-bottom: 1px solid var(--light);
   }
-  header h1 { margin: 0; font-family: 'Montserrat', sans-serif; font-style: italic; font-weight: 800; text-transform: uppercase; font-size: 17px; letter-spacing: .01em; color: var(--gold); }
-  header nav { display: flex; gap: 4px; }
+  header h1 { margin: 0; font-family: 'Cormorant Garamond', Georgia, serif; font-size: 22px; font-weight: 600; }
+  header nav { display: flex; gap: 12px; }
   header nav a {
-    color: var(--charcoal);
+    color: rgba(255,255,255,0.7);
     text-decoration: none;
     font-size: 13px;
-    font-weight: 600;
-    padding: 7px 14px;
-    border-radius: 99px;
+    padding: 6px 14px;
+    border-radius: 16px;
     transition: background 0.2s;
   }
-  header nav a:hover { background: var(--cream); }
-  header nav a.active { background: var(--charcoal); color: #fff; }
-  header .user { font-size: 13px; color: var(--slate); display: flex; align-items: center; }
+  header nav a:hover { background: rgba(255,255,255,0.1); }
+  header nav a.active { background: var(--gold); color: var(--navy); font-weight: 600; }
+  header .user { font-size: 13px; color: var(--gold); display: flex; align-items: center; }
   .test-toggle {
     display: inline-flex; align-items: center; gap: 8px;
-    padding: 6px 12px; background: var(--cream);
-    border-radius: 99px; font-size: 12px; color: var(--navy);
+    padding: 6px 12px; background: rgba(255,255,255,0.08);
+    border-radius: 20px; font-size: 12px; color: var(--gold);
     cursor: pointer; user-select: none; margin-right: 16px;
   }
   .test-toggle .switch {
@@ -84,7 +80,7 @@
     cursor: pointer; font-size: 12px; font-weight: 600; text-transform: uppercase;
     letter-spacing: 1px; display: flex; align-items: center; gap: 6px;
   }
-  .filter-chip.active { background: var(--charcoal); color: white; border-color: var(--charcoal); }
+  .filter-chip.active { background: var(--navy); color: white; border-color: var(--navy); }
   .filter-chip .dot {
     width: 10px; height: 10px; border-radius: 50%; display: inline-block;
   }
@@ -92,11 +88,11 @@
   #calendar { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
 
   /* FullCalendar custom styling */
-  .fc { font-family: 'Inter', -apple-system, sans-serif; }
-  .fc-toolbar-title { font-family: 'Montserrat', sans-serif !important; font-style: italic; font-weight: 800; text-transform: uppercase; color: var(--charcoal); font-size: 20px !important; }
-  .fc-button { background: var(--charcoal) !important; border: 0 !important; font-size: 12px !important; padding: 8px 14px !important; }
-  .fc-button:hover { background: #32405A !important; }
-  .fc-button-active { background: var(--gold) !important; color: #fff !important; }
+  .fc { font-family: -apple-system, sans-serif; }
+  .fc-toolbar-title { font-family: 'Cormorant Garamond', Georgia, serif !important; color: var(--navy); font-size: 22px !important; }
+  .fc-button { background: var(--navy) !important; border: 0 !important; font-size: 12px !important; padding: 8px 14px !important; }
+  .fc-button:hover { background: #051f3f !important; }
+  .fc-button-active { background: var(--gold) !important; color: var(--navy) !important; }
   .fc-today-button { text-transform: uppercase; letter-spacing: 1px; }
   .fc-event { border: none !important; padding: 2px 7px !important; font-size: 11.5px !important; cursor: pointer; border-radius: 7px !important; box-shadow: 0 1px 4px rgba(3,35,77,.18) !important; font-weight: 600 !important; transition: transform .08s ease, box-shadow .08s ease; }
   .fc-event:hover { transform: translateY(-1px); box-shadow: 0 3px 10px rgba(3,35,77,.25) !important; }
@@ -123,8 +119,8 @@
   }
   .modal h2 {
     margin: 0 0 16px;
-    font-family: 'Montserrat', sans-serif; font-style: italic; font-weight: 800; text-transform: uppercase;
-    color: var(--charcoal); font-size: 20px;
+    font-family: 'Cormorant Garamond', Georgia, serif;
+    color: var(--navy); font-size: 22px;
   }
   .modal .field { margin-bottom: 10px; font-size: 14px; }
   .modal .field label { color: var(--slate); font-size: 11px; text-transform: uppercase; letter-spacing: 1px; display: block; margin-bottom: 2px; }
@@ -133,25 +129,24 @@
     margin-top: 20px; padding-top: 16px; border-top: 1px solid var(--light);
   }
   .btn {
-    padding: 10px 18px; border-radius: 99px; border:0; cursor: pointer;
-    font-weight: 700; font-size: 13px;
+    padding: 10px 18px; border-radius: 4px; border:0; cursor: pointer;
+    font-weight: 600; font-size: 13px;
   }
-  .btn-primary { background: var(--charcoal); color: white; }
-  .btn-primary:hover { background: #32405A; }
+  .btn-primary { background: var(--navy); color: white; }
   .btn-secondary { background: white; color: var(--navy); border: 1px solid var(--light); }
 
   /* Login screen (clone du dashboard) */
   #login-screen {
     display:none; position:fixed; top:0; left:0; right:0; bottom:0;
-    background:var(--cream); z-index:9999; align-items:center; justify-content:center;
+    background:var(--navy); z-index:9999; align-items:center; justify-content:center;
   }
   #login-screen > div {
-    background:white; padding:40px 36px; border-radius:24px; width:380px;
+    background:white; padding:40px 36px; border-radius:8px; width:380px;
     box-shadow:0 8px 32px rgba(0,0,0,0.2);
   }
   #login-screen h2 {
-    margin:0 0 8px; font-family:'Montserrat',sans-serif; font-style:italic; font-weight:800; text-transform:uppercase;
-    color:var(--charcoal); font-size:20px; text-align:center;
+    margin:0 0 8px; font-family:'Cormorant Garamond',Georgia,serif;
+    color:var(--navy); font-size:24px; text-align:center;
   }
   #login-screen label {
     display:block; font-size:11px; color:var(--slate); letter-spacing:1px;
@@ -162,8 +157,8 @@
     border-radius:4px; font-size:14px; margin-bottom:16px; font-family:inherit; color:var(--navy);
   }
   #login-screen button {
-    width:100%; padding:13px; background:var(--charcoal); color:white; border:0;
-    border-radius:99px; font-weight:700; font-size:14px; cursor:pointer;
+    width:100%; padding:13px; background:var(--navy); color:white; border:0;
+    border-radius:4px; font-weight:600; font-size:14px; cursor:pointer;
   }
 </style>
 <style>/* ACW-RESPONSIVE */
@@ -173,7 +168,7 @@
   header > div{min-width:0 !important;max-width:100% !important}
   header > div > div{min-width:0 !important;max-width:100% !important}
   header h1{font-size:17px !important}
-  header img{width:52px !important;height:52px !important}
+  header img{width:90px !important;height:90px !important}
   nav{display:flex !important;gap:6px !important;flex-wrap:nowrap !important;overflow-x:auto !important;width:100% !important;max-width:100% !important;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-top:8px !important}
   nav a{white-space:nowrap !important;flex:0 0 auto !important;font-size:12px !important;padding:6px 10px !important}
   .wrap{padding:0 12px !important;margin:16px auto !important;max-width:100% !important}
@@ -191,7 +186,7 @@
   .podium-row .who{min-width:0 !important}
   table.tbl-cards,table.tbl-cards tbody{display:block !important;width:100% !important;min-width:0 !important}
   table.tbl-cards thead{display:none !important}
-  table.tbl-cards tr{display:block !important;border:1px solid var(--light,#E5E9EF) !important;border-radius:10px !important;padding:8px 14px !important;margin-bottom:10px !important;background:#fff !important}
+  table.tbl-cards tr{display:block !important;border:1px solid var(--light,#E5DDCB) !important;border-radius:10px !important;padding:8px 14px !important;margin-bottom:10px !important;background:#fff !important}
   table.tbl-cards td{display:block !important;padding:6px 0 !important;border:none !important;border-bottom:1px solid #f3efe6 !important;text-align:left !important;font-size:13.5px !important;min-width:0 !important}
   table.tbl-cards td:last-child{border-bottom:none !important}
   table.tbl-cards td::before{content:attr(data-label);display:block;font-weight:700;color:var(--slate,#5A6A85);font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
@@ -213,21 +208,20 @@
 </style>
 <!-- ACW-PWA -->
 <link rel="manifest" href="/manifest.webmanifest">
-<meta name="theme-color" content="#F1ECE5">
+<meta name="theme-color" content="#03234D">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="PFR Admin">
-<link rel="apple-touch-icon" href="/apple-touch-admin.png">
+<meta name="apple-mobile-web-app-title" content="ACW Admin">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="/icon-192.png">
-<link rel="stylesheet" href="/api/pfr/theme.css">
 </head>
 <body>
 
 <!-- Login -->
 <div id="login-screen">
   <div>
-    <img src="/pfr-sens.png" alt="PFR Sens" width="80" height="80" style="display:block;margin:0 auto 14px;">
-    <h2>Pôle de Formation et de Réseau — Sens</h2>
+    <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-navy.png" alt="ACW" width="80" height="80" style="display:block;margin:0 auto 14px;">
+    <h2>L'Atelier du Coworking</h2>
     <p style="margin:0 0 28px;text-align:center;font-size:11px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;">Calendrier admin</p>
     <form onsubmit="doLogin(event)">
       <label>Email</label>
@@ -250,27 +244,24 @@
 
 <header>
   <div style="display:flex;align-items:center;gap:18px;">
-    <img src="https://pfr-sens.ldstudio.io/pfr-sens.png" alt="PFR Sens" width="76" height="76" style="display:block;">
+    <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="132" height="132" style="display:block;">
     <div>
-      <h1>Pôle de Formation et de Réseau — Sens</h1>
+      <h1>L'Atelier du Coworking</h1>
       <nav>
         <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-hub.html">✨ Hub</a>
         <a href="admin-devis-dashboard.html">📋 Devis</a>
         <a href="admin-calendar.html" class="active">📅 Calendrier</a>
         <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-iad.html">🤝 Conseillers iad</a>
         <a href="admin-fermetures.html">🚫 Fermetures</a>
         <a href="admin-stats.html">📊 Statistiques</a>
+        <a href="admin-prospection.html">🎯 Prospection</a>
         <a href="admin-evenements.html">🎉 Événements</a>
         <a href="admin-clients.html">👤 Clients</a>
         <a href="admin-societes.html">🏢 Sociétés</a>
         <a href="admin-tarifs.html">💶 Tarifs</a>
-      <a href="admin-configuration.html">⚙️ Configuration</a>
-      <a href="admin-emails.html">✉️ Emails</a>
-      <a href="admin-partenaires.html">🤝 Partenaires</a>
         <a href="admin-documents.html">📄 Documents</a>
-      <a href="admin-asso.html">🏛️ Association</a>
-        <a href="admin-onboarding.html">🏗️ Dossiers de pôles</a>
-        <a href="assistance.html">🆘 Assistance</a>
         <a href="admin-exports.html">📤 Exports</a>
       </nav>
     </div>
@@ -281,7 +272,7 @@
       <span>Mode TEST</span>
     </div>
     <span id="user-email">—</span> ·
-    <a href="#" onclick="doLogout(event)" style="color:var(--navy);text-decoration:none;margin-left:8px;font-weight:600;">Déconnexion</a>
+    <a href="#" onclick="doLogout(event)" style="color:var(--gold);text-decoration:none;margin-left:8px;">Déconnexion</a>
   </span>
 </header>
 
@@ -295,7 +286,11 @@
   <div class="filters">
     <span style="font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-right:8px">Espaces :</span>
     <button class="filter-chip active" onclick="setSpaceFilter(null)">Tous</button>
-    <span id="space-chips" style="display:contents"></span>
+    <button class="filter-chip" onclick="setSpaceFilter('coworking')"><span class="dot" style="background:#C9B584"></span>Coworking</button>
+    <button class="filter-chip" onclick="setSpaceFilter('unit:Bureau 1')"><span class="dot" style="background:#2563EB"></span>Bureau 1</button>
+    <button class="filter-chip" onclick="setSpaceFilter('unit:Bureau 2')"><span class="dot" style="background:#0EA5A4"></span>Bureau 2</button>
+    <button class="filter-chip" onclick="setSpaceFilter('salle-reunion')"><span class="dot" style="background:#7C3AED"></span>Salle réunion</button>
+    <button class="filter-chip" onclick="setSpaceFilter('privatisation')"><span class="dot" style="background:#EA584A"></span>Privatisation</button>
     <label style="margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--slate);cursor:pointer;">
       <input id="show-test" type="checkbox" onchange="loadEvents()"> Afficher les devis TEST
     </label>
@@ -314,8 +309,34 @@
     <div id="modal-content"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeModal()">Fermer</button>
+      <button id="modal-move-btn" class="btn" style="display:none;background:#2563EB;color:#fff;" onclick="openMoveModal()">Déplacer / modifier</button>
       <button id="modal-cancel-btn" class="btn" style="display:none;background:#EA584A;color:#fff;" onclick="openCancelModal()">Annuler / Rembourser</button>
       <a id="modal-link" class="btn btn-primary" style="text-decoration:none;display:none;" href="#">Voir dans Devis →</a>
+    </div>
+  </div>
+</div>
+
+<!-- Modal déplacer / modifier une réservation -->
+<div class="modal-bg" id="modal-move">
+  <div class="modal">
+    <h2>Déplacer / modifier la réservation</h2>
+    <p id="move-sub" style="font-size:13px;color:var(--slate);margin:0 0 10px"></p>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="grid-column:1/3"><label style="font-size:12px;color:var(--slate)">Nouvelle date</label>
+        <input id="mv-date" type="date" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+      <div><label style="font-size:12px;color:var(--slate)">Heure début</label>
+        <input id="mv-from" type="time" step="900" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+      <div><label style="font-size:12px;color:var(--slate)">Heure fin</label>
+        <input id="mv-to" type="time" step="900" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;"></div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;font-size:13px;margin-top:10px;">
+      <label style="display:flex;gap:6px;align-items:center;"><input id="mv-resend" type="checkbox" checked> Renvoyer l'email au client (nouveaux horaires + nouveau code)</label>
+      <label style="display:flex;gap:6px;align-items:center;"><input id="mv-force" type="checkbox"> Forcer même en cas de conflit d'agenda</label>
+    </div>
+    <div id="mv-error" style="color:#C0392B;font-size:13px;display:none;margin-top:8px;"></div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeMoveModal()">Annuler</button>
+      <button class="btn btn-primary" id="mv-submit" onclick="submitMove()">Confirmer le déplacement</button>
     </div>
   </div>
 </div>
@@ -340,7 +361,7 @@
         <input type="number" id="rc-amount" step="0.01" min="0" style="flex:1;padding:9px;border:1px solid var(--light);border-radius:6px;">
         <label style="font-size:12px;white-space:nowrap;"><input type="checkbox" id="rc-full" checked onchange="onFullToggle()"> Total</label>
       </div>
-      <div id="rc-fee-wrap" style="display:none;margin-top:8px;background:#F1ECE5;border:1px solid var(--light);border-radius:6px;padding:8px 10px;">
+      <div id="rc-fee-wrap" style="display:none;margin-top:8px;background:#F8F7F4;border:1px solid var(--light);border-radius:6px;padding:8px 10px;">
         <label style="display:inline;text-transform:none;letter-spacing:0;font-size:12.5px;color:var(--navy);">
           <input type="checkbox" id="rc-deduct-fee" onchange="onDeductFee()"> Déduire les frais Stripe du remboursement
         </label>
@@ -356,7 +377,7 @@
         <input type="checkbox" id="rc-notify" checked> Envoyer l'email d'annulation au client
       </label>
     </div>
-    <div id="rc-error" style="display:none;color:#EA584A;font-size:13px;margin-top:8px;"></div>
+    <div id="rc-error" style="display:none;color:#C0392B;font-size:13px;margin-top:8px;"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeCancelModal()">Retour</button>
       <button id="rc-submit" class="btn" style="background:#EA584A;color:#fff;" onclick="submitCancel()">Confirmer l'annulation</button>
@@ -371,6 +392,8 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0;">
       <div><label style="font-size:12px;color:var(--slate)">Espace</label>
         <select id="c-space" style="width:100%;padding:9px;border:1px solid var(--light);border-radius:6px;">
+          <option value="bureau-1">Bureau 1</option>
+          <option value="bureau-2">Bureau 2</option>
           <option value="coworking">Espace coworking</option>
           <option value="salle-reunion">Salle de réunion</option>
         </select>
@@ -393,8 +416,16 @@
         <label style="display:flex;gap:6px;align-items:center;"><input id="c-pin" type="checkbox" checked> Générer un PIN</label>
         <label style="display:flex;gap:6px;align-items:center;"><input id="c-mail" type="checkbox" checked> Envoyer l'email</label>
       </div>
+      <div id="c-tickets-wrap" style="display:none;grid-column:1/3;background:#EAF5FF;border:1px solid #CFE4FB;border-radius:6px;padding:9px 11px;">
+        <label style="font-size:12px;color:var(--navy);font-weight:600">🎟️ Tickets iad à débiter (salle)</label>
+        <div style="display:flex;gap:10px;align-items:center;margin-top:4px;">
+          <input id="c-tickets" type="number" min="0" step="1" value="0" style="width:90px;padding:8px;border:1px solid var(--light);border-radius:6px;">
+          <span id="c-wallet" style="font-size:12px;color:var(--slate)">—</span>
+        </div>
+        <div style="font-size:11px;color:var(--slate);margin-top:4px;">Demi-journée = 8 tickets (40 €) · Journée = 16 tickets (80 €). Le <b>Montant TTC</b> ci-dessus = ce que tu factures en plus (0 € = offert).</div>
+      </div>
     </div>
-    <div id="c-error" style="color:#EA584A;font-size:13px;display:none;margin-top:6px;"></div>
+    <div id="c-error" style="color:#C0392B;font-size:13px;display:none;margin-top:6px;"></div>
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="closeCreateModal()">Annuler</button>
       <button class="btn btn-primary" id="c-submit" onclick="submitCreate()">Confirmer la réservation</button>
@@ -407,7 +438,7 @@
 // =====================================
 // Config
 // =====================================
-const API_BASE = '/api/pfr';
+const API_BASE = '/api/coworking';
 let TOKEN = null;
 let HEADERS = {'Content-Type': 'application/json'};
 let calendar = null;
@@ -416,7 +447,7 @@ let currentSpaceFilter = null;
 // =====================================
 // Auth (identique au dashboard devis)
 // =====================================
-const STORAGE_KEY = 'pfr_admin_session';
+const STORAGE_KEY = 'cw_admin_session';
 const TEST_MODE_KEY = 'cw_test_mode';
 const SESSION_DURATION_MS = 7 * 24 * 3600 * 1000;
 
@@ -451,45 +482,6 @@ function activateApp(token, email) {
   document.getElementById('user-email').textContent = email;
   applyTestModeUI();
   initCalendar();
-  loadSpacesConfig();
-}
-
-// ============================================================================
-// Espaces dynamiques (pfr_spaces) — chips de filtre, sélecteur du modal, couleurs
-// ============================================================================
-const SPACE_PALETTE = ['#00B4EC', '#7C3AED', '#2563EB', '#0EA5A4', '#D97706', '#DB2777', '#65A30D'];
-let SPACE_COLORS = { 'coworking':'#00B4EC', 'salle-reunion':'#7C3AED', 'privatisation':'#EA584A' };
-
-async function loadSpacesConfig() {
-  try {
-    const r = await fetch(`${API_BASE}/spaces`, { headers: HEADERS, cache: 'no-store' });
-    if (!r.ok) return;  // repli : chips/HTML statiques déjà en place
-    const spaces = (await r.json()).spaces || [];
-    if (!spaces.length) return;
-    const chips = document.getElementById('space-chips');
-    const sel = document.getElementById('c-space');
-    if (chips) chips.innerHTML = '';
-    if (sel) sel.innerHTML = '';
-    SPACE_COLORS = { 'privatisation':'#EA584A' };
-    spaces.forEach((s, i) => {
-      const col = SPACE_PALETTE[i % SPACE_PALETTE.length];
-      SPACE_COLORS[s.slug] = col;
-      if (chips) {
-        const b = document.createElement('button');
-        b.className = 'filter-chip';
-        b.onclick = () => setSpaceFilter(s.slug);
-        b.innerHTML = `<span class="dot" style="background:${col}"></span>${_escapeHtml(s.name)}`;
-        chips.appendChild(b);
-      }
-      if (sel) {
-        const o = document.createElement('option');
-        o.value = s.slug; o.textContent = s.name;
-        sel.appendChild(o);
-      }
-    });
-    if (sel && SPACE_COLORS['coworking']) sel.value = 'coworking';
-    if (calendar) calendar.refetchEvents();  // recolore avec la palette chargée
-  } catch (e) { /* repli silencieux sur le statique */ }
 }
 
 async function doLogin(e) {
@@ -625,10 +617,13 @@ async function fetchEvents(info, success, failure) {
         events = events.filter(e => e.extendedProps && e.extendedProps.space === currentSpaceFilter);
       }
     }
-    // Couleur par espace (palette dynamique, cohérente avec les chips de filtre)
+    // Couleur par espace (style "startup", cohérent avec les chips de filtre)
+    const SPACE_COLOR = { 'coworking':'#C9B584', 'bureau':'#2563EB', 'salle-reunion':'#7C3AED', 'privatisation':'#EA584A' };
     events = events.map(e => {
       const sp = (e.extendedProps && e.extendedProps.space) || '';
-      let col = SPACE_COLORS[sp] || '#006B9A';
+      const unit = (e.extendedProps && e.extendedProps.space_unit) || '';
+      let col = SPACE_COLOR[sp] || '#03234D';
+      if (sp === 'bureau') col = (unit === 'Bureau 2') ? '#0EA5A4' : '#2563EB';
       const blocked = e.extendedProps && e.extendedProps.type === 'blocked';
       return { ...e,
         backgroundColor: blocked ? '#9aa0ab' : col,
@@ -676,17 +671,24 @@ function onEventClick(info) {
     const refNum = (props.reference || '').replace(/^(RES|FAC|DEV)-/, '');
     link.href = 'admin-documents.html?ref=' + encodeURIComponent(refNum);
   } else { link.style.display = 'none'; }
+  const moveBtn = document.getElementById('modal-move-btn');
   if (isResa && !isCancelled) {
     cancelBtn.style.display = 'inline-block';
+    moveBtn.style.display = 'inline-block';
     _currentResa = {
       id: props.resa_id || (e.id || '').replace('resa-', ''),
       reference: props.reference || '',
       amount: Number(props.amount_ttc || 0),
       payment_method: (props.payment_method || '').toLowerCase(),
       name: props.client_name || '',
+      date: (e.startStr || '').slice(0, 10),
+      hour_from: (e.startStr || '').slice(11, 16),
+      hour_to: (e.endStr || '').slice(11, 16),
+      space: props.space || '',
     };
   } else {
     cancelBtn.style.display = 'none';
+    moveBtn.style.display = 'none';
     _currentResa = null;
   }
   const resaId = props.resa_id || (e.id || '').replace('resa-', '');
@@ -707,7 +709,7 @@ async function loadAccess(resaId){
     if(!r.ok) throw new Error('Erreur '+r.status);
     const d = await r.json();
     const pin = d.pin_code
-      ? `<b style="font-family:monospace;font-size:22px;letter-spacing:3px;color:#006B9A">${_escapeHtml(d.pin_code)}</b>`
+      ? `<b style="font-family:monospace;font-size:22px;letter-spacing:3px;color:#03234D">${_escapeHtml(d.pin_code)}</b>`
       : '<span style="color:#999">Aucun code enregistré pour cette réservation</span>';
     const comment = d.comment ? `<div class="field"><label>Commentaire client</label>${_escapeHtml(d.comment)}</div>` : '';
     const waMsg = encodeURIComponent(d.whatsapp_message || '');
@@ -717,21 +719,69 @@ async function loadAccess(resaId){
     const waLabel = waPhone ? '💬 WhatsApp' : '💬 WhatsApp (choisir le contact)';
     if(el) el.innerHTML =
       `${comment}<div class="field"><label>Code d'accès Igloohome</label>${pin}</div>
+       <div class="field" style="margin-top:8px"><label>Envoyer la confirmation à <span style="color:#999;font-weight:400">(vide = e-mail du client)</span></label>
+         <input id="resend-email" type="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="autre-email@exemple.fr" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
-         <button class="btn btn-secondary" onclick="resendCodesEmail('${resaId}', this)">📧 Renvoyer par email</button>
+         <button class="btn btn-secondary" onclick="resendCodesEmail('${resaId}', this)">📧 Renvoyer la confirmation</button>
          <a class="btn btn-secondary" style="text-decoration:none" href="${waUrl}" target="_blank" rel="noopener">${waLabel}</a>
        </div>`;
-  }catch(e){ if(el) el.innerHTML = '<div class="field" style="color:#EA584A">Codes indisponibles : '+e.message+'</div>'; }
+  }catch(e){ if(el) el.innerHTML = '<div class="field" style="color:#c0392b">Codes indisponibles : '+e.message+'</div>'; }
 }
 
 async function resendCodesEmail(resaId, btn){
+  const emailEl = document.getElementById('resend-email');
+  const custom = emailEl ? emailEl.value.trim() : '';
   const old = btn.textContent; btn.disabled = true; btn.textContent = 'Envoi…';
   try{
-    const r = await fetch(`${API_BASE}/admin/reservations/${resaId}/resend-email`, {method:'POST', headers: HEADERS});
+    const url = `${API_BASE}/admin/reservations/${resaId}/resend-email` + (custom ? ('?email=' + encodeURIComponent(custom)) : '');
+    const r = await fetch(url, {method:'POST', headers: HEADERS});
     if(!r.ok){ const e = await r.json().catch(()=>({})); throw new Error(e.detail || 'Erreur'); }
     const d = await r.json();
     btn.textContent = '✅ Envoyé à ' + (d.email || 'client');
   }catch(e){ alert('Erreur : ' + e.message); btn.disabled = false; btn.textContent = old; }
+}
+
+// ===== Déplacer / modifier une réservation =====
+function openMoveModal() {
+  if (!_currentResa) return;
+  const r = _currentResa;
+  document.getElementById('move-sub').textContent =
+    `${r.reference} — ${r.name} · ${r.space} · actuellement le ${r.date} (${r.hour_from}–${r.hour_to})`;
+  document.getElementById('mv-date').value = r.date || '';
+  document.getElementById('mv-from').value = r.hour_from || '';
+  document.getElementById('mv-to').value = r.hour_to || '';
+  document.getElementById('mv-resend').checked = true;
+  document.getElementById('mv-force').checked = false;
+  document.getElementById('mv-error').style.display = 'none';
+  document.getElementById('modal-move').classList.add('open');
+}
+function closeMoveModal() { document.getElementById('modal-move').classList.remove('open'); }
+
+async function submitMove() {
+  if (!_currentResa) return;
+  const err = document.getElementById('mv-error'); err.style.display = 'none';
+  const body = {
+    date: document.getElementById('mv-date').value,
+    hour_from: document.getElementById('mv-from').value,
+    hour_to: document.getElementById('mv-to').value,
+    resend_email: document.getElementById('mv-resend').checked,
+    force: document.getElementById('mv-force').checked,
+  };
+  if (!body.date || !body.hour_from || !body.hour_to) { err.textContent = 'Date et horaires requis.'; err.style.display = 'block'; return; }
+  const btn = document.getElementById('mv-submit'); const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Déplacement…';
+  try {
+    const r = await fetch(`${API_BASE}/admin/reservations/${_currentResa.id}/reschedule`, {
+      method: 'POST', headers: HEADERS, body: JSON.stringify(body),
+    });
+    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || 'Erreur'); }
+    const d = await r.json();
+    closeMoveModal(); closeModal(); loadEvents();
+    alert('Réservation déplacée ✅\nNouveau créneau : ' + d.date + ' ' + d.hour_from + '–' + d.hour_to
+      + (d.pin_code ? '\nNouveau code : ' + d.pin_code : '')
+      + (d.email_sent ? '\n📧 Email envoyé au client.' : ''));
+  } catch (e) { err.textContent = 'Erreur : ' + e.message; err.style.display = 'block'; }
+  finally { btn.disabled = false; btn.textContent = orig; }
 }
 
 // ===== Annulation / remboursement =====
@@ -862,14 +912,16 @@ async function submitCancel() {
 }
 
 let _lastSelectTs = 0;
+const SPACE_FILTER_TO_KEY = { 'coworking':'coworking', 'bureau':'bureau-1', 'salle-reunion':'salle-reunion' };
 
 function onTimeSelect(info) {
   _lastSelectTs = Date.now();
   const date = info.startStr.substring(0, 10);
   let hf = '08:00', ht = '18:00';
   if (!info.allDay) {
-    hf = info.start.toTimeString().substring(0, 5);
-    ht = info.end.toTimeString().substring(0, 5);
+    // startStr/endStr sont déjà à l'heure du calendrier (Europe/Paris) → pas de décalage
+    hf = info.startStr.substring(11, 16);
+    ht = info.endStr.substring(11, 16);
   }
   openCreateModal(date, hf, ht);
   if (calendar) calendar.unselect();
@@ -880,9 +932,9 @@ function onDateClick(info) {
   const date = (info.dateStr || '').substring(0, 10);
   let hf = '08:00', ht = '18:00';
   if (info.dateStr && info.dateStr.length > 10) {  // clic en vue semaine/jour (avec heure)
-    hf = info.date.toTimeString().substring(0, 5);
-    const end = new Date(info.date.getTime() + 60 * 60 * 1000);
-    ht = end.toTimeString().substring(0, 5);
+    hf = info.dateStr.substring(11, 16);
+    const [H, M] = hf.split(':').map(Number);
+    ht = String((H + 1) % 24).padStart(2, '0') + ':' + String(M).padStart(2, '0');
   }
   openCreateModal(date, hf, ht);
 }
@@ -891,19 +943,43 @@ function openCreateModal(date, hf, ht) {
   document.getElementById('c-date').value = date;
   document.getElementById('c-from').value = hf;
   document.getElementById('c-to').value = ht;
-  // pré-sélectionne l'espace selon le filtre actif (les slugs base = valeurs du select)
-  const sel = document.getElementById('c-space');
-  const hasOpt = currentSpaceFilter && [...sel.options].some(o => o.value === currentSpaceFilter);
-  sel.value = hasOpt ? currentSpaceFilter : (sel.options[0] ? sel.options[0].value : 'coworking');
+  // pré-sélectionne l'espace selon le filtre actif
+  const key = SPACE_FILTER_TO_KEY[currentSpaceFilter] || 'bureau-1';
+  document.getElementById('c-space').value = key;
   document.getElementById('c-prenom').value = '';
   document.getElementById('c-nom').value = '';
   document.getElementById('c-email').value = '';
   document.getElementById('c-amount').value = '0';
   document.getElementById('c-pin').checked = true;
   document.getElementById('c-mail').checked = true;
+  document.getElementById('c-tickets').value = '0';
   document.getElementById('c-error').style.display = 'none';
+  cSalleToggle();
   document.getElementById('modal-create').classList.add('open');
 }
+
+// Affiche le champ tickets pour la salle + charge le portefeuille du conseiller
+async function cSalleToggle() {
+  const isSalle = document.getElementById('c-space').value === 'salle-reunion';
+  const wrap = document.getElementById('c-tickets-wrap');
+  if (wrap) wrap.style.display = isSalle ? 'block' : 'none';
+  if (!isSalle) return;
+  const email = (document.getElementById('c-email').value || '').trim();
+  const wEl = document.getElementById('c-wallet');
+  if (!email.includes('@')) { wEl.textContent = 'Saisis l\'email du conseiller pour voir ses tickets.'; return; }
+  wEl.textContent = 'Chargement du portefeuille…';
+  try {
+    const r = await fetch(`${API_BASE}/admin/iad/salle-quote?email=${encodeURIComponent(email)}&test_mode=${isTestMode()}`, { headers: HEADERS, cache: 'no-store' });
+    if (!r.ok) { wEl.textContent = ''; return; }
+    const d = await r.json();
+    if (!d.is_iad_validated) { wEl.textContent = '⚠️ Cet email n\'est pas un conseiller iad validé.'; return; }
+    wEl.innerHTML = `Portefeuille : <b>${d.wallet_tickets} ticket(s)</b> · demi-journée = 8, journée = 16.`;
+  } catch (e) { wEl.textContent = ''; }
+}
+document.addEventListener('DOMContentLoaded', () => {
+  const sp = document.getElementById('c-space'); if (sp) sp.addEventListener('change', cSalleToggle);
+  const em = document.getElementById('c-email'); if (em) em.addEventListener('blur', cSalleToggle);
+});
 
 function closeCreateModal() {
   document.getElementById('modal-create').classList.remove('open');
@@ -926,6 +1002,9 @@ async function submitCreate() {
     send_email: document.getElementById('c-mail').checked,
     test_mode: isTestMode(),
   };
+  if (document.getElementById('c-space').value === 'salle-reunion') {
+    body.iad_debit_tickets = parseInt(document.getElementById('c-tickets').value || '0', 10) || 0;
+  }
   if (!prenom || !nom || !body.email.includes('@')) { err.textContent = 'Prénom, nom et email valides requis.'; err.style.display = 'block'; return; }
   const btn = document.getElementById('c-submit'); const orig = btn.textContent;
   btn.disabled = true; btn.textContent = 'Création…';
@@ -990,32 +1069,5 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
   window.addEventListener('resize',function(){ clearTimeout(window.__acwR); window.__acwR=setTimeout(labelize,200); });
 })();
 </script>
-<script>
-async function reloadApp(){
-  try{
-    if('serviceWorker' in navigator){
-      const regs = await navigator.serviceWorker.getRegistrations();
-      await Promise.all(regs.map(r => r.unregister()));
-    }
-    if(window.caches){
-      const keys = await caches.keys();
-      await Promise.all(keys.map(k => caches.delete(k)));
-    }
-  }catch(e){ console.warn('purge cache', e); }
-  const u = new URL(location.href); u.searchParams.set('maj', Date.now());
-  location.replace(u.toString());
-}
-document.addEventListener('DOMContentLoaded', function(){
-  const nav = document.querySelector('header nav');
-  if(!nav || document.getElementById('nav-reload')) return;
-  const a = document.createElement('a');
-  a.id = 'nav-reload'; a.href = '#'; a.textContent = '↻ Mettre à jour';
-  a.title = 'Vider le cache et charger la dernière version';
-  a.style.marginLeft = 'auto';
-  a.onclick = function(e){ e.preventDefault(); reloadApp(); };
-  nav.appendChild(a);
-});
-</script>
-<script defer src="/maj.js"></script>
 </body>
 </html>
