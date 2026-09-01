@@ -22,7 +22,7 @@ from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 _PARIS_TZ = ZoneInfo("Europe/Paris")
-from fastapi import APIRouter, Request, HTTPException, Response, Header
+from fastapi import APIRouter, Request, HTTPException, Response, Header, Body
 from typing import Optional
 
 # === Imports reportlab pour génération PDF facture custom ===
@@ -250,6 +250,11 @@ async def _handle_coworking_payment(session: dict):
     # ── Branche ÉVÉNEMENT (participation payante) ────────────────────────────
     if str(metadata.get("purchase_type", "")).lower() == "event":
         await _handle_event_registration(session, metadata, amount_total)
+        return
+
+    # ── Branche SALLE iad (appoint payé par carte, complément des tickets) ────
+    if str(metadata.get("purchase_type", "")).lower() == "iad_salle":
+        await _handle_iad_salle_payment(session, metadata, amount_total)
         return
 
     # Calcule les dates start/end pour Igloohome et l'agenda
@@ -546,6 +551,110 @@ async def _handle_event_registration(session: dict, metadata: dict, amount_total
         _send_coworking_email(COWORKING_NOTIF_EMAIL, f"[ACW] Inscription payante — {event.get('title')}", notif)
     except Exception as e:
         print(f"[EVENT-PAID] notif admin : {e}")
+
+
+async def _handle_iad_salle_payment(session: dict, metadata: dict, amount_total: float):
+    """Salle de réunion iad : l'appoint (complément des tickets) vient d'être réglé par carte.
+    On débite les tickets, on crée la réservation confirmée, on génère le PIN et on confirme."""
+    from pole_sens import supabase  # type: ignore
+
+    customer_email = (session.get("customer_email") or metadata.get("email", "") or "").strip().lower()
+    client_name = metadata.get("client_name", "") or customer_email
+    slot = metadata.get("slot", "")
+    date_str = metadata.get("date", "")
+    hour_from = metadata.get("hourFrom", "")
+    hour_to = metadata.get("hourTo", "")
+    reference = metadata.get("reference") or _generate_reference()
+    try:
+        tickets_to_debit = int(metadata.get("tickets_to_debit") or 0)
+    except (TypeError, ValueError):
+        tickets_to_debit = 0
+    is_stripe_test = not session.get("livemode", True)
+    test_mode = (str(metadata.get("test_mode", "")).lower() in ("1", "true", "yes")) or is_stripe_test
+
+    if not (customer_email and slot and date_str):
+        print(f"[IAD-SALLE-PAID] metadata incomplète : {metadata}")
+        return
+
+    # Anti-rejeu : si la référence existe déjà, on ne recrée pas
+    try:
+        existing = supabase.table("cw_reservations").select("id").eq("reference", reference).execute().data or []
+        if existing:
+            print(f"[IAD-SALLE-PAID] réservation déjà créée ({reference})")
+            return
+    except Exception:
+        pass
+
+    # Débit des tickets
+    debited = 0
+    try:
+        from coworking_iad import _debit_tickets
+        debited = _debit_tickets(customer_email, tickets_to_debit, test_mode)
+    except Exception as e:
+        print(f"[IAD-SALLE-PAID] débit tickets : {e}")
+
+    start_dt, end_dt = _compute_datetimes(date_str, slot, hour_from, hour_to)
+
+    # PIN Igloohome
+    pin_code = pin_id = None
+    if IGLOOHOME_DEVICE_ID_COWORKING:
+        try:
+            from pole_sens import igloohome  # type: ignore
+            access_name = f"{client_name[:30]} {reference}"[:50]
+            pin_start, pin_end = _pin_window(start_dt, end_dt)
+            pin_data = igloohome.generate_custom_pin(
+                device_id=IGLOOHOME_DEVICE_ID_COWORKING,
+                start_date=pin_start, end_date=pin_end, name=access_name,
+            )
+            pin_code = pin_data.get("pin_code")
+            pin_id = pin_data.get("pin_id")
+        except Exception as e:
+            print(f"[IAD-SALLE-PAID] PIN : {e}")
+
+    row = {
+        "reference": reference, "space": "Salle de réunion", "slot": slot,
+        "date": date_str, "hour_from": hour_from or None, "hour_to": hour_to or None,
+        "amount_ttc": amount_total, "email": customer_email, "name": client_name,
+        "client_type": "particulier",
+        "stripe_session_id": session.get("id"),
+        "pin_id": pin_id, "pin_code": pin_code, "test_mode": test_mode,
+        "status": "confirmed", "payment_method": "iad_tickets_stripe",
+        "comment": f"Salle iad — {debited} ticket(s) + {amount_total:.2f} € d'appoint",
+    }
+    try:
+        supabase.table("cw_reservations").insert(row).execute()
+    except Exception as e:
+        print(f"[IAD-SALLE-PAID] insertion : {e}")
+
+    # Email de confirmation au conseiller
+    try:
+        html = _build_confirmation_email_html(
+            client_name=client_name, reference=reference, space="Salle de réunion",
+            slot=slot, date_str=date_str, hour_from=hour_from, hour_to=hour_to,
+            amount=amount_total, pin_code=pin_code, start_dt=start_dt, end_dt=end_dt,
+            invoice_pdf_url=None,
+        )
+        extra = (f"<p style='font-size:13px;color:#5A6478'>Réglé avec {debited} ticket(s)"
+                 f" + {amount_total:.2f} € d'appoint.</p>")
+        html = html.replace("</body>", extra + "</body>") if "</body>" in html else html + extra
+        _send_coworking_email(customer_email, f"Confirmation salle de réunion — L'Atelier du Coworking — {reference}", html)
+    except Exception as e:
+        print(f"[IAD-SALLE-PAID] email : {e}")
+
+    # Notification interne
+    try:
+        notif = _build_admin_notif_html(
+            "Réservation salle (conseiller iad)",
+            "Un conseiller iad a réservé la salle de réunion (tickets + appoint carte).",
+            [("Conseiller", f"{client_name} · {customer_email}"),
+             ("Créneau", f"{date_str} · {hour_from}–{hour_to}"),
+             ("Tickets débités", str(debited)),
+             ("Appoint payé", f"{amount_total:.2f}".replace(".", ",") + " € TTC")],
+            "Voir le calendrier", f"{COWORKING_APP_BASE_URL}/admin-calendar",
+        )
+        _send_coworking_email(COWORKING_NOTIF_EMAIL, f"[ACW] Salle iad — {reference}", notif)
+    except Exception as e:
+        print(f"[IAD-SALLE-PAID] notif : {e}")
 
 
 async def _handle_membership_purchase(session: dict, metadata: dict, amount_total: float):
@@ -1371,8 +1480,8 @@ def generate_coworking_invoice_pdf(reservation: dict, payment_method: str = "str
         pagesize=A4,
         leftMargin=1.8*cm,
         rightMargin=1.8*cm,
-        topMargin=1.6*cm,
-        bottomMargin=1.6*cm,
+        topMargin=1.25*cm,
+        bottomMargin=1.1*cm,
         title=f"Facture {reservation.get('reference', '')}",
         author=COWORKING_DISPLAY_NAME,
     )
@@ -1585,12 +1694,12 @@ def generate_coworking_invoice_pdf(reservation: dict, payment_method: str = "str
         ("ALIGN", (1, 1), (-1, -1), "RIGHT"),
         ("ALIGN", (0, 1), (0, -1), "LEFT"),
         ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("TOPPADDING", (0, 1), (-1, -1), 10),
-        ("BOTTOMPADDING", (0, 1), (-1, -1), 10),
+        ("TOPPADDING", (0, 1), (-1, -1), 7),
+        ("BOTTOMPADDING", (0, 1), (-1, -1), 7),
         ("LINEBELOW", (0, -1), (-1, -1), 0.5, ACW_LIGHT_GREY),
     ]))
     elements.append(items_table)
-    elements.append(Spacer(1, 10))
+    elements.append(Spacer(1, 7))
 
     # 6) Bloc des totaux (aligné à droite)
     totals_data = [
@@ -1618,7 +1727,7 @@ def generate_coworking_invoice_pdf(reservation: dict, payment_method: str = "str
     totals_wrapper = Table([["", totals_table]], colWidths=[9.2*cm, 8.2*cm])
     totals_wrapper.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP")]))
     elements.append(totals_wrapper)
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 8))
 
     # 7) Bloc coordonnées bancaires (si virement) — compte coworking dédié
     if payment_method == "virement" and COWORKING_IBAN:
@@ -1640,7 +1749,7 @@ def generate_coworking_invoice_pdf(reservation: dict, payment_method: str = "str
             ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
         ]))
         elements.append(rib_wrap)
-        elements.append(Spacer(1, 14))
+        elements.append(Spacer(1, 8))
 
     # 8) Mentions légales obligatoires
     mentions = [
@@ -1653,7 +1762,7 @@ def generate_coworking_invoice_pdf(reservation: dict, payment_method: str = "str
     mentions_html = "<br/>".join(mentions)
     elements.append(Paragraph("<b>Conditions de paiement & mentions légales</b>", style_h2))
     elements.append(Paragraph(mentions_html, style_legal))
-    elements.append(Spacer(1, 12))
+    elements.append(Spacer(1, 6))
 
     # 9) Footer
     footer_lines = [
@@ -1897,7 +2006,12 @@ async def get_coworking_pack_invoice_pdf(session_id: str):
         "company": cust_company,
         "client_type": "pro" if cust_company else "particulier",
     }
-    pdf_bytes = generate_coworking_invoice_pdf(inv, payment_method="stripe")
+    # Respecte le mode de règlement du forfait : "stripe" (payé carte) par défaut,
+    # "virement" pour un forfait facturé à régler plus tard (mention « à régler » + IBAN).
+    pm = (pack.get("payment_method") or "stripe").strip().lower()
+    if pm not in ("stripe", "virement", "especes", "cheque", "admin"):
+        pm = "stripe"
+    pdf_bytes = generate_coworking_invoice_pdf(inv, payment_method=pm)
     fname = (invoice_number or "facture-forfait")
 
     return Response(
@@ -1976,14 +2090,15 @@ async def admin_reservation_access(resa_id: str, authorization: Optional[str] = 
 
 
 @router.post("/api/coworking/admin/reservations/{resa_id}/resend-email")
-async def admin_reservation_resend_email(resa_id: str, authorization: Optional[str] = Header(None)):
-    """Renvoie l'email de confirmation (avec le code d'accès) au client."""
+async def admin_reservation_resend_email(resa_id: str, email: Optional[str] = None, authorization: Optional[str] = Header(None)):
+    """Renvoie l'email de confirmation (avec le code d'accès). Envoie à l'adresse
+    fournie en paramètre `email` si présente, sinon à l'email de la réservation."""
     from coworking_devis import _check_admin  # type: ignore
     _check_admin(authorization)
     resa = _load_reservation_or_404(resa_id)
-    email = (resa.get("email") or "").strip()
-    if not email:
-        raise HTTPException(status_code=400, detail="Aucun email client sur la réservation")
+    email = (email or "").strip() or (resa.get("email") or "").strip()
+    if not email or "@" not in email:
+        raise HTTPException(status_code=400, detail="Aucun email valide (ni fourni, ni sur la réservation)")
     start_dt, end_dt = _compute_datetimes(
         resa.get("date") or "", resa.get("slot") or "",
         resa.get("hour_from") or "", resa.get("hour_to") or "",
@@ -2007,6 +2122,134 @@ async def admin_reservation_resend_email(resa_id: str, authorization: Optional[s
     subject = f"Vos codes d'accès — L'Atelier du Coworking — {resa.get('reference')}"
     _send_coworking_email(email, subject, html)
     return {"ok": True, "email": email}
+
+
+def _rs_min(t: str) -> int:
+    try:
+        h, m = str(t or "0:0").split(":")[:2]
+        return int(h) * 60 + int(m)
+    except Exception:
+        return 0
+
+
+def _rs_slug(space: str) -> str:
+    x = (space or "").lower()
+    if "coworking" in x or "open" in x:
+        return "coworking"
+    if "bureau" in x:
+        return "bureau"
+    if "salle" in x or "réunion" in x or "reunion" in x:
+        return "salle-reunion"
+    if "privatis" in x:
+        return "privatisation"
+    return x
+
+
+@router.post("/api/coworking/admin/reservations/{resa_id}/reschedule")
+async def admin_reservation_reschedule(
+    resa_id: str,
+    payload: dict = Body(...),
+    authorization: Optional[str] = Header(None),
+):
+    """Déplace / modifie une réservation : nouvelle date + horaires, régénère le code
+    d'accès Igloohome pour le nouveau créneau, et (option) renvoie l'email au client.
+    Ne rembourse pas et ne supprime rien : la même réservation est simplement décalée."""
+    from coworking_devis import _check_admin  # type: ignore
+    from pole_sens import supabase  # type: ignore
+    _check_admin(authorization)
+    resa = _load_reservation_or_404(resa_id)
+
+    new_date = (payload.get("date") or "").strip()
+    hf = (payload.get("hour_from") or "").strip()
+    ht = (payload.get("hour_to") or "").strip()
+    resend = payload.get("resend_email", True)
+    force = bool(payload.get("force", False))
+    if not new_date or not hf or not ht:
+        raise HTTPException(400, "Date, heure de début et de fin requises.")
+    if _rs_min(ht) <= _rs_min(hf):
+        raise HTTPException(400, "Plage horaire invalide (fin après début).")
+
+    if hf == "08:00" and ht == "12:00":
+        slot = "morning"
+    elif hf == "14:00" and ht == "18:00":
+        slot = "afternoon"
+    elif hf == "08:00" and ht == "18:00":
+        slot = "day"
+    else:
+        slot = "hour"
+
+    slug = _rs_slug(resa.get("space") or "")
+    unit = (resa.get("space_unit") or "")
+
+    # Contrôle de conflit (exclut la réservation elle-même) — contournable via force
+    if not force:
+        rows = supabase.table("cw_reservations") \
+            .select("id,hour_from,hour_to,space,space_unit,status,devis_status,test_mode") \
+            .eq("date", new_date).eq("test_mode", bool(resa.get("test_mode"))).execute().data or []
+        for r in rows:
+            if str(r.get("id")) == str(resa_id):
+                continue
+            active = (r.get("status") == "confirmed") or (r.get("devis_status") in ("validated", "acompte_paid", "fully_paid"))
+            if not active:
+                continue
+            rslug = _rs_slug(r.get("space") or "")
+            same_or_priv = (rslug == slug) or (rslug == "privatisation") or (slug == "privatisation")
+            if not same_or_priv:
+                continue
+            if _rs_min(hf) < _rs_min(r.get("hour_to") or "18:00") and _rs_min(r.get("hour_from") or "08:00") < _rs_min(ht):
+                if slug == "bureau" and unit and (r.get("space_unit") or "") and unit != r.get("space_unit"):
+                    continue  # bureaux différents = pas de conflit
+                _lbl = (str(r.get('space') or '') + ' ' + str(r.get('space_unit') or '')).strip()
+                raise HTTPException(409, f"Conflit : « {_lbl} » déjà réservé sur ce créneau. Coche « forcer » pour déplacer quand même.")
+
+    # Régénère le PIN pour le nouveau créneau
+    start_dt, end_dt = _compute_datetimes(new_date, slot, hf, ht)
+    pin_code = resa.get("pin_code")
+    pin_id = resa.get("pin_id")
+    if IGLOOHOME_DEVICE_ID_COWORKING:
+        try:
+            from pole_sens import igloohome  # type: ignore
+            access_name = f"{(resa.get('name') or '')[:30]} {resa.get('reference')}"[:50]
+            ps, pe = _pin_window(start_dt, end_dt)
+            pd = igloohome.generate_custom_pin(
+                device_id=IGLOOHOME_DEVICE_ID_COWORKING, start_date=ps, end_date=pe, name=access_name,
+            )
+            pin_code = pd.get("pin_code")
+            pin_id = pd.get("pin_id")
+        except Exception as e:
+            print(f"[RESCHEDULE] PIN : {e}")
+
+    try:
+        supabase.table("cw_reservations").update({
+            "date": new_date, "hour_from": hf, "hour_to": ht, "slot": slot,
+            "pin_code": pin_code, "pin_id": pin_id,
+        }).eq("id", resa_id).execute()
+    except Exception as e:
+        print(f"[RESCHEDULE] update : {e}")
+        raise HTTPException(500, "Erreur lors de la mise à jour de la réservation.")
+
+    email_sent = False
+    if resend:
+        try:
+            email = (resa.get("email") or "").strip()
+            if email and "@" in email:
+                sid = resa.get("stripe_session_id")
+                invoice_url = f"{COWORKING_APP_BASE_URL}/facture/{sid}.pdf" if sid else None
+                html = _build_confirmation_email_html(
+                    client_name=resa.get("name") or "", reference=resa.get("reference") or "",
+                    space=resa.get("space") or "", slot=slot, date_str=new_date,
+                    hour_from=hf, hour_to=ht, amount=float(resa.get("amount_ttc") or 0),
+                    pin_code=pin_code, start_dt=start_dt, end_dt=end_dt, invoice_pdf_url=invoice_url,
+                )
+                intro = "<p style='background:#EAF5FF;border:1px solid #CFE4FB;border-radius:8px;padding:10px 14px;font-size:13px'>Votre réservation a été <b>modifiée</b>. Voici les nouveaux horaires et votre nouveau code d'accès.</p>"
+                html = html.replace("<body>", "<body>" + intro) if "<body>" in html else intro + html
+                _send_coworking_email(email, f"Réservation modifiée — nouveaux horaires et code — {resa.get('reference')}", html)
+                email_sent = True
+        except Exception as e:
+            print(f"[RESCHEDULE] email : {e}")
+
+    return {"ok": True, "date": new_date, "hour_from": hf, "hour_to": ht,
+            "slot": slot, "pin_code": pin_code, "email_sent": email_sent}
 
 
 # ============================================================================
