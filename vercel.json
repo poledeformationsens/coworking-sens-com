@@ -12,10 +12,6 @@
       "destination": "https://pole-iad-sens.fr/api/coworking/invoice/:sid.pdf"
     },
     {
-      "source": "/facture-evenement/:sid.pdf",
-      "destination": "https://pole-iad-sens.fr/api/coworking/invoice-event/:sid.pdf"
-    },
-    {
       "source": "/facture-forfait/:sid.pdf",
       "destination": "https://pole-iad-sens.fr/api/coworking/invoice-forfait/:sid.pdf"
     },
@@ -78,6 +74,14 @@
     {
       "source": "/admin-iad/",
       "destination": "/admin-iad.html"
+    },
+    {
+      "source": "/admin-impressions",
+      "destination": "/admin-impressions.html"
+    },
+    {
+      "source": "/admin-impressions/",
+      "destination": "/admin-impressions.html"
     },
     {
       "source": "/admin-fermetures",

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impressions — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --iad:#00B4EC; --coral:#EA584A; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:700}
+  .wrap{max-width:1100px;margin:24px auto;padding:0 18px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;padding:18px;margin-bottom:18px}
+  h2{font-family:'Playfair Display',serif;margin:0 0 4px;font-size:20px}
+  .muted{color:var(--slate);font-size:13px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+  label{font-size:12px;color:var(--slate);display:block;margin-bottom:3px}
+  input,select{width:100%;padding:9px 12px;border:1px solid var(--light);border-radius:6px;font-family:inherit;font-size:14px;color:var(--navy)}
+  .presets{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .preset{background:#EAF5FF;border:1px solid #CFE4FB;border-radius:8px;padding:8px 12px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--navy)}
+  .btn{border:none;border-radius:7px;padding:10px 16px;font-weight:700;font-size:13px;cursor:pointer}
+  .btn.primary{background:var(--navy);color:#fff} .btn.gold{background:var(--gold);color:var(--navy)}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--light)} .btn.mini{padding:6px 10px;font-size:12px}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden}
+  th,td{padding:11px 13px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee;vertical-align:middle}
+  th{background:#fafafa;color:var(--slate);font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.04em}
+  .bal{font-weight:800}
+  .empty{padding:34px;text-align:center;color:var(--slate)}
+  .row-actions{display:flex;gap:6px;flex-wrap:wrap}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+  #msg{font-size:13px;font-weight:600;margin-left:8px}
+  .modal-bg{position:fixed;inset:0;background:rgba(3,35,77,.45);display:none;align-items:center;justify-content:center;z-index:90;padding:16px}
+  .modal-bg.open{display:flex}
+  .modal{background:#fff;border-radius:12px;padding:20px;max-width:560px;width:100%;max-height:85vh;overflow:auto}
+  @media(max-width:760px){ nav{overflow-x:auto;flex-wrap:nowrap;width:100%} nav a{white-space:nowrap;flex:0 0 auto} }
+</style>
+<meta name="theme-color" content="#03234D">
+</head>
+<body>
+
+<div id="login"><div class="box">
+  <h2 style="color:var(--navy)">Admin — Impressions</h2>
+  <p class="muted">Session admin requise.</p>
+  <a class="btn ghost" href="admin-devis-dashboard.html" style="text-decoration:none;display:inline-block;margin-top:10px">Se connecter sur le dashboard</a>
+</div></div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="120" height="120">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-hub.html">✨ Hub</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-forfaits.html">🎟️ Forfaits</a>
+      <a href="admin-impressions.html" class="active">🖨️ Impressions</a>
+      <a href="admin-clients.html">👤 Clients</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <!-- Vente / recharge -->
+  <div class="card">
+    <h2>🖨️ Vendre / recharger un crédit d'impression</h2>
+    <p class="muted">Créditez des pages à un coworker. Le blocage physique se règle sur l'imprimante (Secure Function Lock : code PIN + quota). Ici : vente, soldes et facturation.</p>
+    <div class="presets" id="presets"></div>
+    <div class="grid">
+      <div><label>Email coworker</label><input id="s-email" list="dl-emails" placeholder="client@email.fr" autocapitalize="none"></div>
+      <div><label>Nom</label><input id="s-name" placeholder="Prénom Nom"></div>
+      <div><label>Code PIN imprimante (SFL)</label><input id="s-pin" placeholder="4 chiffres" maxlength="8"></div>
+      <div><label>Pages N&B</label><input id="s-bw" type="number" min="0" step="1" value="0"></div>
+      <div><label>Pages couleur</label><input id="s-color" type="number" min="0" step="1" value="0"></div>
+      <div><label>Montant TTC (€)</label><input id="s-amount" type="number" min="0" step="0.01" value="0"></div>
+      <div><label>Paiement</label><select id="s-pay"><option value="virement">Virement</option><option value="especes">Espèces</option><option value="cb">Carte</option><option value="offert">Offert</option></select></div>
+    </div>
+    <label style="display:flex;gap:8px;align-items:center;font-size:13px;color:var(--navy)"><input id="s-invoice" type="checkbox" style="width:auto"> Émettre une facture numérotée</label>
+    <div style="margin-top:12px;display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <button class="btn primary" id="s-btn" onclick="sell()">Enregistrer la vente</button>
+      <span id="msg"></span>
+    </div>
+  </div>
+
+  <!-- Comptes -->
+  <div class="card">
+    <h2>Comptes coworkers <span class="muted" id="cnt"></span></h2>
+    <div style="display:flex;gap:10px;margin:10px 0;flex-wrap:wrap">
+      <input id="filter" placeholder="Filtrer par nom ou email…" style="flex:1;min-width:200px">
+      <button class="btn ghost" onclick="load()">↻ Rafraîchir</button>
+    </div>
+    <div id="list"><div class="empty">Chargement…</div></div>
+  </div>
+</div>
+<datalist id="dl-emails"></datalist>
+
+<!-- Historique -->
+<div class="modal-bg" id="modal-hist"><div class="modal">
+  <h2 id="hist-title">Historique</h2>
+  <div id="hist-body" style="margin-top:10px"></div>
+  <div style="margin-top:14px;text-align:right"><button class="btn ghost" onclick="closeHist()">Fermer</button></div>
+</div></div>
+
+<script>
+const API_BASE='/api/coworking';
+const STORAGE_KEY='cw_admin_session';
+let HEADERS={'Content-Type':'application/json'};
+let ACCOUNTS=[], RATES=null;
+const TEST=false;
+
+function getSession(){ try{ const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); if(s&&s.expires&&s.expires<Date.now()) return null; return s; }catch(e){ return null; } }
+function esc(s){ return (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function eur(a){ return new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(a||0); }
+function fmtDT(iso){ if(!iso) return ''; return new Date(iso).toLocaleDateString('fr-FR',{day:'2-digit',month:'2-digit',year:'2-digit'})+' '+new Date(iso).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'}); }
+function msg(t,ok){ const m=document.getElementById('msg'); m.textContent=t; m.style.color=ok?'var(--green)':'var(--coral)'; if(t) setTimeout(()=>{ if(m.textContent===t) m.textContent=''; },5000); }
+
+async function loadRates(){
+  try{ const r=await fetch(`${API_BASE}/admin/print/rates`,{headers:HEADERS,cache:'no-store'}); if(r.ok) RATES=await r.json(); }catch(e){}
+  const box=document.getElementById('presets');
+  if(!RATES){ box.innerHTML=''; return; }
+  box.innerHTML='<span class="muted" style="align-self:center">Packs :</span>'+
+    (RATES.packs||[]).map((p,i)=>`<span class="preset" onclick="applyPreset(${i})">${esc(p.label)} — ${eur(p.amount_ttc)}</span>`).join('')+
+    `<span class="muted" style="align-self:center;margin-left:6px">Unité : ${eur(RATES.bw_unit_ttc)}/N&B · ${eur(RATES.color_unit_ttc)}/couleur</span>`;
+}
+function applyPreset(i){ const p=RATES.packs[i]; if(!p) return; document.getElementById('s-bw').value=p.bw; document.getElementById('s-color').value=p.color; document.getElementById('s-amount').value=p.amount_ttc; }
+
+async function load(){
+  try{
+    const r=await fetch(`${API_BASE}/admin/print/accounts?test_mode=${TEST}`,{headers:HEADERS,cache:'no-store'});
+    if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; return; }
+    const d=await r.json(); ACCOUNTS=d.accounts||[];
+    document.getElementById('dl-emails').innerHTML=ACCOUNTS.map(a=>`<option value="${esc(a.email)}">`).join('');
+    render();
+  }catch(e){ document.getElementById('list').innerHTML=`<div class="empty">Erreur : ${esc(e.message)}</div>`; }
+}
+
+function render(){
+  const q=(document.getElementById('filter').value||'').toLowerCase();
+  let rows=ACCOUNTS.filter(a=>((a.email||'')+' '+(a.name||'')).toLowerCase().includes(q));
+  document.getElementById('cnt').textContent=`(${rows.length})`;
+  const el=document.getElementById('list');
+  if(!rows.length){ el.innerHTML='<div class="empty">Aucun compte. Vends un premier crédit ci-dessus.</div>'; return; }
+  el.innerHTML='<table><thead><tr><th>Coworker</th><th>PIN</th><th>Solde N&B</th><th>Solde couleur</th><th></th></tr></thead><tbody>'+
+    rows.map(a=>`<tr>
+      <td><strong>${esc(a.name||'—')}</strong><br><span class="muted">${esc(a.email)}</span></td>
+      <td>${esc(a.sfl_pin||'—')}</td>
+      <td class="bal" style="color:${a.bw_balance>0?'var(--green)':'var(--coral)'}">${a.bw_balance}</td>
+      <td class="bal" style="color:${a.color_balance>0?'var(--green)':'var(--coral)'}">${a.color_balance}</td>
+      <td><div class="row-actions">
+        <button class="btn gold mini" onclick="prefill('${esc(a.email)}','${esc(a.name||'')}','${esc(a.sfl_pin||'')}')">Recharger</button>
+        <button class="btn ghost mini" onclick="consume('${esc(a.email)}')">Conso</button>
+        <button class="btn ghost mini" onclick="history('${esc(a.email)}','${esc(a.name||a.email)}')">Historique</button>
+      </div></td>
+    </tr>`).join('')+'</tbody></table>';
+}
+
+function prefill(email,name,pin){ document.getElementById('s-email').value=email; document.getElementById('s-name').value=name; document.getElementById('s-pin').value=pin; window.scrollTo({top:0,behavior:'smooth'}); }
+
+async function sell(){
+  const email=(document.getElementById('s-email').value||'').trim();
+  const bw=parseInt(document.getElementById('s-bw').value||'0',10);
+  const color=parseInt(document.getElementById('s-color').value||'0',10);
+  if(!email.includes('@')){ msg('Email valide requis.'); return; }
+  if(bw<=0&&color<=0){ msg('Indique des pages (N&B et/ou couleur).'); return; }
+  const body={ email, name:document.getElementById('s-name').value.trim()||null, bw, color,
+    amount_ttc:parseFloat(document.getElementById('s-amount').value||'0'),
+    payment_method:document.getElementById('s-pay').value,
+    issue_invoice:document.getElementById('s-invoice').checked, test_mode:TEST };
+  // enregistre le PIN si saisi
+  const pin=(document.getElementById('s-pin').value||'').trim();
+  const btn=document.getElementById('s-btn'); btn.disabled=true; const o=btn.textContent; btn.textContent='Enregistrement…';
+  try{
+    if(pin){ await fetch(`${API_BASE}/admin/print/account`,{method:'POST',headers:HEADERS,body:JSON.stringify({email,name:body.name,sfl_pin:pin,test_mode:TEST})}); }
+    const r=await fetch(`${API_BASE}/admin/print/sell`,{method:'POST',headers:HEADERS,body:JSON.stringify(body)});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    const d=await r.json();
+    msg(`✅ Crédité. Solde : ${d.bw_balance} N&B / ${d.color_balance} couleur`+(d.invoice_number?` · Facture ${d.invoice_number}`:''),true);
+    document.getElementById('s-bw').value=0; document.getElementById('s-color').value=0; document.getElementById('s-amount').value=0; document.getElementById('s-invoice').checked=false;
+    load();
+  }catch(e){ msg('Erreur : '+e.message); }
+  finally{ btn.disabled=false; btn.textContent=o; }
+}
+
+async function consume(email){
+  const bw=parseInt(prompt('Pages N&B consommées ?','0')||'0',10);
+  const color=parseInt(prompt('Pages couleur consommées ?','0')||'0',10);
+  if((bw||0)<=0&&(color||0)<=0) return;
+  try{
+    const r=await fetch(`${API_BASE}/admin/print/consume`,{method:'POST',headers:HEADERS,body:JSON.stringify({email,bw,color,note:'Réconciliation compteur',test_mode:TEST})});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    const d=await r.json(); msg(`Conso enregistrée. Solde : ${d.bw_balance} N&B / ${d.color_balance} couleur`,true); load();
+  }catch(e){ msg('Erreur : '+e.message); }
+}
+
+async function history(email,name){
+  document.getElementById('hist-title').textContent='Historique — '+name;
+  document.getElementById('hist-body').innerHTML='Chargement…';
+  document.getElementById('modal-hist').classList.add('open');
+  try{
+    const r=await fetch(`${API_BASE}/admin/print/movements?email=${encodeURIComponent(email)}&test_mode=${TEST}`,{headers:HEADERS,cache:'no-store'});
+    const d=await r.json(); const m=d.movements||[];
+    document.getElementById('hist-body').innerHTML = m.length? ('<table><thead><tr><th>Date</th><th>Type</th><th>N&B</th><th>Couleur</th><th>Montant</th></tr></thead><tbody>'+
+      m.map(x=>`<tr><td>${fmtDT(x.created_at)}</td><td>${esc(x.kind)}${x.invoice_number?'<br><span class="muted">'+esc(x.invoice_number)+'</span>':''}</td><td>${x.bw>0?'+':''}${x.bw}</td><td>${x.color>0?'+':''}${x.color}</td><td>${x.amount_ttc?eur(x.amount_ttc):'—'}</td></tr>`).join('')+'</tbody></table>')
+      : '<div class="empty">Aucun mouvement.</div>';
+  }catch(e){ document.getElementById('hist-body').innerHTML='<div class="empty">Erreur.</div>'; }
+}
+function closeHist(){ document.getElementById('modal-hist').classList.remove('open'); }
+
+document.getElementById('filter').addEventListener('input',render);
+
+(function(){
+  const s=getSession();
+  if(!s||!s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS={'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  loadRates(); load();
+})();
+</script>
+</body>
+</html>
