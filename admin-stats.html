@@ -346,16 +346,65 @@ function renderChart(byMonth){
   });
 }
 
+let OFFRE_ROWS = [];
+let OFFRE_OPEN = {};   // libellé d'offre -> ouvert ?
+function _fmtD(iso){ if(!iso) return ''; const p=(''+iso).slice(0,10).split('-'); return p.length===3?`${p[2]}/${p[1]}/${p[0].slice(2)}`:iso; }
+
 function renderOffres(){
   if(!DATA) return;
   const q = (document.getElementById('search-offre').value||'').toLowerCase();
-  let rows = (DATA.by_offer||[]).filter(o=>o.offer.toLowerCase().includes(q));
-  document.getElementById('list-offres').innerHTML = rows.map(o=>`
-    <div class="row-card">
-      <div class="name">${o.offer}</div>
-      <div class="meta">${o.count} réservation${o.count>1?'s':''}</div>
-      <div class="amt">${ht(o.ca_ht)}</div>
-    </div>`).join('') || '<p class="muted">Aucune offre sur la période.</p>';
+  OFFRE_ROWS = (DATA.by_offer||[]).filter(o=>o.offer.toLowerCase().includes(q));
+  const el = document.getElementById('list-offres');
+  if(!OFFRE_ROWS.length){ el.innerHTML='<p class="muted">Aucune offre sur la période.</p>'; return; }
+  el.innerHTML = OFFRE_ROWS.map((o,i)=>{
+    const open = !!OFFRE_OPEN[o.offer];
+    return `<div>
+      <div class="row-card" style="cursor:pointer" onclick="toggleOffre(${i})">
+        <div class="name">${open?'▾':'▸'} ${o.offer}</div>
+        <div class="meta">${o.count} réservation${o.count>1?'s':''}</div>
+        <div class="amt">${ht(o.ca_ht)}</div>
+      </div>
+      <div id="offdet-${i}" style="display:${open?'block':'none'};margin:-2px 0 12px;padding:0 12px"></div>
+    </div>`;
+  }).join('');
+  OFFRE_ROWS.forEach((o,i)=>{ if(OFFRE_OPEN[o.offer]) loadOffreDetail(i); });
+}
+
+function toggleOffre(i){
+  const o = OFFRE_ROWS[i]; if(!o) return;
+  OFFRE_OPEN[o.offer] = !OFFRE_OPEN[o.offer];
+  renderOffres();
+}
+
+async function loadOffreDetail(i){
+  const o = OFFRE_ROWS[i]; if(!o) return;
+  const det = document.getElementById('offdet-'+i); if(!det || det.dataset.loaded==='1') return;
+  det.dataset.loaded='1';
+  det.innerHTML = '<p class="muted" style="padding:6px 0">Chargement…</p>';
+  const from = document.getElementById('f-from').value, to = document.getElementById('f-to').value;
+  try{
+    const r = await fetch(`${API_BASE}/admin/stats/offer-detail?date_from=${from}&date_to=${to}&test_mode=false&offer=${encodeURIComponent(o.offer)}`, {headers:HEADERS, cache:'no-store'});
+    const d = await r.json();
+    const rows = d.reservations||[];
+    if(!rows.length){ det.innerHTML='<p class="muted" style="padding:6px 0">Aucun détail disponible.</p>'; return; }
+    det.innerHTML =
+      '<table style="width:100%;border-collapse:collapse;font-size:12.5px">'+
+      '<thead><tr style="text-align:left;color:#7a879c">'+
+      '<th style="padding:6px 8px">Date</th><th style="padding:6px 8px">Client</th>'+
+      '<th style="padding:6px 8px">Espace</th><th style="padding:6px 8px">Créneau</th>'+
+      '<th style="padding:6px 8px;text-align:right">HT</th></tr></thead><tbody>'+
+      rows.map(x=>{
+        const cren = (x.hour_from&&x.hour_to)?`${x.hour_from}–${x.hour_to}`:'';
+        const esp = (x.space||'')+(x.space_unit?(' · '+x.space_unit):'');
+        return `<tr style="border-top:1px solid #eef1f5">
+          <td style="padding:6px 8px;white-space:nowrap">${_fmtD(x.date)}</td>
+          <td style="padding:6px 8px">${x.name||'—'}<br><span class="muted" style="font-size:11px">${x.email||''}</span></td>
+          <td style="padding:6px 8px">${esp}</td>
+          <td style="padding:6px 8px;white-space:nowrap">${cren}</td>
+          <td style="padding:6px 8px;text-align:right;white-space:nowrap">${ht((x.amount_ttc||0)/1.2)}</td>
+        </tr>`;
+      }).join('')+'</tbody></table>';
+  }catch(e){ det.innerHTML='<p class="muted" style="padding:6px 0">Erreur de chargement.</p>'; det.dataset.loaded=''; }
 }
 
 function renderCategorie(){
