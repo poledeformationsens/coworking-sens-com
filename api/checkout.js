@@ -6,7 +6,7 @@
 //   "pack"         achat d'un forfait prépayé — crédits (mode payment, carte)   ← inclut ALC iad 5€/10€
 //   "event"        participation à un événement payant (mode payment, carte)
 //   "subscription" abonnement Full agent iad 40€/mois (mode subscription, carte + SEPA)
-//   "membership"   adhésion Réseau agent iad 60€/an, one-shot annuel (mode payment, carte + SEPA)
+//   "membership"   adhésion Réseau agent iad 120€/an, one-shot annuel (mode payment, carte + SEPA)
 
 import Stripe from "stripe";
 
@@ -49,7 +49,65 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Données événement manquantes (eventId requis)" });
     }
 
-    const amountCents = Math.round(amountTTC * 100);
+    // ------------------------------------------------------------------
+    // Garde-fou tarifaire : le montant arrive du navigateur et pourrait être
+    // modifié dans la console. Pour toute offre au tarif fixe, le serveur
+    // impose son propre prix et refuse tout écart.
+    // ------------------------------------------------------------------
+    const TARIFS_IAD = {
+      // abonnement Premium agent iad
+      "subscription:full":        40,
+      // adhésion Réseau agent iad (annuel one-shot)
+      "membership:reseau":        120,
+      // formations à la carte, prix UNITAIRE (multiplié par la quantité)
+      "pack:iad-alc-half":        5,
+      "pack:iad-alc-day":         10,
+      "pack:iad-cafe-carnet":     45,
+    };
+
+    function tarifAttendu() {
+      if (origin !== "iad") return null;
+      if (isSubscription && packCreditType === "half-day") {
+        return TARIFS_IAD["subscription:full"];
+      }
+      if (isMembership) {
+        const t = TARIFS_IAD["membership:" + (membershipType || "reseau")];
+        return t === undefined ? null : t;
+      }
+      if (isPack) {
+        const unitaire = TARIFS_IAD["pack:" + pricingId];
+        if (unitaire === undefined) return null;
+        // les carnets sont vendus en bloc, les ALC à l'unité
+        return pricingId === "iad-cafe-carnet" ? unitaire : unitaire * Number(packCredits || 0);
+      }
+      return null;
+    }
+
+    const attendu = tarifAttendu();
+    if (attendu !== null && Math.round(Number(amountTTC) * 100) !== Math.round(attendu * 100)) {
+      console.warn(`[CHECKOUT] Tarif refusé — reçu ${amountTTC} €, attendu ${attendu} € (${email})`);
+      return res.status(400).json({ error: "Tarif invalide. Rechargez la page et réessayez." });
+    }
+
+    // Événement payant : le prix fait foi côté base, jamais côté navigateur.
+    let montantFinal = attendu !== null ? attendu : Number(amountTTC);
+    if (isEvent) {
+      try {
+        const r = await fetch(`https://pole-iad-sens.fr/api/coworking/events/${encodeURIComponent(eventId)}/public`);
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const ev = await r.json();
+        const prix = Number((ev && (ev.event ? ev.event.price_ttc : ev.price_ttc)) || 0);
+        if (!(prix > 0)) {
+          return res.status(400).json({ error: "Cet événement n'est pas payant." });
+        }
+        montantFinal = prix;
+      } catch (e) {
+        console.error("[CHECKOUT] Prix événement illisible :", e);
+        return res.status(502).json({ error: "Tarif de l'événement indisponible. Réessayez dans un instant." });
+      }
+    }
+
+    const amountCents = Math.round(montantFinal * 100);
     if (amountCents < 100) {
       return res.status(400).json({ error: "Montant trop bas (minimum 1 €)" });
     }
