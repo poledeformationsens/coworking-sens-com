@@ -242,6 +242,7 @@ function render(events){
       <td>${e.active?'✅':'—'}</td>
       <td style="text-align:right;white-space:nowrap">
         <button class="btn share" onclick='openShare(${JSON.stringify(e).replace(/'/g,"&#39;")})'>📤 Partager</button>
+        <button class="btn ghost" style="color:#0B7A4B;border-color:#A8D8BE" onclick='offrirPlace(${e.id}, ${JSON.stringify(e.title)})'>🎁 Offrir</button>
         <button class="btn ghost" onclick='showRegs(${e.id}, ${JSON.stringify(e.title)})'>Inscrits</button>
         <button class="btn ghost" onclick='editEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Modifier</button>
         <button class="btn ghost" onclick='dupEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Dupliquer</button>
@@ -415,7 +416,8 @@ async function showRegs(id, title){
       rows.map(x=>{
         let pay;
         if(x.refunded){ pay='<span style="color:#B4232A">Remboursé</span>'; }
-        else if(x.paid){ pay=`<b>${money(x.amount_ttc)}</b> payé`; }
+        else if(x.source==='offert'){ pay='<span style="color:#0B7A4B;font-weight:700">🎁 Offert</span>'; }
+        else if(x.paid && Number(x.amount_ttc||0)>0){ pay=`<b>${money(x.amount_ttc)}</b> payé`; }
         else { pay='<span class="muted">Gratuit</span>'; }
         const canRefund = x.paid && !x.refunded && x.stripe_session_id;
         const refundBtn = canRefund
@@ -427,6 +429,28 @@ async function showRegs(id, title){
                `<td style="white-space:nowrap;text-align:right">${refundBtn} ${cancelBtn}</td></tr>`;
       }).join('')+'</tbody></table>';
   }catch(e){ list.innerHTML='<div class="empty">Erreur : '+e.message+'</div>'; }
+}
+
+// Offrir une place : inscription sans paiement, à l'initiative de l'admin.
+async function offrirPlace(id, titre){
+  const email = (prompt(`Offrir une place — ${titre}\n\nE-mail de la personne :`) || '').trim();
+  if(!email) return;
+  if(!email.includes('@')){ alert('E-mail invalide.'); return; }
+  const nom = (prompt('Nom de la personne (facultatif) :') || '').trim();
+  if(!confirm(`Offrir la place à ${nom || email} ?\n\nLa personne sera inscrite sans rien payer et recevra un e-mail de confirmation.`)) return;
+  try{
+    const r = await fetch(`${API_BASE}/admin/events/${id}/registrations`, {
+      method:'POST', headers:HEADERS,
+      body: JSON.stringify({email, name: nom || null, notify: true}),
+    });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok){ alert('Erreur : ' + (d.detail || r.status)); return; }
+    alert(d.over_capacity
+      ? '✅ Place offerte.\n\n⚠️ La jauge était déjà atteinte : tu es au-dessus de la capacité annoncée.'
+      : '✅ Place offerte, la personne vient de recevoir sa confirmation.');
+    load();
+    if(typeof _regEventId !== 'undefined' && _regEventId === id) showRegs(id, titre);
+  }catch(e){ alert('Erreur : ' + e.message); }
 }
 
 async function refundReg(regId, who, amount){
