@@ -113,7 +113,17 @@ async function payer(id){
   const s = getSession();
   if(!e || !s || !s.email){ alert("Reconnectez-vous pour vous inscrire."); return; }
   const btn = event && event.target;
-  if(btn){ btn.disabled = true; btn.textContent = 'Redirection vers le paiement…'; }
+  if(btn){ btn.disabled = true; btn.textContent = 'Vérification…'; }
+
+  // Formation : offerte à un abonné Premium. On tente d'abord l'inscription
+  // directe ; le backend répond 402 si la personne n'y a pas droit, et on
+  // bascule alors sur le paiement.
+  try{
+    const rf = await fetch(`${API_BASE}/events/${id}/register`, {method:'POST', headers:{'Authorization':'Bearer '+TOKEN}});
+    if(rf.ok){ load(); return; }
+  }catch(e){}
+
+  if(btn){ btn.textContent = 'Redirection vers le paiement…'; }
   try{
     const when = fmtDate(e.date) + (e.hour_from ? ` · ${e.hour_from}${e.hour_to?'–'+e.hour_to:''}` : '');
     const r = await fetch('/api/checkout', {
