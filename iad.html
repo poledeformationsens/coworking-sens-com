@@ -177,10 +177,11 @@
       <div class="card">
         <span class="tag">Vie de réseau</span>
         <h3>Forfait Réseau</h3>
-        <div class="price">60 €<span> / an</span></div>
+        <div class="price">120 €<span> / an</span></div>
         <ul>
           <li>Accès aux <strong>rendez-vous Réseau du mardi</strong> (52 séances / an)</li>
-          <li>Accès aux <strong>3 réunions de bassin annuelles</strong></li>
+          <li><strong>2 cafés partage par mois</strong> (non cumulables d'un mois sur l'autre)</li>
+          <li><strong>4 réunions de bassin</strong> dans l'année</li>
           <li>Paiement une fois par an (carte ou SEPA)</li>
           <li>Idéal pour rester connecté à l'équipe</li>
         </ul>
@@ -427,7 +428,7 @@ function planPayload(plan, email, name){
     packSpace:'coworking', packCreditType:'half-day', monthlyCredits:8,
     packLabel:'Forfait Premium agent iad' }; }
   if(plan === 'reseau') return { ...base,
-    purchaseType:'membership', amountTTC:60, membershipType:'reseau', membershipMonths:12,
+    purchaseType:'membership', amountTTC:120, membershipType:'reseau', membershipMonths:12,
     packLabel:'Adhésion Réseau agent iad' };
   if(plan === 'alc-half'){ const q = +document.getElementById('qty-half').value || 1; return { ...base,
     purchaseType:'pack', pricingId:'iad-alc-half', packSpace:'formation', packCreditType:'half-day',
