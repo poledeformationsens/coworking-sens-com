@@ -46,6 +46,25 @@
   #share a.s,#share button.s{flex:1;min-width:120px;text-decoration:none;border-radius:8px;padding:10px 12px;font-weight:700;font-size:13px;cursor:pointer;border:none}
   .s-wa{background:#25D366;color:#fff} .s-mail{background:var(--navy);color:#fff} .s-copy{background:#fff;color:var(--navy);border:1px solid var(--light)!important} .s-qr{background:var(--gold);color:var(--navy)}
   #share .close{margin-top:14px;background:none;border:none;color:var(--slate);cursor:pointer;font-size:13px}
+
+  /* ----- Filtres de la liste d'événements ----- */
+  .filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px}
+  .seg{display:inline-flex;border:1px solid var(--light);border-radius:9px;overflow:hidden;background:#fff}
+  .seg button{background:#fff;border:none;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;
+              color:var(--slate);cursor:pointer;border-right:1px solid var(--light)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--gold);color:var(--navy)}
+  .filters select{width:auto;min-width:150px;padding:8px 10px;font-size:13px}
+  .filters input[type=search]{width:auto;flex:1;min-width:170px;padding:8px 12px;font-size:13px}
+  .filters .reset{background:none;border:none;color:var(--slate);font-size:12.5px;cursor:pointer;
+                  text-decoration:underline;padding:4px 2px;font-family:inherit}
+  .count{font-size:12.5px;color:var(--slate);margin:0 0 10px}
+  @media (max-width:820px){
+    .filters{gap:8px}
+    .filters select,.filters input[type=search]{width:100%;min-width:0;flex:1 1 100%}
+    .seg{width:100%}
+    .seg button{flex:1;padding:9px 6px;font-size:12.5px}
+  }
 </style>
 <style>/* ACW-RESPONSIVE */
 @media (max-width:820px){
@@ -183,6 +202,29 @@
 
   <div class="card">
     <h2>Événements</h2>
+
+    <div class="filters">
+      <div class="seg" id="f-periode">
+        <button data-v="future" class="on" onclick="setPeriode('future')">À venir</button>
+        <button data-v="past" onclick="setPeriode('past')">Passés</button>
+        <button data-v="all" onclick="setPeriode('all')">Tous</button>
+      </div>
+      <select id="f-audience" onchange="applyFilters()">
+        <option value="">Tous les publics</option>
+        <option value="coworking">🏢 Coworking</option>
+        <option value="iad">🤝 Conseillers iad</option>
+        <option value="all">🌐 Tous publics</option>
+      </select>
+      <select id="f-statut" onchange="applyFilters()">
+        <option value="">Visibles et masqués</option>
+        <option value="on">Visibles seulement</option>
+        <option value="off">Masqués seulement</option>
+      </select>
+      <input type="search" id="f-q" placeholder="Rechercher un titre, une catégorie…" oninput="applyFilters()">
+      <button type="button" class="reset" onclick="resetFilters()">Réinitialiser</button>
+    </div>
+    <div class="count" id="f-count"></div>
+
     <div id="list"><div class="empty">Chargement…</div></div>
   </div>
 
@@ -227,11 +269,118 @@ async function load(){
   }catch(e){ document.getElementById('list').innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
 }
 
+// ===== Filtres de la liste =====
+const FILTER_KEY = 'cw_admin_ev_filtres';
+let FILTRES = {periode:'future', audience:'', statut:'', q:''};
+
+let FILTRES_CHARGES = false;
+
+// Recopie FILTRES dans les champs de la barre de filtres.
+function peindreFiltres(){
+  const seg=document.getElementById('f-periode');
+  if(seg) seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.v===FILTRES.periode));
+  const a=document.getElementById('f-audience'); if(a) a.value=FILTRES.audience;
+  const st=document.getElementById('f-statut');  if(st) st.value=FILTRES.statut;
+  const q=document.getElementById('f-q');        if(q) q.value=FILTRES.q;
+}
+// Relit le choix mémorisé — une seule fois par visite, sinon un rechargement
+// de la liste écraserait les filtres que David vient de changer.
+function loadFiltres(){
+  if(FILTRES_CHARGES) return;
+  FILTRES_CHARGES = true;
+  try{ const f=JSON.parse(localStorage.getItem(FILTER_KEY)||'null'); if(f) FILTRES={...FILTRES, ...f}; }catch(e){}
+  peindreFiltres();
+}
+function saveFiltres(){ try{ localStorage.setItem(FILTER_KEY, JSON.stringify(FILTRES)); }catch(e){} }
+
+function setPeriode(v){
+  FILTRES.periode = v;
+  document.getElementById('f-periode').querySelectorAll('button')
+    .forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  applyFilters();
+}
+function resetFilters(){
+  FILTRES={periode:'future', audience:'', statut:'', q:''};
+  peindreFiltres();
+  applyFilters();
+}
+
+// Après un enregistrement : si l'événement créé ou modifié ne passe pas les
+// filtres en cours, on relâche juste ce qu'il faut pour qu'il reste visible.
+// Sinon on aurait l'impression que l'enregistrement n'a rien fait.
+function assouplirFiltresPour(ev){
+  if(!ev) return;
+  let change=false;
+  if(FILTRES.audience && FILTRES.audience !== (ev.audience||'coworking')){ FILTRES.audience=''; change=true; }
+  if((FILTRES.statut==='on' && !ev.active) || (FILTRES.statut==='off' && ev.active)){ FILTRES.statut=''; change=true; }
+  if(FILTRES.q){
+    const foin=((ev.title||'')+' '+(ev.category||'')+' '+(ev.location||'')).toLowerCase();
+    if(!foin.includes(FILTRES.q.trim().toLowerCase())){ FILTRES.q=''; change=true; }
+  }
+  const auj=todayISO();
+  if(ev.date && ((FILTRES.periode==='future' && ev.date<auj) || (FILTRES.periode==='past' && ev.date>=auj))){
+    FILTRES.periode='all'; change=true;
+  }
+  if(change){ peindreFiltres(); saveFiltres(); }
+}
+
+function todayISO(){
+  const d=new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+
+// Applique les filtres à EVENTS puis dessine le tableau.
+function applyFilters(){
+  const a=document.getElementById('f-audience'), st=document.getElementById('f-statut'), q=document.getElementById('f-q');
+  if(a)  FILTRES.audience = a.value;
+  if(st) FILTRES.statut   = st.value;
+  if(q)  FILTRES.q        = q.value;
+  saveFiltres();
+
+  const auj = todayISO();
+  const terme = (FILTRES.q||'').trim().toLowerCase();
+  let liste = (EVENTS||[]).filter(e=>{
+    if(FILTRES.periode==='future' && !(e.date && e.date >= auj)) return false;
+    if(FILTRES.periode==='past'   && !(e.date && e.date <  auj)) return false;
+    if(FILTRES.audience && (e.audience||'') !== FILTRES.audience) return false;
+    if(FILTRES.statut==='on'  && !e.active) return false;
+    if(FILTRES.statut==='off' &&  e.active) return false;
+    if(terme){
+      const foin = ((e.title||'')+' '+(e.category||'')+' '+(e.location||'')).toLowerCase();
+      if(!foin.includes(terme)) return false;
+    }
+    return true;
+  });
+
+  // À venir : le plus proche d'abord. Passés et Tous : le plus récent d'abord.
+  liste.sort((x,y)=> FILTRES.periode==='future'
+    ? String(x.date).localeCompare(String(y.date))
+    : String(y.date).localeCompare(String(x.date)));
+
+  const cpt=document.getElementById('f-count');
+  if(cpt){
+    const n=liste.length, t=(EVENTS||[]).length;
+    cpt.textContent = t ? (n===t ? `${t} événement${t>1?'s':''}` : `${n} événement${n>1?'s':''} affiché${n>1?'s':''} sur ${t}`) : '';
+  }
+  drawTable(liste);
+}
+
 function render(events){
   EVENTS = events || [];
   updateRecurPreview();
+  loadFiltres();
+  applyFilters();
+}
+
+function drawTable(events){
   const el = document.getElementById('list');
-  if(!events.length){ el.innerHTML='<div class="empty">Aucun événement.</div>'; return; }
+  if(!events.length){
+    const vide = (EVENTS||[]).length
+      ? 'Aucun événement ne correspond à ces filtres.'
+      : 'Aucun événement.';
+    el.innerHTML = `<div class="empty">${vide}</div>`;
+    return;
+  }
   const AUD={coworking:'🏢 Coworking', iad:'🤝 Conseillers iad', all:'🌐 Tous'};
   el.innerHTML = '<table><thead><tr><th>Date</th><th>Titre</th><th>Cible</th><th>Inscrits</th><th>Visible</th><th></th></tr></thead><tbody>' +
     events.map(e=>`<tr>
@@ -377,6 +526,7 @@ async function saveEvent(){
     }
     const ok=document.getElementById('ok-msg'); ok.textContent=`✅ ${okN} occurrence(s) créée(s)`+(skipped?` · ${skipped} déjà existante(s)`:'')+(errN?` · ${errN} en erreur`:''); ok.style.display='block';
     setTimeout(()=>{ ok.style.display='none'; ok.textContent='✅ Enregistré.'; },4500);
+    assouplirFiltresPour({...body, date: dates[0]});
     resetForm(); load(); return;
   }
   try{
@@ -384,6 +534,7 @@ async function saveEvent(){
     const r = await fetch(url, {method: id?'PATCH':'POST', headers:HEADERS, body:JSON.stringify(body)});
     if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
     const ok=document.getElementById('ok-msg'); ok.style.display='block'; setTimeout(()=>ok.style.display='none',2500);
+    assouplirFiltresPour(body);
     resetForm(); load();
   }catch(e){ alert('Erreur : '+e.message); }
 }
