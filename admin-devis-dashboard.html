@@ -472,6 +472,14 @@
 
       <div class="modal-grid">
         <div>
+          <label>Civilité</label>
+          <select name="client_civility">
+            <option value="">— non précisée —</option>
+            <option value="M.">M.</option>
+            <option value="Mme">Mme</option>
+          </select>
+        </div>
+        <div>
           <label>Nom du client</label>
           <input type="text" name="client_name" required>
         </div>
@@ -1197,6 +1205,7 @@ async function lookupClient(email) {
       const el = document.querySelector(sel);
       if (el && !el.value && val) el.value = val;
     };
+    setIfEmpty('select[name="client_civility"]', c.civility);
     setIfEmpty('input[name="client_name"]', c.name);
     setIfEmpty('input[name="client_phone"]', c.phone);
     if (c.client_type) {
@@ -1274,6 +1283,7 @@ function editDevis(id) {
   document.getElementById('modal-title').textContent = `Modifier ${d.devis_reference || 'le devis'}`;
   document.getElementById('modal-submit-btn').textContent = 'Enregistrer les modifications';
   const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.value = (val == null ? '' : val); };
+  set('select[name="client_civility"]', d.civility || '');
   set('input[name="client_name"]', d.name);
   set('input[name="client_email"]', d.email);
   set('input[name="client_phone"]', d.phone);
@@ -1361,6 +1371,7 @@ async function submitNewDevis(e) {
   }
 
   const body = {
+    client_civility: fd.get('client_civility') || null,
     client_name: fd.get('client_name'),
     client_email: fd.get('client_email'),
     client_phone: fd.get('client_phone') || null,
