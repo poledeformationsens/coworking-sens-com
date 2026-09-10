@@ -307,6 +307,24 @@ function openClient(email){
       <h3>Avis Google</h3>
       ${reviewBlock}
 
+      <h3>Identité <span class="muted" style="text-transform:none;letter-spacing:0">(utilisée dans les devis, factures et e-mails)</span></h3>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;margin-bottom:4px">
+        <div style="flex:0 0 130px">
+          <label class="muted" style="display:block;font-size:11px;margin-bottom:4px">Civilité</label>
+          <select id="crm-civility" style="width:100%;padding:9px 11px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:13.5px">
+            <option value="">— non précisée —</option>
+            <option value="M." ${(c.civilite==='M.')?'selected':''}>M.</option>
+            <option value="Mme" ${(c.civilite==='Mme')?'selected':''}>Mme</option>
+          </select>
+        </div>
+        <div style="flex:1 1 200px">
+          <label class="muted" style="display:block;font-size:11px;margin-bottom:4px">Nom affiché</label>
+          <input id="crm-name" type="text" value="${esc(c.nom_complet||'')}"
+            style="width:100%;padding:9px 11px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:13.5px">
+        </div>
+      </div>
+      <div class="muted" style="font-size:12.5px;margin-bottom:10px">Aperçu de l'accroche des e-mails : <b id="crm-apercu"></b></div>
+
       <h3>Réservations (${resas.length})</h3>
       ${resaList}
 
@@ -318,7 +336,7 @@ function openClient(email){
         style="width:100%;padding:9px 11px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:13.5px;margin-bottom:8px">
       <textarea id="crm-notes" placeholder="Notes internes, rappels, préférences du client…" rows="3"
         style="width:100%;padding:9px 11px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:13.5px;resize:vertical">${esc(c.notes||'')}</textarea>
-      <div><button class="btn alt" style="margin-top:8px" onclick="saveCRM('${esc(email)}', this)">💾 Enregistrer notes & tags</button></div>
+      <div><button class="btn alt" style="margin-top:8px" onclick="saveCRM('${esc(email)}', this)">💾 Enregistrer la fiche</button></div>
 
       <div class="actions">
         <a class="btn alt" href="mailto:${esc(c.email||'')}">✉️ Écrire</a>
@@ -328,6 +346,11 @@ function openClient(email){
       </div>
     </div>`;
   document.getElementById('modal').classList.add('open');
+  ['crm-civility','crm-name'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input', apercuAccroche);
+  });
+  apercuAccroche();
 }
 function reviewInviteMailto(c, prenom){
   const to = encodeURIComponent(c.email||'');
@@ -340,16 +363,32 @@ function reviewInviteMailto(c, prenom){
 function closeModal(){ document.getElementById('modal').classList.remove('open'); }
 document.getElementById('modal').addEventListener('click', e=>{ if(e.target.id==='modal') closeModal(); });
 
+// Ce que verra le client en tête de ses e-mails, calculé comme côté serveur.
+function apercuAccroche(){
+  const civ = (document.getElementById('crm-civility')||{}).value || '';
+  const nom = ((document.getElementById('crm-name')||{}).value || '').trim();
+  const propre = m => (m && m===m.toUpperCase())
+    ? m.split('-').map(x=>x.charAt(0).toUpperCase()+x.slice(1).toLowerCase()).join('-') : m;
+  const mots = nom.split(/\s+/).filter(Boolean);
+  let qui = '';
+  if(civ) qui = mots.length ? `${civ} ${propre(mots[mots.length-1])}` : '';
+  else if(mots.length) qui = propre(mots[0]);
+  const el = document.getElementById('crm-apercu');
+  if(el) el.textContent = qui ? `Bonjour ${qui},` : 'Bonjour,';
+}
+
 async function saveCRM(email, btn){
   const tags = document.getElementById('crm-tags').value.trim();
   const notes = document.getElementById('crm-notes').value;
+  const civility = (document.getElementById('crm-civility')||{}).value || '';
+  const name = ((document.getElementById('crm-name')||{}).value || '').trim();
   const orig = btn.textContent; btn.disabled=true; btn.textContent='Enregistrement…';
   try{
-    const r = await fetch(`${API_BASE}/admin/customers/crm`, {method:'POST', headers:HEADERS, body:JSON.stringify({email, notes, tags})});
+    const r = await fetch(`${API_BASE}/admin/customers/crm`, {method:'POST', headers:HEADERS, body:JSON.stringify({email, notes, tags, civility, name})});
     if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||('Erreur '+r.status)); }
     const c = CLIENTS.find(x=>(x.email||'').toLowerCase()===email);
-    if(c){ c.notes=notes; c.tags=tags; }
-    toast('✅ Notes & tags enregistrés');
+    if(c){ c.notes=notes; c.tags=tags; c.civilite=civility||null; if(name) c.nom_complet=name; }
+    toast('✅ Fiche enregistrée');
   }catch(e){ toast('Erreur : '+e.message); }
   finally{ btn.disabled=false; btn.textContent=orig; }
 }
