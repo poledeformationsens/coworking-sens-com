@@ -723,9 +723,30 @@ async function loadAccess(resaId){
          <input id="resend-email" type="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="autre-email@exemple.fr" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
          <button class="btn btn-secondary" onclick="resendCodesEmail('${resaId}', this)">📧 Renvoyer la confirmation</button>
+         <button class="btn btn-secondary" onclick="nouveauCode('${resaId}', this)">🔑 Nouveau code + envoi</button>
          <a class="btn btn-secondary" style="text-decoration:none" href="${waUrl}" target="_blank" rel="noopener">${waLabel}</a>
        </div>`;
   }catch(e){ if(el) el.innerHTML = '<div class="field" style="color:#c0392b">Codes indisponibles : '+e.message+'</div>'; }
+}
+
+// Refait le code d'accès sur le créneau actuel et le renvoie au client.
+// Utile quand un code n'est jamais arrivé, a été perdu, ou que la serrure
+// n'avait pas répondu au moment de la réservation.
+async function nouveauCode(resaId, btn){
+  if(!confirm("Créer un nouveau code d'accès ?\n\nL'ancien cessera de fonctionner et le client recevra le nouveau par e-mail.")) return;
+  const emailEl = document.getElementById('resend-email');
+  const custom = emailEl ? emailEl.value.trim() : '';
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Création…';
+  try{
+    const url = `${API_BASE}/admin/reservations/${resaId}/new-pin?resend=true`
+              + (custom ? ('&email=' + encodeURIComponent(custom)) : '');
+    const r = await fetch(url, {method:'POST', headers: HEADERS});
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail || ('Erreur ' + r.status));
+    btn.textContent = '✅ ' + d.pin_code;
+    alert(`Nouveau code : ${d.pin_code}` + (d.email_sent ? '\n📧 Envoyé au client.' : "\n⚠️ Code créé, mais l'e-mail n'est pas parti."));
+    loadAccess(resaId);   // rafraîchit le code affiché
+  }catch(e){ alert('Erreur : ' + e.message); btn.disabled = false; btn.textContent = old; }
 }
 
 async function resendCodesEmail(resaId, btn){
