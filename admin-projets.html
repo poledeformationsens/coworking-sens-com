@@ -366,13 +366,19 @@ function remplirSelects(){
   document.getElementById('m-role').innerHTML   = opts(sansPorteur,'');
 }
 
+const PORTEUR_DEFAUT = 'david.landry@iadfrance.fr';
 function remplirConseillers(){
   const o = CONSEILLERS.map(c=>`<option value="${esc(c.email)}">${esc(nomCourt(c))} — ${esc(c.email)}</option>`).join('');
   ['n-porteur','p-porteur','m-email','t-resp','g-email'].forEach(id=>{
     const e=document.getElementById(id); if(!e) return;
     const garde = e.value;
-    e.innerHTML = (id==='t-resp' ? '<option value="">Personne</option>' : '') + o;
+    // Rien de présélectionné là où un choix par défaut ferait agir à côté
+    const tete = (id==='t-resp') ? '<option value="">Personne</option>'
+               : (id==='m-email'||id==='g-email') ? '<option value="">Choisir…</option>' : '';
+    e.innerHTML = tete + o;
     if(garde) e.value = garde;
+    else if((id==='n-porteur'||id==='p-porteur')
+            && CONSEILLERS.some(c=>c.email===PORTEUR_DEFAUT)) e.value = PORTEUR_DEFAUT;
   });
 }
 
