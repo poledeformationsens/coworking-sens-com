@@ -500,6 +500,14 @@
             <option value="pro">Professionnel</option>
           </select>
         </div>
+        <div>
+          <label>Règlement</label>
+          <select name="payment_terms">
+            <option value="reception">À réception</option>
+            <option value="15">Sous 15 jours</option>
+            <option value="30">Sous 30 jours</option>
+          </select>
+        </div>
       </div>
 
       <div id="pro-fields" style="display:none">
@@ -823,7 +831,19 @@ function enAttente(d) {
     // Selon ce qui a été demandé à la validation : l'acompte, ou la totalité.
     const acompte = (d.invoice_acompte_reference || '').includes('FAC-AC-');
     const montant = acompte ? d.amount_acompte_ttc : (d.amount_total_ttc || 0);
-    return `${acompte ? 'Acompte' : 'Règlement'} ${formatMoney(montant)} attendu` + age(joursDepuis(d.devis_validated_at));
+    const quoi = `${acompte ? 'Acompte' : 'Règlement'} ${formatMoney(montant)}`;
+    // Avec un délai accordé, on ne compte pas les jours écoulés mais le retard :
+    // un client à 30 jours n'est pas en retard le lendemain de sa validation.
+    const terms = d.payment_terms || 'reception';
+    if (terms !== 'reception' && d.payment_due_at) {
+      const reste = joursAvant(d.payment_due_at);
+      if (reste === null) return `${quoi} attendu`;
+      if (reste > 0)  return `${quoi} — échéance dans ${reste} jour${reste > 1 ? 's' : ''}`;
+      if (reste === 0) return `${quoi} — échéance aujourd'hui`;
+      const r = -reste;
+      return `${quoi} — en retard de ${r} jour${r > 1 ? 's' : ''}`;
+    }
+    return `${quoi} attendu` + age(joursDepuis(d.devis_validated_at));
   }
   if (d.devis_status === 'acompte_paid')
     return `Solde ${formatMoney(resteDu(d))} attendu` + age(joursDepuis(d.acompte_received_at));
@@ -1344,6 +1364,7 @@ function editDevis(id) {
   document.getElementById('modal-submit-btn').textContent = 'Enregistrer les modifications';
   const set = (sel, val) => { const el = document.querySelector(sel); if (el) el.value = (val == null ? '' : val); };
   set('select[name="client_civility"]', d.civility || '');
+  set('select[name="payment_terms"]', d.payment_terms || 'reception');
   set('input[name="client_name"]', d.name);
   set('input[name="client_email"]', d.email);
   set('input[name="client_phone"]', d.phone);
@@ -1432,6 +1453,7 @@ async function submitNewDevis(e) {
 
   const body = {
     client_civility: fd.get('client_civility') || null,
+    payment_terms: fd.get('payment_terms') || 'reception',
     client_name: fd.get('client_name'),
     client_email: fd.get('client_email'),
     client_phone: fd.get('client_phone') || null,
