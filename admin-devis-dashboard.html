@@ -819,8 +819,12 @@ function enAttente(d) {
   const age = j => (j === null ? '' : j === 0 ? " aujourd'hui" : j === 1 ? ' depuis 1 jour' : ` depuis ${j} jours`);
   if (d.devis_status === 'sent')
     return 'Réponse attendue' + age(joursDepuis(d.devis_sent_at));
-  if (d.devis_status === 'validated')
-    return `Acompte ${formatMoney(d.amount_acompte_ttc)} attendu` + age(joursDepuis(d.devis_validated_at));
+  if (d.devis_status === 'validated') {
+    // Selon ce qui a été demandé à la validation : l'acompte, ou la totalité.
+    const acompte = (d.invoice_acompte_reference || '').includes('FAC-AC-');
+    const montant = acompte ? d.amount_acompte_ttc : (d.amount_total_ttc || 0);
+    return `${acompte ? 'Acompte' : 'Règlement'} ${formatMoney(montant)} attendu` + age(joursDepuis(d.devis_validated_at));
+  }
   if (d.devis_status === 'acompte_paid')
     return `Solde ${formatMoney(resteDu(d))} attendu` + age(joursDepuis(d.acompte_received_at));
   return '';
