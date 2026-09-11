@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Votre devis — L'Atelier du Coworking Sens</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  .hero{background:var(--navy);color:#fff;text-align:center;padding:30px 18px 26px}
+  .hero .name{font-family:'Playfair Display',serif;font-size:13px;letter-spacing:.22em;text-transform:uppercase}
+  .hero .tag{font-size:11px;color:var(--gold);letter-spacing:.24em;text-transform:uppercase;margin-top:5px}
+  .wrap{max-width:620px;margin:24px auto 60px;padding:0 16px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:14px;padding:24px;margin-bottom:16px}
+  h1{font-family:'Playfair Display',serif;font-size:24px;margin:0 0 4px;line-height:1.25}
+  .ref{font-size:12.5px;color:var(--slate);letter-spacing:.05em}
+  .ligne{display:flex;justify-content:space-between;gap:16px;padding:11px 0;border-bottom:1px solid #F0EBE0;font-size:14.5px}
+  .ligne:last-of-type{border-bottom:none}
+  .ligne .lib{color:#333}
+  .ligne .val{font-weight:600;white-space:nowrap}
+  .total{display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-top:14px;padding-top:14px;border-top:2px solid var(--navy)}
+  .total .lib{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--slate)}
+  .total .val{font-family:'Playfair Display',serif;font-size:28px;font-weight:700}
+  .muted{font-size:13px;color:var(--slate);line-height:1.65}
+  label{display:block;font-size:12.5px;color:var(--slate);margin:16px 0 5px}
+  input[type=text]{width:100%;padding:12px 14px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:16px;color:var(--navy);background:#fff}
+  .accord{display:flex;gap:10px;align-items:flex-start;margin-top:14px;font-size:14px;line-height:1.55}
+  .accord input{margin-top:3px;width:17px;height:17px;flex:0 0 auto}
+  .choix{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+  .btn{display:block;width:100%;text-align:center;background:var(--navy);color:#fff;border:none;border-radius:999px;
+       padding:15px 22px;font-family:inherit;font-weight:700;font-size:15.5px;cursor:pointer;text-decoration:none}
+  .btn.gold{background:var(--gold);color:var(--navy)}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--light);font-weight:600}
+  .btn[disabled]{opacity:.45;cursor:not-allowed}
+  .btn .sub{display:block;font-weight:500;font-size:12.5px;opacity:.85;margin-top:3px}
+  .err{color:var(--red);font-size:14px;margin-top:12px;display:none}
+  .ok-badge{display:inline-block;background:#EAF5EE;color:var(--green);border:1px solid #BFE0CC;border-radius:99px;
+            padding:6px 14px;font-size:13px;font-weight:700;margin-bottom:12px}
+  .rib{background:var(--cream);border:1px solid var(--light);border-radius:10px;padding:16px 18px;margin-top:14px}
+  .rib dt{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--slate);margin-top:10px}
+  .rib dt:first-child{margin-top:0}
+  .rib dd{margin:2px 0 0;font-size:15px;font-weight:600;font-variant-numeric:tabular-nums;word-break:break-all}
+  .foot{text-align:center;font-size:12.5px;color:var(--slate);line-height:1.7;margin-top:22px}
+  .foot a{color:var(--slate)}
+  .chargement{text-align:center;padding:50px 0;color:var(--slate)}
+</style>
+</head>
+<body>
+
+<div class="hero">
+  <div class="name">L'Atelier du Coworking</div>
+  <div class="tag">Votre devis</div>
+</div>
+
+<div class="wrap" id="wrap">
+  <div class="chargement">Chargement de votre devis…</div>
+</div>
+
+<script>
+const API = '/api/coworking';
+const JETON = new URLSearchParams(location.search).get('t') || '';
+let DEVIS = null;
+
+const eur = v => new Intl.NumberFormat('fr-FR',{style:'currency',currency:'EUR'}).format(Number(v||0));
+const esc = s => (s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function dateFr(iso){
+  if(!iso) return '';
+  return new Date(iso+'T00:00:00').toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function appellation(d){
+  const civ=(d.civilite||'').trim(), nom=(d.client||'').trim();
+  const propre=m=>(m && m===m.toUpperCase())?m.split('-').map(x=>x.charAt(0)+x.slice(1).toLowerCase()).join('-'):m;
+  const mots=nom.split(/\s+/).filter(Boolean);
+  if(civ && mots.length) return `${civ} ${propre(mots[mots.length-1])}`;
+  return mots.length ? propre(mots[0]) : '';
+}
+
+async function charger(){
+  if(!JETON){ return erreurPage("Ce lien est incomplet. Utilisez celui reçu par e-mail."); }
+  try{
+    const r = await fetch(`${API}/devis/public/${encodeURIComponent(JETON)}`, {cache:'no-store'});
+    if(r.status === 404) return erreurPage("Ce devis n'existe plus, ou le lien a expiré.");
+    if(!r.ok) throw new Error('Erreur ' + r.status);
+    DEVIS = await r.json();
+    rendre();
+  }catch(e){ erreurPage("Le devis n'a pas pu être chargé : " + e.message); }
+}
+
+function erreurPage(msg){
+  document.getElementById('wrap').innerHTML =
+    `<div class="card"><h1>Lien indisponible</h1><p class="muted" style="margin-top:8px">${esc(msg)}</p>
+     <p class="muted" style="margin-top:12px">Écrivez-nous à
+     <a href="mailto:ateliercoworking89@gmail.com">ateliercoworking89@gmail.com</a> ou appelez le 06 23 88 05 03.</p></div>`;
+}
+
+function blocPrestation(d){
+  const creneau = (d.hour_from && d.hour_to) ? `${d.hour_from} – ${d.hour_to}` : '';
+  const lignes = (d.lignes||[]).map(l=>{
+    const ht = Number(l.unit_price_ht||0) * Number(l.quantity||1);
+    const ttc = ht * (1 + Number(l.tva_rate||20)/100);
+    return `<div class="ligne"><span class="lib">${esc(l.description||'Prestation')}${
+      Number(l.quantity||1) > 1 ? ` <span class="muted">× ${l.quantity}</span>` : ''}</span><span class="val">${eur(ttc)}</span></div>`;
+  }).join('');
+  return `
+    <div class="ligne"><span class="lib">Espace</span><span class="val">${esc(d.unite || d.espace || '—')}</span></div>
+    <div class="ligne"><span class="lib">Date</span><span class="val">${esc(dateFr(d.date))}</span></div>
+    ${creneau ? `<div class="ligne"><span class="lib">Créneau</span><span class="val">${esc(creneau)}</span></div>` : ''}
+    ${lignes}
+    <div class="total"><span class="lib">Total TTC</span><span class="val">${eur(d.total_ttc)}</span></div>`;
+}
+
+function rendre(){
+  const d = DEVIS;
+  const deja = ['validated','acompte_paid','fully_paid'].includes(d.statut);
+  const qui = appellation(d);
+
+  document.getElementById('wrap').innerHTML = `
+    <div class="card">
+      ${deja ? '<div class="ok-badge">✓ Devis accepté</div>' : ''}
+      <h1>${deja ? 'Votre réservation est confirmée' : 'Votre devis'}</h1>
+      <div class="ref">${esc(d.reference||'')}${d.validite && !deja ? ' · valable jusqu\\'au ' + esc(d.validite) : ''}</div>
+      <div style="margin-top:18px">${blocPrestation(d)}</div>
+      ${d.societe ? `<p class="muted" style="margin-top:14px">Facturé à ${esc(d.societe)}</p>` : ''}
+      <p class="muted" style="margin-top:14px"><a href="${esc(d.pdf_url)}" target="_blank" rel="noopener">Ouvrir le devis en PDF</a></p>
+    </div>
+
+    <div class="card" id="zone-action"></div>
+
+    <div class="foot">
+      L'Atelier du Coworking · 20 rue Pasteur, 89100 Sens<br>
+      <a href="mailto:ateliercoworking89@gmail.com">ateliercoworking89@gmail.com</a> · 06 23 88 05 03
+    </div>`;
+
+  document.getElementById('zone-action').innerHTML = deja ? blocConfirme(d) : blocAcceptation(qui);
+  const champ = document.getElementById('nom');
+  if(champ){ ['input','change'].forEach(ev=>champ.addEventListener(ev, majBoutons)); }
+  const cb = document.getElementById('accord');
+  if(cb) cb.addEventListener('change', majBoutons);
+  majBoutons();
+}
+
+function blocAcceptation(qui){
+  return `
+    <h1 style="font-size:20px">Valider ce devis</h1>
+    <p class="muted" style="margin-top:6px">Votre créneau sera bloqué à votre nom dès la validation.</p>
+    <label for="nom">Votre nom et prénom</label>
+    <input type="text" id="nom" autocomplete="name" value="${esc(qui)}" placeholder="Ex. Marie Dupont">
+    <label class="accord" for="accord">
+      <input type="checkbox" id="accord">
+      <span>Bon pour accord — j'accepte ce devis et ses conditions.</span>
+    </label>
+    <div class="choix">
+      <button class="btn" id="btn-virement" onclick="valider('virement')">
+        Valider et payer par virement<span class="sub">Le RIB s'affiche juste après</span>
+      </button>
+      <button class="btn ghost" id="btn-carte" onclick="valider('carte')">
+        Valider et payer par carte<span class="sub">Paiement sécurisé immédiat</span>
+      </button>
+    </div>
+    <div class="err" id="err"></div>`;
+}
+
+function blocConfirme(d){
+  const reste = Math.max(Number(d.total_ttc||0) - Number(d.deja_paye_ttc||0), 0);
+  if(reste <= 0){
+    return `<h1 style="font-size:20px">Tout est réglé</h1>
+      <p class="muted" style="margin-top:8px">Nous avons bien reçu votre règlement. À très bientôt à l'Atelier.</p>`;
+  }
+  if((d.mode_reglement||'') === 'carte'){
+    return `<h1 style="font-size:20px">Régler par carte</h1>
+      <p class="muted" style="margin-top:8px">Il reste <b>${eur(reste)}</b> à régler.</p>
+      <div class="choix"><button class="btn" onclick="payerCarte()">Payer ${eur(reste)} par carte</button></div>
+      <div class="err" id="err"></div>`;
+  }
+  return `<h1 style="font-size:20px">Régler par virement</h1>
+    <p class="muted" style="margin-top:8px">Merci d'effectuer un virement de <b>${eur(reste)}</b> en indiquant
+    la référence <b>${esc(d.reference||'')}</b>. La facture vous a été envoyée par e-mail.</p>
+    ${ribHtml(d)}
+    <div class="choix"><button class="btn ghost" onclick="payerCarte()">Je préfère payer par carte</button></div>
+    <div class="err" id="err"></div>`;
+}
+
+function ribHtml(d){
+  if(!d.iban) return '';
+  return `<dl class="rib">
+    <dt>Titulaire</dt><dd>${esc(d.titulaire||"L'Atelier du Coworking")}</dd>
+    <dt>IBAN</dt><dd>${esc(d.iban)}</dd>
+    ${d.bic ? `<dt>BIC</dt><dd>${esc(d.bic)}</dd>` : ''}
+    <dt>Référence à indiquer</dt><dd>${esc(d.reference||'')}</dd>
+  </dl>`;
+}
+
+function majBoutons(){
+  const nom = (document.getElementById('nom')||{}).value || '';
+  const ok = nom.trim().length >= 3 && (document.getElementById('accord')||{}).checked;
+  ['btn-virement','btn-carte'].forEach(id=>{
+    const b = document.getElementById(id); if(b) b.disabled = !ok;
+  });
+}
+
+function erreur(msg){
+  const e = document.getElementById('err');
+  if(e){ e.textContent = msg; e.style.display = 'block'; }
+}
+
+async function valider(mode){
+  const nom = (document.getElementById('nom')||{}).value.trim();
+  const btns = ['btn-virement','btn-carte'].map(id=>document.getElementById(id)).filter(Boolean);
+  btns.forEach(b=>b.disabled = true);
+  const actif = document.getElementById(mode === 'carte' ? 'btn-carte' : 'btn-virement');
+  const libelle = actif ? actif.innerHTML : '';
+  if(actif) actif.textContent = 'Validation…';
+  try{
+    const r = await fetch(`${API}/devis/public/${encodeURIComponent(JETON)}/accept`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({nom, mode}),
+    });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail || ('Erreur ' + r.status));
+    DEVIS.statut = 'validated';
+    DEVIS.mode_reglement = mode;
+    DEVIS.accepte_par = nom;
+    if(mode === 'carte'){ rendre(); return payerCarte(); }
+    rendre();
+    window.scrollTo({top:0, behavior:'smooth'});
+  }catch(e){
+    if(actif) actif.innerHTML = libelle;
+    btns.forEach(b=>b.disabled = false);
+    erreur('Validation impossible : ' + e.message);
+  }
+}
+
+async function payerCarte(){
+  try{
+    const r = await fetch('/api/checkout', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        purchaseType:'devis', devisToken: JETON,
+        amountTTC: Number(DEVIS.total_ttc||0), email:'', name: DEVIS.client || '',
+        reference: DEVIS.reference, returnPath: '/devis.html?t=' + encodeURIComponent(JETON),
+      }),
+    });
+    const d = await r.json();
+    if(d && d.url){ window.location.href = d.url; return; }
+    throw new Error(d.error || 'Paiement indisponible');
+  }catch(e){ erreur('Paiement impossible : ' + e.message + ' — vous pouvez régler par virement.'); }
+}
+
+charger();
+</script>
+</body>
+</html>
