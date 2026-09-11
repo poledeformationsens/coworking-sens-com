@@ -800,6 +800,40 @@ function updateCards() {
 // Un devis soldé ou expiré n'attend plus rien : il sort de la vue « En cours »,
 // sans disparaître — les onglets Soldés, Expirés et Tous le retrouvent, et il
 // reste dans Documents avec sa facture.
+// Ce qu'un devis attend encore, et depuis combien de temps. C'est la seule
+// raison pour laquelle une ligne reste affichée : de l'argent non encaissé.
+function joursDepuis(iso) {
+  if (!iso) return null;
+  const d = new Date(iso); if (isNaN(d)) return null;
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
+}
+function joursAvant(iso) {
+  if (!iso) return null;
+  const d = new Date(iso + 'T00:00:00'); if (isNaN(d)) return null;
+  return Math.round((d.getTime() - new Date().setHours(0,0,0,0)) / 86400000);
+}
+function resteDu(d) {
+  return Math.max(Number(d.amount_total_ttc || 0) - Number(d.amount_paid_ttc || 0), 0);
+}
+function enAttente(d) {
+  const age = j => (j === null ? '' : j === 0 ? " aujourd'hui" : j === 1 ? ' depuis 1 jour' : ` depuis ${j} jours`);
+  if (d.devis_status === 'sent')
+    return 'Réponse attendue' + age(joursDepuis(d.devis_sent_at));
+  if (d.devis_status === 'validated')
+    return `Acompte ${formatMoney(d.amount_acompte_ttc)} attendu` + age(joursDepuis(d.devis_validated_at));
+  if (d.devis_status === 'acompte_paid')
+    return `Solde ${formatMoney(resteDu(d))} attendu` + age(joursDepuis(d.acompte_received_at));
+  return '';
+}
+// Une prestation qui approche sans paiement complet : c'est ce qu'on relance en premier.
+function echeancePresta(d) {
+  if (DEVIS_CLOS.includes(d.devis_status) || d.devis_status === 'draft') return '';
+  if (resteDu(d) <= 0) return '';
+  const j = joursAvant(d.date);
+  if (j === null || j < 0 || j > 21) return '';
+  return j === 0 ? "Prestation aujourd'hui" : j === 1 ? 'Prestation demain' : `Prestation dans ${j} jours`;
+}
+
 const DEVIS_CLOS = ['fully_paid', 'expired', 'cancelled'];
 function devisAffiches() {
   if (currentFilter !== 'open') return allDevis;
@@ -826,8 +860,16 @@ function renderList() {
         <td><b>${d.devis_reference}</b>${d.test_mode ? '<span class="badge-test">TEST</span>' : ''}</td>
         <td>${d.name || '—'}<br><small style="color:var(--slate)">${d.email}</small></td>
         <td>${d.space}<br><small style="color:var(--slate)">${formatDate(d.date)} · ${d.hour_from}-${d.hour_to}</small></td>
-        <td><b>${formatMoney(d.amount_total_ttc)}</b><br><small style="color:var(--slate)">Acompte ${formatMoney(d.amount_acompte_ttc)}</small></td>
-        <td><span class="badge badge-${d.devis_status}">${statusLabel(d.devis_status)}</span></td>
+        <td><b>${formatMoney(d.amount_total_ttc)}</b><br><small style="color:var(--slate)">${
+            resteDu(d) > 0 && d.devis_status !== 'draft'
+              ? `Reste dû <b style="color:var(--coral)">${formatMoney(resteDu(d))}</b>`
+              : `Acompte ${formatMoney(d.amount_acompte_ttc)}`
+          }</small></td>
+        <td><span class="badge badge-${d.devis_status}">${statusLabel(d.devis_status)}</span>${
+            enAttente(d) ? `<div style="font-size:11.5px;color:var(--slate);margin-top:4px;line-height:1.4">${enAttente(d)}</div>` : ''
+          }${
+            echeancePresta(d) ? `<div style="font-size:11.5px;color:var(--coral);font-weight:600;margin-top:2px">${echeancePresta(d)}</div>` : ''
+          }</td>
         <td><small style="color:var(--slate)">${formatDate(d.devis_sent_at) || formatDate(d.created_at)}</small></td>
         <td class="actions-cell">${actionButtons(d)}</td>
       </tr>
