@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Opérations du réseau — Pôle iad Sens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700;1,800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --iad-blue:#00B4EC;      /* Pantone 2995 C */
+    --iad-coral:#EA584A;     /* Pantone 2348 C — CTA uniquement */
+    --ink:#000000;
+    --white:#FFFFFF;
+    --grey:#5b6b74;
+    --bg:#F4FBFE;
+    --card-border:#d7edf7;
+    --green:#0a7a34;
+    --amber:#B7791F;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Montserrat',Arial,sans-serif;color:var(--ink);background:var(--bg);line-height:1.55}
+  a{color:inherit}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
+
+  header.hero{background:var(--iad-blue);color:var(--white);padding:28px 0 40px}
+  header.hero img.logo{height:42px;width:auto;display:block;margin-bottom:20px}
+  header.hero h1{font-weight:800;font-style:italic;font-size:30px;letter-spacing:-0.025em;line-height:1.14}
+  header.hero p.sub{margin-top:10px;font-size:16px;font-weight:500;max-width:640px;opacity:.96}
+  header.hero .who{margin-top:14px;font-size:13px;opacity:.9}
+  header.hero .who a{color:#fff;text-decoration:underline}
+
+  .panel{background:var(--white);border:1px solid var(--card-border);border-radius:16px;
+         box-shadow:0 10px 26px rgba(0,180,236,.09);padding:22px;margin-bottom:20px}
+  .panel.lift{margin-top:-24px;position:relative;z-index:2}
+  h2.sec{font-weight:800;font-style:italic;color:var(--iad-blue);letter-spacing:-0.025em;font-size:22px;margin:26px 0 12px}
+  h3{font-weight:800;font-size:17px;color:#062a3a;margin-bottom:4px}
+  .lead{color:var(--grey);font-size:14px;margin-bottom:16px}
+
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .tabs button{background:var(--white);border:1px solid var(--card-border);border-radius:22px;
+               padding:9px 18px;font-family:inherit;font-size:13.5px;font-weight:700;color:var(--grey);cursor:pointer}
+  .tabs button.on{background:var(--iad-blue);color:#fff;border-color:var(--iad-blue)}
+
+  .plist{display:flex;flex-direction:column;gap:12px}
+  .op{background:var(--white);border:1px solid var(--card-border);border-radius:14px;padding:16px 18px;cursor:pointer;
+      transition:box-shadow .15s,border-color .15s}
+  .op:hover{border-color:var(--iad-blue);box-shadow:0 6px 18px rgba(0,180,236,.12)}
+  .op .top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+  .op .t{font-weight:800;font-size:16px;color:#062a3a}
+  .op .meta{color:var(--grey);font-size:13px;margin-top:3px}
+  .op .bars{display:flex;gap:16px;flex-wrap:wrap;margin-top:10px;font-size:12.5px;color:var(--grey)}
+  .op .bars b{color:var(--ink);font-weight:700}
+
+  .chip{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
+        border-radius:20px;padding:4px 11px;white-space:nowrap}
+  .chip.st-idee{background:#eef2f5;color:#5b6b74}
+  .chip.st-valide{background:#e2f6fd;color:#026e94}
+  .chip.st-preparation{background:#fff4e0;color:var(--amber)}
+  .chip.st-en-cours{background:#00B4EC;color:#fff}
+  .chip.st-termine{background:#e6f6ec;color:var(--green)}
+  .chip.st-annule{background:#f6e8e6;color:#9a3b2f}
+  .chip.role{background:#f2fbff;color:#026e94;text-transform:none;letter-spacing:0}
+  .chip.att{background:#fff4e0;color:var(--amber);text-transform:none;letter-spacing:0}
+  .chip.oui{background:#e6f6ec;color:var(--green);text-transform:none;letter-spacing:0}
+  .chip.non{background:#f6e8e6;color:#9a3b2f;text-transform:none;letter-spacing:0}
+  .chip.retard{background:#f6e8e6;color:#9a3b2f;text-transform:none;letter-spacing:0}
+
+  .btn{border:none;border-radius:10px;padding:12px 20px;font-family:inherit;font-weight:800;font-size:14px;cursor:pointer;
+       background:var(--iad-blue);color:var(--white)}
+  .btn:hover{filter:brightness(1.06)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.sm{padding:7px 13px;font-size:12.5px;font-weight:700;border-radius:8px}
+  .btn.ghost{background:var(--white);color:#026e94;border:1px solid var(--card-border)}
+  .btn.danger{background:var(--white);color:#9a3b2f;border:1px solid #f0d5d1}
+  /* Gélule corail — UNE SEULE par page : confirmer ma participation */
+  .gelule{display:inline-block;background:var(--iad-coral);color:#fff;border:none;border-radius:26px;
+          padding:13px 30px;font-family:inherit;font-weight:800;font-style:italic;font-size:14.5px;
+          cursor:pointer;transform:rotate(-10deg);margin:6px 10px 6px 0}
+  .gelule:hover{filter:brightness(1.06)}
+
+  .inv{border:1px solid #ffe0b2;background:#fffaf0;border-radius:14px;padding:16px 18px;margin-bottom:12px}
+  .inv .t{font-weight:800;font-size:15.5px;color:#062a3a}
+  .inv .m{color:var(--grey);font-size:13px;margin:3px 0 8px}
+  .inv .row{display:flex;align-items:center;flex-wrap:wrap;gap:4px}
+
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:9px 10px;text-align:left;font-size:13.5px;border-bottom:1px solid #eef4f7;vertical-align:top}
+  th{color:var(--grey);font-weight:700;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em}
+  td.n{white-space:nowrap}
+  .done td{opacity:.5}
+  .done td.ti{text-decoration:line-through}
+
+  label{display:block;font-size:12.5px;color:var(--grey);font-weight:600;margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:10px 12px;border:1px solid var(--card-border);border-radius:9px;
+                        font-family:inherit;font-size:14px;color:var(--ink);background:#fff}
+  input:focus,select:focus,textarea:focus{outline:none;border-color:var(--iad-blue)}
+  textarea{min-height:70px;resize:vertical}
+  .grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+  .filters{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+  .filters select,.filters input{width:auto;min-width:150px;padding:8px 10px;font-size:13px}
+
+  .muted{color:var(--grey);font-size:12.5px}
+  .empty{padding:26px;text-align:center;color:var(--grey);font-size:14px}
+  .err{color:var(--iad-coral);font-weight:700;font-size:13.5px;margin-top:10px;display:none}
+  .ok{color:var(--green);font-weight:700;font-size:13.5px;margin-top:10px;display:none}
+  .back{background:none;border:none;color:#026e94;font-family:inherit;font-weight:700;font-size:13.5px;
+        cursor:pointer;padding:0;margin-bottom:12px}
+  .obj{display:flex;gap:18px;flex-wrap:wrap;margin-top:12px}
+  .obj div{background:#f2fbff;border:1px solid var(--card-border);border-radius:10px;padding:9px 14px;min-width:96px}
+  .obj b{display:block;font-size:19px;font-weight:800;color:#026e94}
+  .obj span{font-size:11.5px;color:var(--grey)}
+  footer{padding:30px 0;text-align:center;color:var(--grey);font-size:12.5px}
+
+  @media (max-width:700px){
+    header.hero h1{font-size:24px}
+    th.hide-s,td.hide-s{display:none}
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <img class="logo" src="/logo-iad-blanc.png" alt="iad">
+    <h1>Les opérations du réseau</h1>
+    <p class="sub">Foires, sessions téléphone, porte-à-porte, réunions de bassin, formations :
+      qui fait quoi, et où on en est.</p>
+    <p class="who" id="who"></p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- Non connecté -->
+  <div class="panel lift" id="gate" style="display:none">
+    <h3>Connectez-vous à votre espace</h3>
+    <p class="lead">Les opérations sont réservées aux conseillers iad validés.
+      Connectez-vous avec votre adresse @iadfrance.fr, puis revenez sur cette page.</p>
+    <a class="btn" href="/mon-espace" style="text-decoration:none;display:inline-block">Aller à mon espace</a>
+  </div>
+
+  <!-- Vue liste -->
+  <div id="vue-liste" style="display:none">
+
+    <div id="zone-invit"></div>
+
+    <div class="tabs" id="tabs">
+      <button data-v="miennes" class="on" onclick="setVue('miennes')">Mes opérations</button>
+      <button data-v="toutes" onclick="setVue('toutes')">Toutes les opérations</button>
+      <button data-v="taches" onclick="setVue('taches')">Mes tâches</button>
+    </div>
+
+    <div id="bloc-miennes">
+      <div class="plist" id="list-miennes"></div>
+    </div>
+
+    <div id="bloc-toutes" style="display:none">
+      <div class="filters">
+        <select id="f-statut" onchange="dessinerToutes()">
+          <option value="">Tous les statuts</option>
+        </select>
+        <select id="f-type" onchange="dessinerToutes()">
+          <option value="">Tous les types</option>
+        </select>
+        <input id="f-q" placeholder="Rechercher…" oninput="dessinerToutes()">
+        <span class="muted" id="f-count"></span>
+      </div>
+      <div class="plist" id="list-toutes"></div>
+    </div>
+
+    <div id="bloc-taches" style="display:none">
+      <div class="panel"><div id="list-taches"></div></div>
+    </div>
+  </div>
+
+  <!-- Vue fiche -->
+  <div id="vue-fiche" style="display:none">
+    <button class="back" onclick="fermerFiche()">← Retour aux opérations</button>
+
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+        <div>
+          <h3 id="fi-titre"></h3>
+          <div class="muted" id="fi-meta"></div>
+        </div>
+        <div style="text-align:right" id="fi-chips"></div>
+      </div>
+      <p id="fi-desc" style="margin-top:12px;font-size:14px;color:#33454e"></p>
+      <div class="obj" id="fi-obj"></div>
+      <div id="fi-actions" style="margin-top:14px"></div>
+      <div class="err" id="fi-err"></div>
+      <div class="ok" id="fi-ok"></div>
+    </div>
+
+    <div class="tabs" id="fi-tabs">
+      <button data-t="equipe" class="on" onclick="setOnglet('equipe')">Équipe</button>
+      <button data-t="taches" onclick="setOnglet('taches')">Tâches</button>
+      <button data-t="fiche" onclick="setOnglet('fiche')" id="tab-fiche" style="display:none">Modifier la fiche</button>
+    </div>
+
+    <div class="panel" id="ong-equipe">
+      <table>
+        <thead><tr><th>Conseiller</th><th>Rôle</th><th>Réponse</th><th class="hide-s"></th></tr></thead>
+        <tbody id="tb-equipe"></tbody>
+      </table>
+      <div id="form-membre" style="display:none;border-top:1px solid #eef4f7;margin-top:16px;padding-top:14px">
+        <h3 style="font-size:15px">Inviter un conseiller</h3>
+        <div class="grid2">
+          <div><label for="m-email">Adresse e-mail</label><input id="m-email" placeholder="prenom.nom@iadfrance.fr"></div>
+          <div><label for="m-nom">Nom (optionnel)</label><input id="m-nom"></div>
+          <div><label for="m-role">Rôle</label><select id="m-role"></select></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:500">
+          <input type="checkbox" id="m-notif" checked style="width:auto"> Envoyer l'invitation par e-mail
+        </label>
+        <button class="btn sm" style="margin-top:12px" onclick="inviter()">Inviter</button>
+      </div>
+    </div>
+
+    <div class="panel" id="ong-taches" style="display:none">
+      <table>
+        <thead><tr><th style="width:34px"></th><th>Tâche</th><th class="hide-s">Responsable</th><th>Échéance</th><th></th></tr></thead>
+        <tbody id="tb-taches"></tbody>
+      </table>
+      <div id="form-tache" style="display:none;border-top:1px solid #eef4f7;margin-top:16px;padding-top:14px">
+        <h3 style="font-size:15px">Ajouter une tâche</h3>
+        <div class="grid2">
+          <div><label for="t-titre">Intitulé</label><input id="t-titre" placeholder="Commander les kakemonos"></div>
+          <div><label for="t-resp">Responsable</label><select id="t-resp"></select></div>
+          <div><label for="t-due">Échéance</label><input id="t-due" type="date"></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px">
+          <button class="btn sm" onclick="ajouterTache()">Ajouter</button>
+          <button class="btn sm ghost" onclick="depuisModele()">Recharger les tâches types</button>
+        </div>
+        <p class="muted" style="margin-top:8px">Les tâches types du type d'opération sont ajoutées sans créer de doublon.</p>
+      </div>
+    </div>
+
+    <div class="panel" id="ong-fiche" style="display:none">
+      <div class="grid2">
+        <div><label for="p-titre">Titre</label><input id="p-titre"></div>
+        <div><label for="p-type">Type</label><select id="p-type"></select></div>
+        <div><label for="p-statut">Statut</label><select id="p-statut"></select></div>
+        <div><label for="p-df">Du</label><input id="p-df" type="date"></div>
+        <div><label for="p-dt">Au</label><input id="p-dt" type="date"></div>
+        <div><label for="p-lieu">Lieu</label><input id="p-lieu"></div>
+      </div>
+      <label for="p-desc">Description</label><textarea id="p-desc"></textarea>
+      <h3 style="font-size:15px;margin-top:16px">Objectif chiffré</h3>
+      <p class="muted" style="margin-bottom:6px">C'est ce qui rend le bilan possible. Laissez vide ce qui ne s'applique pas.</p>
+      <div class="grid2">
+        <div><label for="o-contacts">Contacts</label><input id="o-contacts" type="number" min="0"></div>
+        <div><label for="o-avis_valeur">Avis de valeur</label><input id="o-avis_valeur" type="number" min="0"></div>
+        <div><label for="o-mandats">Mandats</label><input id="o-mandats" type="number" min="0"></div>
+        <div><label for="o-recrutements">Nouveaux conseillers</label><input id="o-recrutements" type="number" min="0"></div>
+        <div><label for="o-ventes">Ventes</label><input id="o-ventes" type="number" min="0"></div>
+      </div>
+      <div id="bloc-budget" style="display:none">
+        <label for="p-budget">Budget prévu (€)</label><input id="p-budget" type="number" min="0" step="0.01">
+      </div>
+      <button class="btn" style="margin-top:16px" onclick="enregistrerFiche()">Enregistrer</button>
+      <div class="err" id="p-err"></div>
+      <div class="ok" id="p-ok"></div>
+    </div>
+  </div>
+
+  <!-- Création (gestionnaires) -->
+  <div class="panel" id="bloc-creation" style="display:none">
+    <h3>Nouvelle opération</h3>
+    <p class="lead">Réservé aux gestionnaires de projets.</p>
+    <div class="grid2">
+      <div><label for="n-titre">Titre</label><input id="n-titre" placeholder="Foire de Sens 2027"></div>
+      <div><label for="n-type">Type</label><select id="n-type"></select></div>
+      <div><label for="n-df">Du</label><input id="n-df" type="date"></div>
+      <div><label for="n-dt">Au</label><input id="n-dt" type="date"></div>
+      <div><label for="n-lieu">Lieu</label><input id="n-lieu" placeholder="Parc des expositions, Sens"></div>
+      <div><label for="n-porteur">Porteur de l'opération</label><input id="n-porteur" placeholder="prenom.nom@iadfrance.fr"></div>
+    </div>
+    <label style="display:flex;align-items:center;gap:8px;margin-top:12px;font-weight:500">
+      <input type="checkbox" id="n-modele" checked style="width:auto"> Créer les tâches types de ce type d'opération
+    </label>
+    <button class="btn" style="margin-top:14px" onclick="creerProjet()">Créer l'opération</button>
+    <div class="err" id="n-err"></div>
+    <div class="ok" id="n-ok"></div>
+  </div>
+
+</div>
+
+<footer>Pôle iad Sens — David Landry</footer>
+
+<script>
+const API = '/api/coworking';
+const SESSION_KEY = 'cw_client_session';
+
+let TOKEN = null, MOI = null;
+let TOUS = [], MIENNES = [], MES_TACHES = [], REF = {types:{}, statuts:{}, roles:{}};
+let FICHE = null;   // {projet, membres, taches, mon_role, droits}
+let VUE = 'miennes';
+
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function H(){ return {'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`}; }
+function show(id, on){ const e=document.getElementById(id); if(e) e.style.display = on ? '' : 'none'; }
+function flash(id, msg, ms){ const e=document.getElementById(id); if(!e) return; e.textContent=msg; e.style.display='block';
+  clearTimeout(e._t); e._t=setTimeout(()=>{ e.style.display='none'; }, ms||4000); }
+function jour(iso){ if(!iso) return '—';
+  return new Date(String(iso).slice(0,10)+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'2-digit'}); }
+function nomCourt(m){ return m.name || (m.email||'').split('@')[0].split('.').map(x=>x?x[0].toUpperCase()+x.slice(1):'').join(' '); }
+
+async function api(url, opt){
+  const r = await fetch(API+url, Object.assign({headers:H(), cache:'no-store'}, opt||{}));
+  let d = null; try{ d = await r.json(); }catch(e){}
+  if(!r.ok) throw new Error((d && d.detail) || ('Erreur '+r.status));
+  return d;
+}
+
+// ============================ Chargement ============================
+async function charger(){
+  const d = await api('/projets');
+  TOUS = d.projets || [];
+  MOI = d.moi; REF = {types:d.types||{}, statuts:d.statuts||{}, roles:d.roles||{}};
+  MIENNES = TOUS.filter(p => p.mon_role && p.mon_role !== 'lecteur');
+  remplirSelects();
+  document.getElementById('who').innerHTML =
+    `Connecté : <strong>${esc(MOI.email)}</strong>` + (MOI.is_manager ? ' · gestionnaire de projets' : '')
+    + ` · <a href="/mon-espace">mon espace</a>`;
+  show('bloc-creation', !!(MOI.is_manager || MOI.is_admin));
+  try{ const t = await api('/projets/mon-tableau'); MES_TACHES = t.taches || []; }catch(e){ MES_TACHES = []; }
+  dessinerInvitations();
+  dessinerMiennes();
+  dessinerToutes();
+  dessinerTaches();
+}
+
+function remplirSelects(){
+  const opts = (obj, vide) => (vide?`<option value="">${vide}</option>`:'')
+    + Object.entries(obj).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('');
+  document.getElementById('f-statut').innerHTML = opts(REF.statuts, 'Tous les statuts');
+  document.getElementById('f-type').innerHTML   = opts(REF.types, 'Tous les types');
+  document.getElementById('n-type').innerHTML   = opts(REF.types, '');
+  document.getElementById('p-type').innerHTML   = opts(REF.types, '');
+  document.getElementById('p-statut').innerHTML = opts(REF.statuts, '');
+  const roles = Object.fromEntries(Object.entries(REF.roles).filter(([k])=>k!=='porteur'));
+  document.getElementById('m-role').innerHTML = opts(roles, '');
+}
+
+// ============================ Invitations ============================
+function dessinerInvitations(){
+  const att = TOUS.filter(p => p.ma_reponse === 'attente');
+  const z = document.getElementById('zone-invit');
+  if(!att.length){ z.innerHTML=''; return; }
+  // Une seule gélule corail sur la page : la première invitation à confirmer.
+  z.innerHTML = att.map((p,i)=>`
+    <div class="inv">
+      <div class="t">${esc(p.title)}</div>
+      <div class="m">${esc(p.type_label)} · ${esc(p.periode)}${p.location?' · '+esc(p.location):''}
+        — votre participation n'est pas encore confirmée.</div>
+      <div class="row">
+        ${i===0
+          ? `<button class="gelule" onclick="repondre(${p.id},'confirme')">Je participe</button>`
+          : `<button class="btn sm" onclick="repondre(${p.id},'confirme')">Je participe</button>`}
+        <button class="btn sm ghost" onclick="repondre(${p.id},'decline')">Je ne peux pas</button>
+        <button class="btn sm ghost" onclick="ouvrirFiche(${p.id})">Voir l'opération</button>
+      </div>
+    </div>`).join('');
+}
+
+async function repondre(pid, rep){
+  try{
+    await api(`/projets/${pid}/reponse`, {method:'POST', body:JSON.stringify({reponse:rep})});
+    await charger();
+    if(FICHE && FICHE.projet.id === pid) await ouvrirFiche(pid);
+  }catch(e){ alert(e.message); }
+}
+
+// ============================ Listes ============================
+function setVue(v){
+  VUE = v;
+  document.querySelectorAll('#tabs button').forEach(b=>b.classList.toggle('on', b.dataset.v===v));
+  show('bloc-miennes', v==='miennes'); show('bloc-toutes', v==='toutes'); show('bloc-taches', v==='taches');
+}
+
+function carte(p){
+  const reponse = p.ma_reponse==='attente' ? `<span class="chip att">à confirmer</span>`
+    : p.ma_reponse==='decline' ? `<span class="chip non">décliné</span>`
+    : p.ma_reponse==='confirme' ? `<span class="chip oui">confirmé</span>` : '';
+  const role = (p.mon_role && p.mon_role!=='lecteur')
+    ? `<span class="chip role">${esc(REF.roles[p.mon_role] || (p.mon_role==='admin'?'Administration':p.mon_role))}</span>` : '';
+  const retard = p.taches_retard ? `<span class="chip retard">${p.taches_retard} en retard</span>` : '';
+  return `<div class="op" onclick="ouvrirFiche(${p.id})">
+    <div class="top">
+      <div>
+        <div class="t">${esc(p.title)}</div>
+        <div class="meta">${esc(p.type_label)} · ${esc(p.periode)}${p.location?' · '+esc(p.location):''}</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">
+        <span class="chip st-${esc(p.status)}">${esc(p.status_label)}</span>${role}${reponse}
+      </div>
+    </div>
+    <div class="bars">
+      <span>Équipe <b>${p.confirmes}/${p.equipe}</b> confirmée</span>
+      <span>Tâches <b>${p.taches_faites}/${p.taches}</b> faites</span>
+      ${retard}
+    </div>
+  </div>`;
+}
+
+function dessinerMiennes(){
+  const l = document.getElementById('list-miennes');
+  l.innerHTML = MIENNES.length ? MIENNES.map(carte).join('')
+    : `<div class="empty">Vous n'êtes sur aucune opération pour le moment.
+         Regardez « Toutes les opérations » pour voir ce que prépare le réseau.</div>`;
+}
+
+function dessinerToutes(){
+  const st = document.getElementById('f-statut').value;
+  const tp = document.getElementById('f-type').value;
+  const q  = document.getElementById('f-q').value.trim().toLowerCase();
+  let rows = TOUS.slice();
+  if(st) rows = rows.filter(p=>p.status===st);
+  if(tp) rows = rows.filter(p=>p.type===tp);
+  if(q)  rows = rows.filter(p=>((p.title||'')+' '+(p.location||'')+' '+(p.description||'')).toLowerCase().includes(q));
+  document.getElementById('f-count').textContent =
+    `${rows.length} opération${rows.length>1?'s':''} sur ${TOUS.length}`;
+  document.getElementById('list-toutes').innerHTML = rows.length ? rows.map(carte).join('')
+    : `<div class="empty">Aucune opération ne correspond.</div>`;
+}
+
+function dessinerTaches(){
+  const l = document.getElementById('list-taches');
+  if(!MES_TACHES.length){ l.innerHTML = `<div class="empty">Aucune tâche ne vous est confiée. Profitez-en.</div>`; return; }
+  const retard = MES_TACHES.filter(t=>t.en_retard).length;
+  l.innerHTML = (retard ? `<p class="lead"><strong>${retard}</strong> tâche${retard>1?'s':''} en retard.</p>` : '')
+    + `<table><thead><tr><th style="width:34px"></th><th>Tâche</th><th class="hide-s">Opération</th><th>Échéance</th></tr></thead><tbody>`
+    + MES_TACHES.map(t=>`<tr>
+        <td class="n"><input type="checkbox" style="width:auto" onchange="cocherTache(${t.project_id},${t.id},this.checked)"></td>
+        <td class="ti">${esc(t.title)}</td>
+        <td class="hide-s muted">${esc(t.project_title||'')}</td>
+        <td class="n">${t.en_retard?'<span class="chip retard">'+jour(t.due_date)+'</span>':jour(t.due_date)}</td>
+      </tr>`).join('') + `</tbody></table>`;
+}
+
+// ============================ Fiche ============================
+async function ouvrirFiche(pid){
+  try{
+    FICHE = await api(`/projets/${pid}`);
+  }catch(e){ alert(e.message); return; }
+  show('vue-liste', false); show('bloc-creation', false); show('vue-fiche', true);
+  window.scrollTo(0,0);
+  dessinerFiche();
+}
+
+function fermerFiche(){
+  FICHE = null;
+  show('vue-fiche', false); show('vue-liste', true);
+  show('bloc-creation', !!(MOI.is_manager || MOI.is_admin));
+  charger();
+}
+
+const LIB_OBJ = {contacts:'Contacts', avis_valeur:'Avis de valeur', mandats:'Mandats',
+                 recrutements:'Nouveaux conseillers', ventes:'Ventes'};
+
+function dessinerFiche(){
+  const p = FICHE.projet, d = FICHE.droits, role = FICHE.mon_role;
+  document.getElementById('fi-titre').textContent = p.title;
+  document.getElementById('fi-meta').textContent =
+    `${p.type_label} · ${p.periode}` + (p.location ? ` · ${p.location}` : '')
+    + ` · porteur : ${p.owner_email}`;
+  const monRole = REF.roles[role] || (role==='admin' ? 'Administration' : 'Lecture seule');
+  document.getElementById('fi-chips').innerHTML =
+    `<span class="chip st-${esc(p.status)}">${esc(p.status_label)}</span>
+     <span class="chip role">${esc(monRole)}</span>`;
+  document.getElementById('fi-desc').textContent = p.description || '';
+
+  const obj = p.objectifs || {};
+  const cles = Object.keys(LIB_OBJ).filter(k=>obj[k]);
+  const tuileBudget = (p.budget_prevu != null && p.budget_prevu > 0)
+    ? `<div><b>${p.budget_prevu.toLocaleString('fr-FR')} €</b><span>budget prévu</span></div>` : '';
+  document.getElementById('fi-obj').innerHTML = (cles.length || tuileBudget)
+    ? cles.map(k=>`<div><b>${obj[k]}</b><span>${LIB_OBJ[k]}</span></div>`).join('') + tuileBudget
+    : (d.editer ? `<p class="muted">Aucun objectif chiffré. Sans objectif, pas de bilan possible à la clôture.</p>` : '');
+
+  // Actions — ma participation
+  const moi = (FICHE.membres||[]).find(m=>m.email===MOI.email);
+  let act = '';
+  if(moi && moi.reponse==='attente'){
+    act = `<button class="gelule" onclick="repondre(${p.id},'confirme')">Je participe</button>
+           <button class="btn sm ghost" onclick="repondre(${p.id},'decline')">Je ne peux pas</button>`;
+  } else if(moi && moi.reponse==='confirme' && role!=='porteur'){
+    act = `<span class="chip oui">Votre participation est confirmée</span>
+           <button class="btn sm ghost" style="margin-left:10px" onclick="repondre(${p.id},'decline')">Me retirer</button>`;
+  } else if(moi && moi.reponse==='decline'){
+    act = `<span class="chip non">Vous avez décliné</span>
+           <button class="btn sm ghost" style="margin-left:10px" onclick="repondre(${p.id},'confirme')">Finalement je participe</button>`;
+  } else if(!moi && role==='lecteur'){
+    act = `<span class="muted">Vous n'êtes pas sur cette opération — lecture seule.</span>`;
+  }
+  if(d.archiver){
+    act += `<button class="btn sm danger" style="margin-left:10px" onclick="archiver(${p.id})">Archiver</button>`;
+  }
+  document.getElementById('fi-actions').innerHTML = act;
+
+  show('tab-fiche', d.editer);
+  show('form-membre', d.equipe);
+  show('form-tache', d.editer);
+  show('bloc-budget', d.budget);
+
+  dessinerEquipe(); dessinerTachesProjet(); remplirFormFiche();
+  setOnglet('equipe');
+}
+
+function setOnglet(t){
+  document.querySelectorAll('#fi-tabs button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
+  show('ong-equipe', t==='equipe'); show('ong-taches', t==='taches'); show('ong-fiche', t==='fiche');
+}
+
+function dessinerEquipe(){
+  const d = FICHE.droits, p = FICHE.projet;
+  const rows = (FICHE.membres||[]).map(m=>{
+    const rep = m.reponse==='confirme' ? '<span class="chip oui">confirmé</span>'
+      : m.reponse==='decline' ? '<span class="chip non">décliné</span>'
+      : '<span class="chip att">en attente</span>';
+    const estPorteur = m.email === p.owner_email;
+    let sel = esc(m.role_label);
+    if(d.equipe && !estPorteur){
+      sel = `<select style="width:auto;padding:6px 8px;font-size:12.5px"
+               onchange="changerRole(${m.id}, this.value)">`
+        + Object.entries(REF.roles).filter(([k])=>k!=='porteur')
+            .map(([k,v])=>`<option value="${k}"${k===m.role?' selected':''}>${esc(v)}</option>`).join('')
+        + `</select>`;
+    }
+    let actions = '';
+    if(d.equipe && !estPorteur){
+      if(m.reponse==='attente') actions += `<button class="btn sm ghost" onclick="relancer(${m.id})">Relancer</button> `;
+      actions += `<button class="btn sm danger" onclick="retirer(${m.id})">Retirer</button>`;
+    }
+    return `<tr>
+      <td><strong>${esc(nomCourt(m))}</strong><div class="muted">${esc(m.email)}</div></td>
+      <td>${sel}</td><td class="n">${rep}</td><td class="hide-s n">${actions}</td></tr>`;
+  }).join('');
+  document.getElementById('tb-equipe').innerHTML = rows ||
+    `<tr><td colspan="4" class="empty">Personne dans l'équipe pour le moment.</td></tr>`;
+
+  // Responsables possibles pour une tâche = l'équipe
+  const sel = document.getElementById('t-resp');
+  if(sel) sel.innerHTML = `<option value="">Personne</option>`
+    + (FICHE.membres||[]).map(m=>`<option value="${esc(m.email)}">${esc(nomCourt(m))}</option>`).join('');
+}
+
+function dessinerTachesProjet(){
+  const d = FICHE.droits;
+  const rows = (FICHE.taches||[]).map(t=>{
+    const fait = t.status==='fait';
+    const resp = (FICHE.membres||[]).find(m=>m.email===t.assignee_email);
+    const jeSuisResp = t.assignee_email === MOI.email;
+    const cochable = d.editer || jeSuisResp;
+    return `<tr class="${fait?'done':''}">
+      <td class="n"><input type="checkbox" style="width:auto" ${fait?'checked':''} ${cochable?'':'disabled'}
+          onchange="cocherTache(${FICHE.projet.id},${t.id},this.checked)"></td>
+      <td class="ti">${esc(t.title)}${t.details?`<div class="muted">${esc(t.details)}</div>`:''}</td>
+      <td class="hide-s">${resp?esc(nomCourt(resp)):(t.assignee_email?esc(t.assignee_email):'<span class="muted">—</span>')}</td>
+      <td class="n">${t.en_retard?`<span class="chip retard">${jour(t.due_date)}</span>`:jour(t.due_date)}</td>
+      <td class="n">${d.editer?`<button class="btn sm danger" onclick="supprimerTache(${t.id})">Supprimer</button>`:''}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tb-taches').innerHTML = rows ||
+    `<tr><td colspan="5" class="empty">Aucune tâche.</td></tr>`;
+}
+
+function remplirFormFiche(){
+  const p = FICHE.projet;
+  document.getElementById('p-titre').value  = p.title || '';
+  document.getElementById('p-type').value   = p.type || 'autre';
+  document.getElementById('p-statut').value = p.status || 'idee';
+  document.getElementById('p-df').value     = p.date_from || '';
+  document.getElementById('p-dt').value     = p.date_to || '';
+  document.getElementById('p-lieu').value   = p.location || '';
+  document.getElementById('p-desc').value   = p.description || '';
+  Object.keys(LIB_OBJ).forEach(k=>{
+    const e = document.getElementById('o-'+k); if(e) e.value = (p.objectifs||{})[k] || '';
+  });
+  const b = document.getElementById('p-budget'); if(b) b.value = (p.budget_prevu!=null? p.budget_prevu : '');
+}
+
+// ============================ Actions fiche ============================
+async function enregistrerFiche(){
+  const objectifs = {};
+  Object.keys(LIB_OBJ).forEach(k=>{
+    const v = document.getElementById('o-'+k).value;
+    if(v !== '' && Number(v) > 0) objectifs[k] = Number(v);
+  });
+  const body = {
+    title: document.getElementById('p-titre').value.trim(),
+    type: document.getElementById('p-type').value,
+    status: document.getElementById('p-statut').value,
+    date_from: document.getElementById('p-df').value || null,
+    date_to: document.getElementById('p-dt').value || null,
+    location: document.getElementById('p-lieu').value.trim(),
+    description: document.getElementById('p-desc').value.trim(),
+    objectifs: objectifs,
+  };
+  if(FICHE.droits.budget){
+    const v = document.getElementById('p-budget').value;
+    if(v !== '') body.budget_prevu = Number(v);
+  }
+  if(!body.title){ flash('p-err','Le titre est obligatoire.'); return; }
+  try{
+    await api(`/projets/${FICHE.projet.id}`, {method:'PATCH', body:JSON.stringify(body)});
+    flash('p-ok','Fiche enregistrée.');
+    await ouvrirFiche(FICHE.projet.id);
+    setOnglet('fiche');
+  }catch(e){ flash('p-err', e.message); }
+}
+
+async function inviter(){
+  const email = document.getElementById('m-email').value.trim().toLowerCase();
+  if(!email.includes('@')){ flash('fi-err','Adresse e-mail invalide.'); return; }
+  try{
+    const d = await api(`/projets/${FICHE.projet.id}/membres`, {method:'POST', body:JSON.stringify({
+      email, name: document.getElementById('m-nom').value.trim() || null,
+      role: document.getElementById('m-role').value,
+      notifier: document.getElementById('m-notif').checked,
+    })});
+    document.getElementById('m-email').value=''; document.getElementById('m-nom').value='';
+    flash('fi-ok', (d.email_envoye ? 'Invitation envoyée.' : 'Conseiller ajouté à l’équipe.')
+      + (d.compte_actif ? '' : ' Attention : ce conseiller n’a pas encore de compte validé, il ne pourra pas confirmer depuis son espace.'), 8000);
+    await ouvrirFiche(FICHE.projet.id);
+  }catch(e){ flash('fi-err', e.message); }
+}
+
+async function changerRole(mid, role){
+  try{ await api(`/projets/${FICHE.projet.id}/membres/${mid}`, {method:'PATCH', body:JSON.stringify({role})});
+       await ouvrirFiche(FICHE.projet.id); }
+  catch(e){ flash('fi-err', e.message); }
+}
+async function retirer(mid){
+  if(!confirm('Retirer ce conseiller de l’opération ?')) return;
+  try{ await api(`/projets/${FICHE.projet.id}/membres/${mid}`, {method:'DELETE'});
+       await ouvrirFiche(FICHE.projet.id); }
+  catch(e){ flash('fi-err', e.message); }
+}
+async function relancer(mid){
+  try{ await api(`/projets/${FICHE.projet.id}/membres/${mid}/relance`, {method:'POST'});
+       flash('fi-ok','Invitation renvoyée.'); }
+  catch(e){ flash('fi-err', e.message); }
+}
+async function archiver(pid){
+  if(!confirm('Archiver cette opération ? Elle disparaît des listes sans être supprimée.')) return;
+  try{ await api(`/projets/${pid}/archiver?archive=true`, {method:'POST'}); fermerFiche(); }
+  catch(e){ flash('fi-err', e.message); }
+}
+
+async function ajouterTache(){
+  const titre = document.getElementById('t-titre').value.trim();
+  if(!titre){ flash('fi-err','Intitulé de tâche manquant.'); return; }
+  try{
+    await api(`/projets/${FICHE.projet.id}/taches`, {method:'POST', body:JSON.stringify({
+      title: titre,
+      assignee_email: document.getElementById('t-resp').value || null,
+      due_date: document.getElementById('t-due').value || null,
+    })});
+    document.getElementById('t-titre').value=''; document.getElementById('t-due').value='';
+    await ouvrirFiche(FICHE.projet.id); setOnglet('taches');
+  }catch(e){ flash('fi-err', e.message); }
+}
+
+async function cocherTache(pid, tid, coche){
+  try{
+    await api(`/projets/${pid}/taches/${tid}`, {method:'PATCH',
+      body:JSON.stringify({status: coche ? 'fait' : 'a-faire'})});
+    if(FICHE && FICHE.projet.id===pid){ await ouvrirFiche(pid); setOnglet('taches'); }
+    else { const t = await api('/projets/mon-tableau'); MES_TACHES = t.taches||[]; dessinerTaches(); }
+  }catch(e){ alert(e.message); }
+}
+
+async function supprimerTache(tid){
+  if(!confirm('Supprimer cette tâche ?')) return;
+  try{ await api(`/projets/${FICHE.projet.id}/taches/${tid}`, {method:'DELETE'});
+       await ouvrirFiche(FICHE.projet.id); setOnglet('taches'); }
+  catch(e){ flash('fi-err', e.message); }
+}
+
+async function depuisModele(){
+  try{
+    const d = await api(`/projets/${FICHE.projet.id}/taches/depuis-modele`, {method:'POST'});
+    flash('fi-ok', d.taches_creees ? `${d.taches_creees} tâche(s) ajoutée(s).` : 'Les tâches types sont déjà là.');
+    await ouvrirFiche(FICHE.projet.id); setOnglet('taches');
+  }catch(e){ flash('fi-err', e.message); }
+}
+
+async function creerProjet(){
+  const titre = document.getElementById('n-titre').value.trim();
+  if(!titre){ flash('n-err','Le titre est obligatoire.'); return; }
+  try{
+    const d = await api('/projets', {method:'POST', body:JSON.stringify({
+      title: titre,
+      type: document.getElementById('n-type').value,
+      date_from: document.getElementById('n-df').value || null,
+      date_to: document.getElementById('n-dt').value || null,
+      location: document.getElementById('n-lieu').value.trim(),
+      owner_email: document.getElementById('n-porteur').value.trim().toLowerCase() || null,
+      depuis_modele: document.getElementById('n-modele').checked,
+    })});
+    document.getElementById('n-titre').value=''; document.getElementById('n-lieu').value='';
+    flash('n-ok', `Opération créée${d.taches_creees?` avec ${d.taches_creees} tâches types`:''}.`);
+    await charger();
+    ouvrirFiche(d.projet.id);
+  }catch(e){ flash('n-err', e.message); }
+}
+
+// ============================ Démarrage ============================
+(async function(){
+  let s = null;
+  try{ s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null'); }catch(e){}
+  if(!s || !s.token){ show('gate', true); return; }
+  TOKEN = s.token;
+  try{
+    await charger();
+    show('vue-liste', true);
+    const p = new URLSearchParams(location.search).get('p');
+    if(p) ouvrirFiche(Number(p));
+  }catch(e){
+    show('gate', true);
+    document.querySelector('#gate h3').textContent = 'Accès refusé';
+    document.querySelector('#gate .lead').textContent = e.message
+      + ' — les opérations sont réservées aux conseillers iad validés.';
+  }
+})();
+</script>
+</body>
+</html>

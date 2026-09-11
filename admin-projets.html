@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Projets — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB;
+         --green:#2E7D52; --red:#C0392B; --amber:#B7791F; --iad:#00B4EC; --coral:#EA584A; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1060px;margin:24px auto;padding:0 18px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;padding:20px;margin-bottom:20px}
+  .card h2{font-family:'Playfair Display',serif;margin:0 0 14px;font-size:18px}
+  .card h3{margin:0 0 8px;font-size:15px}
+  label{display:block;font-size:12.5px;color:var(--slate);margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--light);border-radius:8px;
+                        font-family:inherit;font-size:14px;color:var(--navy);background:#fff}
+  textarea{min-height:64px;resize:vertical}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px 18px;
+       font-weight:700;font-size:14px;cursor:pointer;margin-top:14px;font-family:inherit}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--light);padding:6px 12px;font-size:12.5px;margin:0 0 4px}
+  .btn.del{background:#fff;color:var(--red);border:1px solid var(--light);padding:6px 12px;font-size:12.5px;margin:0}
+  .btn.sm{padding:6px 12px;font-size:12.5px;margin:0}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px 12px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee;vertical-align:top}
+  th{color:var(--slate);font-weight:600;font-size:12px;text-transform:uppercase}
+  td.n{white-space:nowrap}
+  tr.clic{cursor:pointer}
+  tr.clic:hover{background:#fbfaf7}
+  .muted{color:var(--slate);font-size:12.5px}
+  .empty{padding:24px;text-align:center;color:var(--slate)}
+  .ok{color:var(--green);font-size:13px;display:none;margin-top:8px;font-weight:600}
+  .err{color:var(--red);font-size:13px;display:none;margin-top:8px;font-weight:600}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+
+  .chip{display:inline-block;font-size:11px;font-weight:700;border-radius:20px;padding:3px 10px;white-space:nowrap}
+  .chip.st-idee{background:#eef2f5;color:#5b6b74}
+  .chip.st-valide{background:#e2f6fd;color:#026e94}
+  .chip.st-preparation{background:#fff4e0;color:var(--amber)}
+  .chip.st-en-cours{background:var(--iad);color:#fff}
+  .chip.st-termine{background:#e6f6ec;color:var(--green)}
+  .chip.st-annule{background:#f6e8e6;color:#9a3b2f}
+  .chip.oui{background:#e6f6ec;color:var(--green)}
+  .chip.att{background:#fff4e0;color:var(--amber)}
+  .chip.non{background:#f6e8e6;color:#9a3b2f}
+  .chip.warn{background:#f6e8e6;color:#9a3b2f}
+
+  /* Barre de filtres — même grammaire que les Événements */
+  .filters{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 14px}
+  .seg{display:inline-flex;border:1px solid var(--light);border-radius:9px;overflow:hidden;background:#fff}
+  .seg button{background:#fff;border:none;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:600;
+              color:var(--slate);cursor:pointer;border-right:1px solid var(--light)}
+  .seg button:last-child{border-right:none}
+  .seg button.on{background:var(--gold);color:var(--navy)}
+  .filters select,.filters input{width:auto;min-width:150px;padding:8px 10px;font-size:13px}
+  .filters .reset{background:none;border:none;color:var(--slate);text-decoration:underline;
+                  font-size:12.5px;cursor:pointer;font-family:inherit}
+  .done td{opacity:.5}
+  .done td.ti{text-decoration:line-through}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 14px}
+  .tabs button{background:#fff;border:1px solid var(--light);border-radius:20px;padding:8px 16px;
+               font-family:inherit;font-size:13px;font-weight:600;color:var(--slate);cursor:pointer}
+  .tabs button.on{background:var(--gold);color:var(--navy)}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+  .kpi div{background:var(--cream);border:1px solid var(--light);border-radius:10px;padding:8px 14px;min-width:96px}
+  .kpi b{display:block;font-size:19px}
+  .kpi span{font-size:11.5px;color:var(--slate)}
+  .back{background:none;border:none;color:var(--navy);font-family:inherit;font-weight:700;font-size:13.5px;
+        cursor:pointer;padding:0;margin-bottom:12px;text-decoration:underline}
+  @media (max-width:820px){ th.hide-s,td.hide-s{display:none} }
+</style>
+</head>
+<body>
+
+<div id="login"><div class="box">
+  <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Projets</h2>
+  <p class="muted">Session admin requise.</p>
+  <a class="btn" href="admin-devis-dashboard.html" style="text-decoration:none;display:inline-block;margin-top:10px">Se connecter sur le dashboard</a>
+</div></div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="132" height="132">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-hub.html">✨ Hub</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-evenements.html">🎉 Événements</a>
+      <a href="admin-projets.html" class="active">🗂️ Projets</a>
+      <a href="admin-iad.html">🤝 Conseillers iad</a>
+      <a href="admin-clients.html">👤 Clients</a>
+      <a href="admin-stats.html">📊 Statistiques</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ============ PILOTAGE ============ -->
+  <div id="vue-liste">
+    <div class="card">
+      <h2>Les opérations du réseau</h2>
+      <div class="filters">
+        <div class="seg" id="f-periode">
+          <button data-v="future" onclick="setPeriode('future')">À venir</button>
+          <button data-v="mois" onclick="setPeriode('mois')">30 jours</button>
+          <button data-v="passe" onclick="setPeriode('passe')">Passées</button>
+          <button data-v="toutes" onclick="setPeriode('toutes')">Toutes</button>
+        </div>
+        <select id="f-statut" onchange="onFiltre()"><option value="">Tous les statuts</option></select>
+        <select id="f-type" onchange="onFiltre()"><option value="">Tous les types</option></select>
+        <input id="f-q" placeholder="Titre, lieu…" oninput="onFiltre()">
+        <label style="display:flex;align-items:center;gap:6px;margin:0;font-size:12.5px">
+          <input type="checkbox" id="f-archives" onchange="load()" style="width:auto"> Archivées
+        </label>
+        <button class="reset" onclick="resetFilters()">Réinitialiser</button>
+        <span class="muted" id="f-count"></span>
+      </div>
+      <table>
+        <thead><tr><th>Dates</th><th>Opération</th><th class="hide-s">Porteur</th><th>Équipe</th><th>Tâches</th><th>Statut</th></tr></thead>
+        <tbody id="tb-projets"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2>Nouvelle opération</h2>
+      <div class="grid">
+        <div><label for="n-titre">Titre</label><input id="n-titre" placeholder="Foire de Sens 2027"></div>
+        <div><label for="n-type">Type</label><select id="n-type"></select></div>
+        <div><label for="n-statut">Statut</label><select id="n-statut"></select></div>
+        <div><label for="n-df">Du</label><input id="n-df" type="date"></div>
+        <div><label for="n-dt">Au</label><input id="n-dt" type="date"></div>
+        <div><label for="n-lieu">Lieu</label><input id="n-lieu" placeholder="Parc des expositions, Sens"></div>
+        <div><label for="n-porteur">Porteur</label><select id="n-porteur"></select></div>
+        <div><label for="n-budget">Budget prévu (€)</label><input id="n-budget" type="number" min="0" step="0.01"></div>
+      </div>
+      <label for="n-desc">Description</label><textarea id="n-desc"></textarea>
+      <div class="grid" style="margin-top:12px">
+        <div><label for="no-contacts">Objectif contacts</label><input id="no-contacts" type="number" min="0"></div>
+        <div><label for="no-avis_valeur">Avis de valeur</label><input id="no-avis_valeur" type="number" min="0"></div>
+        <div><label for="no-mandats">Mandats</label><input id="no-mandats" type="number" min="0"></div>
+        <div><label for="no-recrutements">Nouveaux conseillers</label><input id="no-recrutements" type="number" min="0"></div>
+        <div><label for="no-ventes">Ventes</label><input id="no-ventes" type="number" min="0"></div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px">
+        <input type="checkbox" id="n-modele" checked style="width:auto"> Créer les tâches types de ce type d'opération
+      </label>
+      <button class="btn" onclick="creer()">Créer l'opération</button>
+      <div class="ok" id="n-ok"></div><div class="err" id="n-err"></div>
+    </div>
+
+    <div class="card">
+      <h2>Gestionnaires de projets</h2>
+      <p class="muted">Un gestionnaire peut créer une opération et gérer les modèles de tâches.
+        C'est distinct de l'accès administrateur.</p>
+      <div id="liste-gest" style="margin-top:12px"></div>
+      <div class="grid" style="margin-top:14px">
+        <div><label for="g-email">Ajouter un gestionnaire</label><select id="g-email"></select></div>
+      </div>
+      <button class="btn" onclick="ajouterGestionnaire()">Accorder le droit</button>
+      <div class="ok" id="g-ok"></div><div class="err" id="g-err"></div>
+    </div>
+
+    <div class="card">
+      <h2>Modèles de tâches</h2>
+      <p class="muted">Écrits une fois, dupliqués à chaque édition d'une opération du même type.
+        Le décalage est compté en jours par rapport à la date de début (négatif = avant).</p>
+      <div class="filters" style="margin-top:12px">
+        <select id="mo-type" onchange="dessinerModeles()"></select>
+      </div>
+      <table>
+        <thead><tr><th style="width:70px">Décalage</th><th>Tâche</th><th style="width:90px"></th></tr></thead>
+        <tbody id="tb-modeles"></tbody>
+      </table>
+      <div class="grid" style="margin-top:14px">
+        <div><label for="mo-titre">Nouvelle tâche type</label><input id="mo-titre" placeholder="Commander les kakemonos"></div>
+        <div><label for="mo-offset">Décalage (jours)</label><input id="mo-offset" type="number" value="-30"></div>
+        <div><label for="mo-pos">Position</label><input id="mo-pos" type="number" value="99"></div>
+      </div>
+      <button class="btn" onclick="ajouterModele()">Ajouter au modèle</button>
+      <div class="ok" id="mo-ok"></div><div class="err" id="mo-err"></div>
+    </div>
+  </div>
+
+  <!-- ============ FICHE ============ -->
+  <div id="vue-fiche" style="display:none">
+    <button class="back" onclick="fermerFiche()">← Retour au pilotage</button>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:flex-start">
+        <div><h2 id="fi-titre" style="margin:0"></h2><div class="muted" id="fi-meta"></div></div>
+        <div id="fi-chips"></div>
+      </div>
+      <div class="kpi" id="fi-kpi" style="margin-top:14px"></div>
+      <div id="fi-actions" style="margin-top:8px"></div>
+      <div class="ok" id="fi-ok"></div><div class="err" id="fi-err"></div>
+    </div>
+
+    <div class="tabs" id="fi-tabs">
+      <button data-t="equipe" class="on" onclick="setOnglet('equipe')">Équipe</button>
+      <button data-t="taches" onclick="setOnglet('taches')">Tâches</button>
+      <button data-t="fiche" onclick="setOnglet('fiche')">La fiche</button>
+    </div>
+
+    <div class="card" id="ong-equipe">
+      <table>
+        <thead><tr><th>Conseiller</th><th>Rôle</th><th>Réponse</th><th class="hide-s"></th></tr></thead>
+        <tbody id="tb-equipe"></tbody>
+      </table>
+      <div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px">
+        <h3>Inviter un conseiller</h3>
+        <div class="grid">
+          <div><label for="m-email">Conseiller</label><select id="m-email"></select></div>
+          <div><label for="m-role">Rôle</label><select id="m-role"></select></div>
+        </div>
+        <label style="display:flex;align-items:center;gap:8px;margin-top:12px">
+          <input type="checkbox" id="m-notif" checked style="width:auto"> Envoyer l'invitation par e-mail
+        </label>
+        <button class="btn" onclick="inviter()">Inviter</button>
+      </div>
+    </div>
+
+    <div class="card" id="ong-taches" style="display:none">
+      <table>
+        <thead><tr><th style="width:34px"></th><th>Tâche</th><th class="hide-s">Responsable</th><th>Échéance</th><th></th></tr></thead>
+        <tbody id="tb-taches"></tbody>
+      </table>
+      <div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px">
+        <h3>Ajouter une tâche</h3>
+        <div class="grid">
+          <div><label for="t-titre">Intitulé</label><input id="t-titre"></div>
+          <div><label for="t-resp">Responsable</label><select id="t-resp"></select></div>
+          <div><label for="t-due">Échéance</label><input id="t-due" type="date"></div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <button class="btn" onclick="ajouterTache()">Ajouter</button>
+          <button class="btn ghost" style="margin-top:14px" onclick="depuisModele()">Recharger les tâches types</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="ong-fiche" style="display:none">
+      <div class="grid">
+        <div><label for="p-titre">Titre</label><input id="p-titre"></div>
+        <div><label for="p-type">Type</label><select id="p-type"></select></div>
+        <div><label for="p-statut">Statut</label><select id="p-statut"></select></div>
+        <div><label for="p-df">Du</label><input id="p-df" type="date"></div>
+        <div><label for="p-dt">Au</label><input id="p-dt" type="date"></div>
+        <div><label for="p-lieu">Lieu</label><input id="p-lieu"></div>
+        <div><label for="p-porteur">Porteur</label><select id="p-porteur"></select></div>
+        <div><label for="p-budget">Budget prévu (€)</label><input id="p-budget" type="number" min="0" step="0.01"></div>
+      </div>
+      <label for="p-desc">Description</label><textarea id="p-desc"></textarea>
+      <div class="grid" style="margin-top:12px">
+        <div><label for="o-contacts">Objectif contacts</label><input id="o-contacts" type="number" min="0"></div>
+        <div><label for="o-avis_valeur">Avis de valeur</label><input id="o-avis_valeur" type="number" min="0"></div>
+        <div><label for="o-mandats">Mandats</label><input id="o-mandats" type="number" min="0"></div>
+        <div><label for="o-recrutements">Nouveaux conseillers</label><input id="o-recrutements" type="number" min="0"></div>
+        <div><label for="o-ventes">Ventes</label><input id="o-ventes" type="number" min="0"></div>
+      </div>
+      <button class="btn" onclick="enregistrer()">Enregistrer</button>
+      <div class="ok" id="p-ok"></div><div class="err" id="p-err"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const API = '/api/coworking';
+const STORAGE_KEY = 'cw_admin_session';
+const FILTER_KEY  = 'cw_admin_projets_filtres';
+
+let HEADERS = {'Content-Type':'application/json'};
+let PROJETS = [], REF = {types:{}, statuts:{}, roles:{}}, CONSEILLERS = [], MODELES = [];
+let FICHE = null;
+let FILTRES = {periode:'future', statut:'', type:'', q:''};
+let FILTRES_CHARGES = false;
+
+function getSession(){ try{ const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+  if(s&&s.expires&&s.expires<Date.now()) return null; return s; }catch(e){ return null; } }
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function show(id,on){ const e=document.getElementById(id); if(e) e.style.display = on?'':'none'; }
+function flash(id,msg,ms){ const e=document.getElementById(id); if(!e) return; e.textContent=msg; e.style.display='block';
+  clearTimeout(e._t); e._t=setTimeout(()=>{e.style.display='none';}, ms||4000); }
+function jour(iso){ if(!iso) return '—';
+  return new Date(String(iso).slice(0,10)+'T00:00:00').toLocaleDateString('fr-FR',{day:'numeric',month:'short',year:'2-digit'}); }
+function val(id){ const e=document.getElementById(id); return e? e.value.trim() : ''; }
+function num(id){ const v=val(id); return v===''?null:Number(v); }
+function nomCourt(x){ return x.name || (x.email||'').split('@')[0].split('.')
+  .map(p=>p?p[0].toUpperCase()+p.slice(1):'').join(' '); }
+
+async function api(url, opt){
+  const r = await fetch(API+url, Object.assign({headers:HEADERS, cache:'no-store'}, opt||{}));
+  if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex'; throw new Error('Session admin expirée'); }
+  let d=null; try{ d=await r.json(); }catch(e){}
+  if(!r.ok) throw new Error((d&&d.detail)||('Erreur '+r.status));
+  return d;
+}
+
+// ===================== Filtres =====================
+function peindreFiltres(){
+  const seg=document.getElementById('f-periode');
+  if(seg) seg.querySelectorAll('button').forEach(b=>b.classList.toggle('on', b.dataset.v===FILTRES.periode));
+  const a=document.getElementById('f-statut'); if(a) a.value=FILTRES.statut;
+  const t=document.getElementById('f-type');   if(t) t.value=FILTRES.type;
+  const q=document.getElementById('f-q');      if(q) q.value=FILTRES.q;
+}
+function loadFiltres(){
+  if(FILTRES_CHARGES) return;
+  FILTRES_CHARGES = true;
+  try{ const f=JSON.parse(localStorage.getItem(FILTER_KEY)||'null'); if(f) FILTRES={...FILTRES, ...f}; }catch(e){}
+  peindreFiltres();
+}
+function saveFiltres(){ try{ localStorage.setItem(FILTER_KEY, JSON.stringify(FILTRES)); }catch(e){} }
+function setPeriode(v){ FILTRES.periode=v; peindreFiltres(); onFiltre(); }
+function onFiltre(){
+  FILTRES.statut = document.getElementById('f-statut').value;
+  FILTRES.type   = document.getElementById('f-type').value;
+  FILTRES.q      = document.getElementById('f-q').value;
+  saveFiltres(); dessiner();
+}
+function resetFilters(){
+  FILTRES={periode:'toutes', statut:'', type:'', q:''};
+  peindreFiltres(); saveFiltres(); dessiner();
+}
+
+// ===================== Chargement =====================
+async function load(){
+  const archives = document.getElementById('f-archives').checked;
+  const d = await api('/projets?archives='+(archives?'true':'false'));
+  PROJETS = d.projets||[];
+  REF = {types:d.types||{}, statuts:d.statuts||{}, roles:d.roles||{}};
+  remplirSelects();
+  loadFiltres();
+  dessiner();
+  try{
+    const g = await api('/admin/projets/gestionnaires');
+    CONSEILLERS = g.conseillers||[];
+    dessinerGestionnaires(g.gestionnaires||[]);
+    remplirConseillers();
+  }catch(e){}
+  try{ const m = await api('/projets/modeles'); MODELES = m.modeles||[]; dessinerModeles(); }catch(e){}
+}
+
+function remplirSelects(){
+  const opts=(obj,vide)=>(vide?`<option value="">${vide}</option>`:'')
+    + Object.entries(obj).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('');
+  document.getElementById('f-statut').innerHTML = opts(REF.statuts,'Tous les statuts');
+  document.getElementById('f-type').innerHTML   = opts(REF.types,'Tous les types');
+  document.getElementById('n-type').innerHTML   = opts(REF.types,'');
+  document.getElementById('n-statut').innerHTML = opts(REF.statuts,'');
+  document.getElementById('p-type').innerHTML   = opts(REF.types,'');
+  document.getElementById('p-statut').innerHTML = opts(REF.statuts,'');
+  document.getElementById('mo-type').innerHTML  = opts(REF.types,'');
+  const sansPorteur = Object.fromEntries(Object.entries(REF.roles).filter(([k])=>k!=='porteur'));
+  document.getElementById('m-role').innerHTML   = opts(sansPorteur,'');
+}
+
+function remplirConseillers(){
+  const o = CONSEILLERS.map(c=>`<option value="${esc(c.email)}">${esc(nomCourt(c))} — ${esc(c.email)}</option>`).join('');
+  ['n-porteur','p-porteur','m-email','t-resp','g-email'].forEach(id=>{
+    const e=document.getElementById(id); if(!e) return;
+    const garde = e.value;
+    e.innerHTML = (id==='t-resp' ? '<option value="">Personne</option>' : '') + o;
+    if(garde) e.value = garde;
+  });
+}
+
+// ===================== Tableau de pilotage =====================
+function filtrer(){
+  const auj = new Date().toISOString().slice(0,10);
+  const dans30 = new Date(Date.now()+30*864e5).toISOString().slice(0,10);
+  let rows = PROJETS.slice();
+  if(FILTRES.periode==='future') rows = rows.filter(p=>!p.date_to || p.date_to >= auj);
+  else if(FILTRES.periode==='mois') rows = rows.filter(p=>p.date_from && p.date_from<=dans30 && (!p.date_to || p.date_to>=auj));
+  else if(FILTRES.periode==='passe') rows = rows.filter(p=>p.date_to && p.date_to < auj);
+  if(FILTRES.statut) rows = rows.filter(p=>p.status===FILTRES.statut);
+  if(FILTRES.type)   rows = rows.filter(p=>p.type===FILTRES.type);
+  const q = (FILTRES.q||'').trim().toLowerCase();
+  if(q) rows = rows.filter(p=>((p.title||'')+' '+(p.location||'')+' '+(p.description||'')).toLowerCase().includes(q));
+  return rows;
+}
+
+function dessiner(){
+  const rows = filtrer();
+  document.getElementById('f-count').textContent =
+    `${rows.length} opération${rows.length>1?'s':''} affichée${rows.length>1?'s':''} sur ${PROJETS.length}`;
+  if(!rows.length){
+    document.getElementById('tb-projets').innerHTML =
+      `<tr><td colspan="6" class="empty">Aucune opération avec ces filtres.
+        <button class="btn ghost" onclick="resetFilters()">Tout afficher</button></td></tr>`;
+    return;
+  }
+  document.getElementById('tb-projets').innerHTML = rows.map(p=>{
+    const att = p.en_attente ? `<span class="chip att">${p.en_attente} sans réponse</span>` : '';
+    const ret = p.taches_retard ? `<span class="chip warn">${p.taches_retard} en retard</span>` : '';
+    return `<tr class="clic" onclick="ouvrirFiche(${p.id})">
+      <td class="n">${jour(p.date_from)}${p.date_to&&p.date_to!==p.date_from?'<div class="muted">→ '+jour(p.date_to)+'</div>':''}</td>
+      <td><strong>${esc(p.title)}</strong>
+        <div class="muted">${esc(p.type_label)}${p.location?' · '+esc(p.location):''}${p.archived?' · archivée':''}</div></td>
+      <td class="hide-s muted">${esc(p.owner_email||'')}</td>
+      <td class="n">${p.confirmes}/${p.equipe} ${att}</td>
+      <td class="n">${p.taches_faites}/${p.taches} ${ret}</td>
+      <td class="n"><span class="chip st-${esc(p.status)}">${esc(p.status_label)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ===================== Création =====================
+const CLES_OBJ = ['contacts','avis_valeur','mandats','recrutements','ventes'];
+function lireObjectifs(prefix){
+  const o={}; CLES_OBJ.forEach(k=>{ const v=num(prefix+k); if(v && v>0) o[k]=v; }); return o;
+}
+
+async function creer(){
+  const titre = val('n-titre');
+  if(!titre){ flash('n-err','Le titre est obligatoire.'); return; }
+  try{
+    const d = await api('/projets', {method:'POST', body:JSON.stringify({
+      title:titre, type:val('n-type'), status:val('n-statut'),
+      date_from: val('n-df')||null, date_to: val('n-dt')||null,
+      location: val('n-lieu'), description: val('n-desc'),
+      owner_email: val('n-porteur')||null,
+      budget_prevu: num('n-budget')||0,
+      objectifs: lireObjectifs('no-'),
+      depuis_modele: document.getElementById('n-modele').checked,
+    })});
+    ['n-titre','n-lieu','n-desc','n-budget'].forEach(id=>document.getElementById(id).value='');
+    CLES_OBJ.forEach(k=>document.getElementById('no-'+k).value='');
+    flash('n-ok', `Opération créée${d.taches_creees?` avec ${d.taches_creees} tâches types`:''}.`);
+    await load(); ouvrirFiche(d.projet.id);
+  }catch(e){ flash('n-err', e.message); }
+}
+
+// ===================== Fiche =====================
+async function ouvrirFiche(pid){
+  try{ FICHE = await api('/projets/'+pid); }catch(e){ alert(e.message); return; }
+  show('vue-liste', false); show('vue-fiche', true); window.scrollTo(0,0);
+  dessinerFiche();
+}
+function fermerFiche(){ FICHE=null; show('vue-fiche',false); show('vue-liste',true); load(); }
+function setOnglet(t){
+  document.querySelectorAll('#fi-tabs button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
+  show('ong-equipe',t==='equipe'); show('ong-taches',t==='taches'); show('ong-fiche',t==='fiche');
+}
+
+const LIB_OBJ = {contacts:'Contacts', avis_valeur:'Avis de valeur', mandats:'Mandats',
+                 recrutements:'Nouveaux conseillers', ventes:'Ventes'};
+
+function dessinerFiche(){
+  const p = FICHE.projet;
+  document.getElementById('fi-titre').textContent = p.title;
+  document.getElementById('fi-meta').textContent =
+    `${p.type_label} · ${p.periode}` + (p.location?` · ${p.location}`:'') + ` · porteur : ${p.owner_email}`;
+  document.getElementById('fi-chips').innerHTML = `<span class="chip st-${esc(p.status)}">${esc(p.status_label)}</span>`;
+
+  const m = FICHE.membres||[], t = FICHE.taches||[];
+  const conf = m.filter(x=>x.reponse==='confirme').length;
+  const att  = m.filter(x=>x.reponse==='attente').length;
+  const fait = t.filter(x=>x.status==='fait').length;
+  const ret  = t.filter(x=>x.en_retard).length;
+  const obj  = Object.keys(LIB_OBJ).filter(k=>(p.objectifs||{})[k])
+    .map(k=>`<div><b>${p.objectifs[k]}</b><span>${LIB_OBJ[k]} visés</span></div>`).join('');
+  document.getElementById('fi-kpi').innerHTML =
+    `<div><b>${conf}/${m.length}</b><span>équipe confirmée</span></div>`
+    + (att?`<div><b style="color:var(--amber)">${att}</b><span>sans réponse</span></div>`:'')
+    + `<div><b>${fait}/${t.length}</b><span>tâches faites</span></div>`
+    + (ret?`<div><b style="color:var(--red)">${ret}</b><span>en retard</span></div>`:'')
+    + (p.budget_prevu?`<div><b>${p.budget_prevu.toLocaleString('fr-FR')} €</b><span>budget prévu</span></div>`:'')
+    + obj;
+
+  document.getElementById('fi-actions').innerHTML = p.archived
+    ? `<button class="btn ghost" onclick="archiver(${p.id}, false)">Désarchiver</button>`
+    : `<button class="btn del" onclick="archiver(${p.id}, true)">Archiver l'opération</button>`;
+
+  dessinerEquipe(); dessinerTaches(); remplirFormFiche(); setOnglet('equipe');
+}
+
+function dessinerEquipe(){
+  const p = FICHE.projet;
+  document.getElementById('tb-equipe').innerHTML = (FICHE.membres||[]).map(m=>{
+    const rep = m.reponse==='confirme'?'<span class="chip oui">confirmé</span>'
+      : m.reponse==='decline'?'<span class="chip non">décliné</span>'
+      : '<span class="chip att">en attente</span>';
+    const estPorteur = m.email===p.owner_email;
+    const sel = estPorteur ? esc(m.role_label)
+      : `<select style="width:auto;padding:5px 8px;font-size:12.5px" onchange="changerRole(${m.id}, this.value)">`
+        + Object.entries(REF.roles).filter(([k])=>k!=='porteur')
+            .map(([k,v])=>`<option value="${k}"${k===m.role?' selected':''}>${esc(v)}</option>`).join('')
+        + `</select>`;
+    let act = '';
+    if(!estPorteur){
+      if(m.reponse==='attente') act += `<button class="btn ghost" onclick="relancer(${m.id})">Relancer</button> `;
+      act += `<button class="btn del" onclick="retirer(${m.id})">Retirer</button>`;
+    }
+    return `<tr><td><strong>${esc(nomCourt(m))}</strong><div class="muted">${esc(m.email)}</div></td>
+      <td>${sel}</td><td class="n">${rep}</td><td class="hide-s n">${act}</td></tr>`;
+  }).join('') || `<tr><td colspan="4" class="empty">Personne dans l'équipe.</td></tr>`;
+
+  const sel = document.getElementById('t-resp');
+  sel.innerHTML = '<option value="">Personne</option>'
+    + (FICHE.membres||[]).map(m=>`<option value="${esc(m.email)}">${esc(nomCourt(m))}</option>`).join('');
+}
+
+function dessinerTaches(){
+  document.getElementById('tb-taches').innerHTML = (FICHE.taches||[]).map(t=>{
+    const fait = t.status==='fait';
+    const resp = (FICHE.membres||[]).find(m=>m.email===t.assignee_email);
+    return `<tr class="${fait?'done':''}">
+      <td class="n"><input type="checkbox" style="width:auto" ${fait?'checked':''}
+          onchange="cocher(${t.id}, this.checked)"></td>
+      <td class="ti">${esc(t.title)}${t.details?`<div class="muted">${esc(t.details)}</div>`:''}</td>
+      <td class="hide-s">${resp?esc(nomCourt(resp)):(t.assignee_email?esc(t.assignee_email):'<span class="muted">—</span>')}</td>
+      <td class="n">${t.en_retard?`<span class="chip warn">${jour(t.due_date)}</span>`:jour(t.due_date)}</td>
+      <td class="n"><button class="btn del" onclick="supprimerTache(${t.id})">Supprimer</button></td></tr>`;
+  }).join('') || `<tr><td colspan="5" class="empty">Aucune tâche.</td></tr>`;
+}
+
+function remplirFormFiche(){
+  const p = FICHE.projet;
+  document.getElementById('p-titre').value = p.title||'';
+  document.getElementById('p-type').value = p.type||'autre';
+  document.getElementById('p-statut').value = p.status||'idee';
+  document.getElementById('p-df').value = p.date_from||'';
+  document.getElementById('p-dt').value = p.date_to||'';
+  document.getElementById('p-lieu').value = p.location||'';
+  document.getElementById('p-desc').value = p.description||'';
+  document.getElementById('p-budget').value = (p.budget_prevu!=null? p.budget_prevu : '');
+  const sp = document.getElementById('p-porteur');
+  if(sp && p.owner_email && ![...sp.options].some(o=>o.value===p.owner_email))
+    sp.insertAdjacentHTML('afterbegin', `<option value="${esc(p.owner_email)}">${esc(p.owner_email)}</option>`);
+  if(sp) sp.value = p.owner_email||'';
+  CLES_OBJ.forEach(k=>{ const e=document.getElementById('o-'+k); if(e) e.value=(p.objectifs||{})[k]||''; });
+}
+
+async function enregistrer(){
+  const titre = val('p-titre');
+  if(!titre){ flash('p-err','Le titre est obligatoire.'); return; }
+  try{
+    await api('/projets/'+FICHE.projet.id, {method:'PATCH', body:JSON.stringify({
+      title:titre, type:val('p-type'), status:val('p-statut'),
+      date_from: val('p-df')||null, date_to: val('p-dt')||null,
+      location: val('p-lieu'), description: val('p-desc'),
+      owner_email: val('p-porteur')||null,
+      budget_prevu: num('p-budget')||0,
+      objectifs: lireObjectifs('o-'),
+    })});
+    flash('p-ok','Fiche enregistrée.');
+    await ouvrirFiche(FICHE.projet.id); setOnglet('fiche');
+  }catch(e){ flash('p-err', e.message); }
+}
+
+async function inviter(){
+  const email = val('m-email');
+  if(!email){ flash('fi-err','Choisissez un conseiller.'); return; }
+  try{
+    const d = await api(`/projets/${FICHE.projet.id}/membres`, {method:'POST', body:JSON.stringify({
+      email, role: val('m-role'), notifier: document.getElementById('m-notif').checked })});
+    flash('fi-ok', d.email_envoye ? 'Invitation envoyée.' : 'Conseiller ajouté.');
+    await ouvrirFiche(FICHE.projet.id);
+  }catch(e){ flash('fi-err', e.message); }
+}
+async function changerRole(mid, role){
+  try{ await api(`/projets/${FICHE.projet.id}/membres/${mid}`, {method:'PATCH', body:JSON.stringify({role})});
+       await ouvrirFiche(FICHE.projet.id); }catch(e){ flash('fi-err', e.message); }
+}
+async function retirer(mid){
+  if(!confirm('Retirer ce conseiller de l’opération ?')) return;
+  try{ await api(`/projets/${FICHE.projet.id}/membres/${mid}`, {method:'DELETE'});
+       await ouvrirFiche(FICHE.projet.id); }catch(e){ flash('fi-err', e.message); }
+}
+async function relancer(mid){
+  try{ await api(`/projets/${FICHE.projet.id}/membres/${mid}/relance`, {method:'POST'});
+       flash('fi-ok','Invitation renvoyée.'); }catch(e){ flash('fi-err', e.message); }
+}
+async function archiver(pid, on){
+  if(on && !confirm('Archiver cette opération ?')) return;
+  try{ await api(`/projets/${pid}/archiver?archive=${on?'true':'false'}`, {method:'POST'});
+       if(on) fermerFiche(); else await ouvrirFiche(pid); }catch(e){ flash('fi-err', e.message); }
+}
+async function ajouterTache(){
+  const titre = val('t-titre');
+  if(!titre){ flash('fi-err','Intitulé manquant.'); return; }
+  try{
+    await api(`/projets/${FICHE.projet.id}/taches`, {method:'POST', body:JSON.stringify({
+      title:titre, assignee_email: val('t-resp')||null, due_date: val('t-due')||null })});
+    document.getElementById('t-titre').value=''; document.getElementById('t-due').value='';
+    await ouvrirFiche(FICHE.projet.id); setOnglet('taches');
+  }catch(e){ flash('fi-err', e.message); }
+}
+async function cocher(tid, on){
+  try{ await api(`/projets/${FICHE.projet.id}/taches/${tid}`, {method:'PATCH',
+         body:JSON.stringify({status: on?'fait':'a-faire'})});
+       await ouvrirFiche(FICHE.projet.id); setOnglet('taches'); }catch(e){ alert(e.message); }
+}
+async function supprimerTache(tid){
+  if(!confirm('Supprimer cette tâche ?')) return;
+  try{ await api(`/projets/${FICHE.projet.id}/taches/${tid}`, {method:'DELETE'});
+       await ouvrirFiche(FICHE.projet.id); setOnglet('taches'); }catch(e){ flash('fi-err', e.message); }
+}
+async function depuisModele(){
+  try{ const d = await api(`/projets/${FICHE.projet.id}/taches/depuis-modele`, {method:'POST'});
+       flash('fi-ok', d.taches_creees?`${d.taches_creees} tâche(s) ajoutée(s).`:'Les tâches types sont déjà là.');
+       await ouvrirFiche(FICHE.projet.id); setOnglet('taches'); }catch(e){ flash('fi-err', e.message); }
+}
+
+// ===================== Gestionnaires =====================
+function dessinerGestionnaires(list){
+  document.getElementById('liste-gest').innerHTML = list.length
+    ? `<table><tbody>` + list.map(g=>`<tr>
+        <td><strong>${esc(nomCourt(g))}</strong><div class="muted">${esc(g.email)}</div></td>
+        <td class="n"><button class="btn del" onclick="retirerGestionnaire('${esc(g.email)}')">Retirer le droit</button></td>
+      </tr>`).join('') + `</tbody></table>`
+    : `<p class="muted">Aucun gestionnaire.</p>`;
+}
+async function ajouterGestionnaire(){
+  const email = val('g-email');
+  if(!email){ flash('g-err','Choisissez un conseiller.'); return; }
+  try{ await api('/admin/projets/gestionnaires', {method:'POST', body:JSON.stringify({email, actif:true})});
+       flash('g-ok','Droit accordé.'); await load(); }catch(e){ flash('g-err', e.message); }
+}
+async function retirerGestionnaire(email){
+  if(!confirm('Retirer le droit de gestionnaire de projets à '+email+' ?')) return;
+  try{ await api('/admin/projets/gestionnaires', {method:'POST', body:JSON.stringify({email, actif:false})});
+       flash('g-ok','Droit retiré.'); await load(); }catch(e){ flash('g-err', e.message); }
+}
+
+// ===================== Modèles de tâches =====================
+function dessinerModeles(){
+  const tp = document.getElementById('mo-type').value;
+  const rows = MODELES.filter(m=>m.project_type===tp);
+  document.getElementById('tb-modeles').innerHTML = rows.length
+    ? rows.map(m=>`<tr>
+        <td class="n muted">${m.offset_days>0?'J+'+m.offset_days:(m.offset_days<0?'J'+m.offset_days:'Jour J')}</td>
+        <td>${esc(m.title)}${m.details?`<div class="muted">${esc(m.details)}</div>`:''}</td>
+        <td class="n"><button class="btn del" onclick="supprimerModele(${m.id})">Retirer</button></td></tr>`).join('')
+    : `<tr><td colspan="3" class="empty">Aucune tâche type pour ce type d'opération.</td></tr>`;
+}
+async function ajouterModele(){
+  const titre = val('mo-titre');
+  if(!titre){ flash('mo-err','Intitulé manquant.'); return; }
+  try{
+    await api('/projets/modeles', {method:'POST', body:JSON.stringify({
+      project_type: val('mo-type'), title: titre,
+      offset_days: Number(val('mo-offset')||0), position: Number(val('mo-pos')||99) })});
+    document.getElementById('mo-titre').value='';
+    flash('mo-ok','Tâche type ajoutée.');
+    const m = await api('/projets/modeles'); MODELES = m.modeles||[]; dessinerModeles();
+  }catch(e){ flash('mo-err', e.message); }
+}
+async function supprimerModele(mid){
+  if(!confirm('Retirer cette tâche type ? Les opérations déjà créées ne changent pas.')) return;
+  try{ await api('/projets/modeles/'+mid, {method:'DELETE'});
+       const m = await api('/projets/modeles'); MODELES = m.modeles||[]; dessinerModeles(); }
+  catch(e){ flash('mo-err', e.message); }
+}
+
+// ===================== Démarrage =====================
+(function(){
+  const s = getSession();
+  if(!s || !s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${s.token}`};
+  load().catch(e=>{ console.error(e); });
+})();
+</script>
+<script>/* ACW-PWA-REG */
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}
+</script>
+</body>
+</html>

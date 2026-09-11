@@ -126,6 +126,22 @@
     {
       "source": "/admin-documents",
       "destination": "/admin-documents.html"
+    },
+    {
+      "source": "/projets",
+      "destination": "/projets.html"
+    },
+    {
+      "source": "/projets/",
+      "destination": "/projets.html"
+    },
+    {
+      "source": "/admin-projets",
+      "destination": "/admin-projets.html"
+    },
+    {
+      "source": "/admin-projets/",
+      "destination": "/admin-projets.html"
     }
   ]
 }
