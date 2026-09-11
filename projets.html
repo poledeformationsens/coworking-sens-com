@@ -724,8 +724,7 @@ async function creerProjet(){
   }catch(e){
     show('gate', true);
     document.querySelector('#gate h3').textContent = 'Accès refusé';
-    document.querySelector('#gate .lead').textContent = e.message
-      + ' — les opérations sont réservées aux conseillers iad validés.';
+    document.querySelector('#gate .lead').textContent = e.message;
   }
 })();
 </script>
