@@ -232,7 +232,14 @@ async function load(){
       const st=stats[em]||{count:0,ca:0,last:''};
       return {...c, tickets:(tickets[em]||{}).rem||0, resaCount:st.count, ca:st.ca, last:st.last};
     });
+    // ?q=… pré-remplit la recherche, ?fiche=email@… ouvre directement la fiche.
+    // Permet de pointer un client précis depuis un lien.
+    const p = new URLSearchParams(location.search);
+    const cible = (p.get('fiche') || '').trim().toLowerCase();
+    const q = p.get('q') || (cible ? cible : '');
+    if(q) document.getElementById('q').value = q;
     render();
+    if(cible && CLIENTS.some(c=>(c.email||'').toLowerCase()===cible)) openClient(cible);
   }catch(e){ document.getElementById('list').innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
 }
 
