@@ -448,7 +448,8 @@
   <!-- Filtres -->
   <div class="filters">
     <span style="font-size:12px;color:var(--slate);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-right:8px">Filtrer :</span>
-    <button class="filter-chip active" onclick="setFilter(null)">Tous</button>
+    <button class="filter-chip active" onclick="setFilter('open')">En cours</button>
+    <button class="filter-chip" onclick="setFilter(null)">Tous</button>
     <button class="filter-chip" onclick="setFilter('draft')">Brouillons</button>
     <button class="filter-chip" onclick="setFilter('sent')">Envoyés</button>
     <button class="filter-chip" onclick="setFilter('validated')">Validés</button>
@@ -621,7 +622,7 @@ const API_BASE = '/api/coworking';
 
 let COWORKING_ADMIN_TOKEN = null;
 let HEADERS = {'Content-Type': 'application/json'};
-let currentFilter = null;
+let currentFilter = 'open';   // à l'ouverture : ce qui demande encore une action
 let allDevis = [];
 
 // =====================================
@@ -775,7 +776,7 @@ async function loadDevis() {
   try {
     // Filtre selon le toggle TEST : ON → uniquement test, OFF → uniquement prod
     const params = new URLSearchParams();
-    if (currentFilter) params.set('status', currentFilter);
+    if (currentFilter && currentFilter !== 'open') params.set('status', currentFilter);
     params.set('test_mode', isTestMode() ? 'true' : 'false');
     const url = `${API_BASE}/devis?${params.toString()}`;
     const r = await fetch(url, {headers: HEADERS});
@@ -796,16 +797,29 @@ function updateCards() {
   document.getElementById('card-expired').textContent = allDevis.filter(d => d.devis_status === 'expired').length;
 }
 
+// Un devis soldé ou expiré n'attend plus rien : il sort de la vue « En cours »,
+// sans disparaître — les onglets Soldés, Expirés et Tous le retrouvent, et il
+// reste dans Documents avec sa facture.
+const DEVIS_CLOS = ['fully_paid', 'expired', 'cancelled'];
+function devisAffiches() {
+  if (currentFilter !== 'open') return allDevis;
+  return allDevis.filter(d => !DEVIS_CLOS.includes(d.devis_status));
+}
+
 function renderList() {
-  if (allDevis.length === 0) {
+  const liste = devisAffiches();
+  if (liste.length === 0) {
+    const clos = allDevis.length - liste.length;
     document.getElementById('devis-list').innerHTML = `
       <div class="empty-state">
-        <h3>Aucun devis pour ce filtre</h3>
-        <p>Crée un nouveau devis avec le bouton ci-dessus.</p>
+        <h3>${currentFilter === 'open' ? 'Rien en attente' : 'Aucun devis pour ce filtre'}</h3>
+        <p>${currentFilter === 'open'
+              ? (clos ? `${clos} devis clos — voyez l'onglet « Tous ».` : 'Crée un nouveau devis avec le bouton ci-dessus.')
+              : 'Crée un nouveau devis avec le bouton ci-dessus.'}</p>
       </div>`;
     return;
   }
-  const rows = allDevis.map(d => {
+  const rows = liste.map(d => {
     const expired = d.devis_validity_until && new Date(d.devis_validity_until) < new Date() && d.devis_status === 'sent';
     return `
       <tr class="${expired ? 'expired' : ''}">
