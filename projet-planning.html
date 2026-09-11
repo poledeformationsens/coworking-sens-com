@@ -71,34 +71,41 @@
 const API = '/api/coworking';
 
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
-function jeton(){
-  try{
-    const c = JSON.parse(localStorage.getItem('cw_client_session')||'null');
-    if(c && c.token) return c.token;
-  }catch(e){}
+// Le planning s'ouvre aussi bien depuis l'espace conseiller que depuis l'admin :
+// on essaie les deux sessions, dans l'ordre, et on garde celle qui répond.
+function jetons(){
+  const out = [];
   try{
     const a = JSON.parse(localStorage.getItem('cw_admin_session')||'null');
-    if(a && a.token && !(a.expires && a.expires < Date.now())) return a.token;
+    if(a && a.token && !(a.expires && a.expires < Date.now())) out.push(a.token);
   }catch(e){}
-  return null;
+  try{
+    const c = JSON.parse(localStorage.getItem('cw_client_session')||'null');
+    if(c && c.token) out.push(c.token);
+  }catch(e){}
+  return out;
 }
 
 (async function(){
   const pid = new URLSearchParams(location.search).get('p');
-  const tok = jeton();
+  const toks = jetons();
   const zone = document.getElementById('contenu');
   document.getElementById('retour').href = pid ? `/projets?p=${pid}` : '/projets';
 
   if(!pid){ zone.innerHTML = `<div class="etat">Aucune opération indiquée.</div>`; return; }
-  if(!tok){ zone.innerHTML = `<div class="etat">Connectez-vous d'abord à votre espace, puis rouvrez ce planning.</div>`; return; }
+  if(!toks.length){ zone.innerHTML = `<div class="etat">Connectez-vous d'abord à votre espace, puis rouvrez ce planning.</div>`; return; }
 
-  let d;
-  try{
-    const r = await fetch(`${API}/projets/${pid}/planning`, {
-      headers:{'Authorization':`Bearer ${tok}`}, cache:'no-store'});
-    d = await r.json();
-    if(!r.ok) throw new Error(d.detail || ('Erreur '+r.status));
-  }catch(e){ zone.innerHTML = `<div class="etat">${esc(e.message)}</div>`; return; }
+  let d = null, souci = 'Planning indisponible.';
+  for(const tok of toks){
+    try{
+      const r = await fetch(`${API}/projets/${pid}/planning`, {
+        headers:{'Authorization':`Bearer ${tok}`}, cache:'no-store'});
+      const j = await r.json();
+      if(r.ok){ d = j; break; }
+      souci = j.detail || ('Erreur '+r.status);
+    }catch(e){ souci = e.message; }
+  }
+  if(!d){ zone.innerHTML = `<div class="etat">${esc(souci)}</div>`; return; }
 
   const p = d.projet, st = d.stats || {};
   document.title = `Planning — ${p.title}`;
