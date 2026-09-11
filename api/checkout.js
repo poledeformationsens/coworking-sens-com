@@ -29,14 +29,20 @@ export default async function handler(req, res) {
       membershipType, membershipMonths,
       // Participation à un événement payant
       eventId, eventTitle, eventDate,
+      // Règlement d'un devis accepté en ligne
+      devisToken,
     } = req.body || {};
 
     const isPack = purchaseType === "pack";
     const isEvent = purchaseType === "event";
     const isSubscription = purchaseType === "subscription";
     const isMembership = purchaseType === "membership";
+    const isDevis = purchaseType === "devis";
 
-    if (!amountTTC || !email || (!isPack && !isEvent && !isSubscription && !isMembership && !space)) {
+    if (isDevis && !devisToken) {
+      return res.status(400).json({ error: "Lien de devis manquant" });
+    }
+    if (!isDevis && (!amountTTC || !email || (!isPack && !isEvent && !isSubscription && !isMembership && !space))) {
       return res.status(400).json({ error: "Données manquantes (amountTTC, email requis)" });
     }
     if (isPack && (!pricingId || !packSpace || !packCreditType || !packCredits)) {
@@ -107,6 +113,27 @@ export default async function handler(req, res) {
       }
     }
 
+    // Devis : montant et destinataire relus côté serveur depuis le devis lui-même.
+    // Le navigateur ne transmet qu'un jeton, jamais un prix.
+    let emailDevis = null, refDevis = null;
+    if (isDevis) {
+      try {
+        const r = await fetch(`https://pole-iad-sens.fr/api/coworking/devis/public/${encodeURIComponent(devisToken)}`);
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        const dv = await r.json();
+        const reste = Number(dv.total_ttc || 0) - Number(dv.deja_paye_ttc || 0);
+        if (!(reste > 0)) {
+          return res.status(400).json({ error: "Ce devis est déjà réglé." });
+        }
+        montantFinal = reste;
+        emailDevis = dv.email || null;
+        refDevis = dv.reference || null;
+      } catch (e) {
+        console.error("[CHECKOUT] Devis illisible :", e);
+        return res.status(502).json({ error: "Devis indisponible. Réessayez dans un instant." });
+      }
+    }
+
     const amountCents = Math.round(montantFinal * 100);
     if (amountCents < 100) {
       return res.status(400).json({ error: "Montant trop bas (minimum 1 €)" });
@@ -141,6 +168,8 @@ export default async function handler(req, res) {
       ? (packLabel || "Adhésion Réseau agent iad")
       : isEvent
       ? (eventTitle || "Participation événement")
+      : isDevis
+      ? `Devis ${refDevis || ""} — L'Atelier du Coworking`.trim()
       : `${space} — ${slotLabel}`;
     const productDesc = isSubscription
       ? `Abonnement mensuel · L'Atelier du Coworking`
@@ -150,6 +179,8 @@ export default async function handler(req, res) {
       ? `Forfait prépayé · L'Atelier du Coworking`
       : isEvent
       ? `Participation événement · L'Atelier du Coworking${eventDate ? " · " + eventDate : ""}`
+      : isDevis
+      ? `Règlement de votre devis · L'Atelier du Coworking`
       : `Réservation L'Atelier du Coworking · ${date || ""}`;
 
     // ── Métadonnées (portées par la session, et par l'abonnement pour les échéances futures)
@@ -193,6 +224,14 @@ export default async function handler(req, res) {
         client_name: name || "",
         company: company || "",
         reference: reference || "",
+        test_mode: testMode ? "true" : "false",
+      };
+    } else if (isDevis) {
+      metadata = {
+        purchase_type: "devis",
+        devis_token: String(devisToken),
+        reference: refDevis || "",
+        client_name: name || "",
         test_mode: testMode ? "true" : "false",
       };
     } else if (isEvent) {
@@ -292,7 +331,7 @@ export default async function handler(req, res) {
           quantity: 1,
         },
       ],
-      customer_email: email,
+      customer_email: emailDevis || email,
       metadata,
       // Si returnPath contient déjà une query (?id=3), on enchaîne avec & au lieu de ?
       success_url: `${reqOrigin}${returnPath || "/"}${(returnPath || "/").includes("?") ? "&" : "?"}status=success&session_id={CHECKOUT_SESSION_ID}`,
