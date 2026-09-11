@@ -111,6 +111,28 @@
   .obj div{background:#f2fbff;border:1px solid var(--card-border);border-radius:10px;padding:9px 14px;min-width:96px}
   .obj b{display:block;font-size:19px;font-weight:800;color:#026e94}
   .obj span{font-size:11.5px;color:var(--grey)}
+  /* Grille des permanences */
+  .jour{border:1px solid var(--card-border);border-radius:12px;margin-bottom:14px;overflow:hidden}
+  .jour > h4{background:#f2fbff;padding:10px 16px;font-size:14px;font-weight:800;color:#026e94;
+             display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+  .jour > h4 span{font-weight:600;color:var(--grey);font-size:12.5px}
+  .cre{display:flex;align-items:center;gap:14px;padding:12px 16px;border-top:1px solid #eef4f7;flex-wrap:wrap}
+  .cre .h{font-weight:800;font-size:14.5px;min-width:104px;white-space:nowrap}
+  .cre .qui{flex:1;min-width:180px;font-size:13.5px;color:#33454e}
+  .cre .qui em{color:var(--grey);font-style:normal}
+  .cre .jauge{font-size:12px;font-weight:700;border-radius:20px;padding:4px 11px;white-space:nowrap}
+  .cre .jauge.libre{background:#e6f6ec;color:var(--green)}
+  .cre .jauge.tendu{background:#fff4e0;color:var(--amber)}
+  .cre .jauge.plein{background:#eef2f5;color:var(--grey)}
+  .cre .act{display:flex;gap:6px;flex-wrap:wrap}
+  .cre.moi{background:#f7fcff}
+  .cre.passe{opacity:.5}
+  .pers{display:inline-block;background:#eef7fb;border-radius:14px;padding:2px 9px;margin:2px 4px 2px 0;font-size:12.5px}
+  .pers.moi{background:var(--iad-blue);color:#fff;font-weight:700}
+  .kpi{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  .kpi div{background:#f2fbff;border:1px solid var(--card-border);border-radius:10px;padding:8px 14px;min-width:92px}
+  .kpi b{display:block;font-size:19px;font-weight:800;color:#026e94}
+  .kpi span{font-size:11.5px;color:var(--grey)}
   footer{padding:30px 0;text-align:center;color:var(--grey);font-size:12.5px}
 
   @media (max-width:700px){
@@ -196,6 +218,7 @@
 
     <div class="tabs" id="fi-tabs">
       <button data-t="equipe" class="on" onclick="setOnglet('equipe')">Équipe</button>
+      <button data-t="creneaux" onclick="setOnglet('creneaux')">Permanences</button>
       <button data-t="taches" onclick="setOnglet('taches')">Tâches</button>
       <button data-t="fiche" onclick="setOnglet('fiche')" id="tab-fiche" style="display:none">Modifier la fiche</button>
     </div>
@@ -216,6 +239,48 @@
           <input type="checkbox" id="m-notif" checked style="width:auto"> Envoyer l'invitation par e-mail
         </label>
         <button class="btn sm" style="margin-top:12px" onclick="inviter()">Inviter</button>
+      </div>
+    </div>
+
+    <div class="panel" id="ong-creneaux" style="display:none">
+      <div class="kpi" id="cr-kpi"></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+        <button class="btn sm ghost" onclick="ajouterAgenda()">📅 Ajouter à mon agenda</button>
+        <button class="btn sm ghost" onclick="ouvrirPlanning()">🖨️ Planning imprimable</button>
+        <button class="btn sm ghost" id="btn-libres" onclick="basculerLibres()">Ne voir que les places libres</button>
+      </div>
+      <div id="cr-grille"></div>
+
+      <div id="form-creneaux" style="display:none;border-top:1px solid #eef4f7;margin-top:18px;padding-top:16px">
+        <h3 style="font-size:15px">Ouvrir les permanences</h3>
+        <p class="muted" style="margin-bottom:6px">La grille est découpée sur toutes les journées de
+          l'opération. Les créneaux déjà ouverts ne sont pas dupliqués.</p>
+        <div class="grid2">
+          <div><label for="g-hf">De</label><input id="g-hf" type="time" value="09:00"></div>
+          <div><label for="g-ht">À</label><input id="g-ht" type="time" value="19:00"></div>
+          <div><label for="g-duree">Durée d'un créneau</label>
+            <select id="g-duree">
+              <option value="120">2 heures</option>
+              <option value="150">2 h 30</option>
+              <option value="180" selected>3 heures</option>
+              <option value="240">4 heures</option>
+              <option value="300">5 heures</option>
+            </select></div>
+          <div><label for="g-cap">Conseillers par créneau</label><input id="g-cap" type="number" min="1" max="20" value="4"></div>
+          <div><label for="g-pf">Pause (début)</label><input id="g-pf" type="time"></div>
+          <div><label for="g-pt">Pause (fin)</label><input id="g-pt" type="time"></div>
+        </div>
+        <button class="btn sm" style="margin-top:12px" onclick="genererGrille()">Générer la grille</button>
+
+        <h3 style="font-size:15px;margin-top:20px">Ajouter un créneau isolé</h3>
+        <div class="grid2">
+          <div><label for="c-date">Jour</label><input id="c-date" type="date"></div>
+          <div><label for="c-hf">De</label><input id="c-hf" type="time" value="09:00"></div>
+          <div><label for="c-ht">À</label><input id="c-ht" type="time" value="12:00"></div>
+          <div><label for="c-cap">Places</label><input id="c-cap" type="number" min="1" max="20" value="4"></div>
+          <div><label for="c-label">Libellé</label><input id="c-label" placeholder="Montage, démontage…"></div>
+        </div>
+        <button class="btn sm" style="margin-top:12px" onclick="ajouterCreneau()">Ajouter</button>
       </div>
     </div>
 
@@ -507,13 +572,17 @@ function dessinerFiche(){
   show('form-tache', d.editer);
   show('bloc-budget', d.budget);
 
-  dessinerEquipe(); dessinerTachesProjet(); remplirFormFiche();
+  show('form-creneaux', d.creneaux);
+  dessinerEquipe(); dessinerCreneaux(); dessinerTachesProjet(); remplirFormFiche();
+  const jour = document.getElementById('c-date');
+  if(jour && !jour.value) jour.value = p.date_from || '';
   setOnglet('equipe');
 }
 
 function setOnglet(t){
   document.querySelectorAll('#fi-tabs button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
-  show('ong-equipe', t==='equipe'); show('ong-taches', t==='taches'); show('ong-fiche', t==='fiche');
+  show('ong-equipe', t==='equipe'); show('ong-creneaux', t==='creneaux');
+  show('ong-taches', t==='taches'); show('ong-fiche', t==='fiche');
 }
 
 function dessinerEquipe(){
@@ -582,6 +651,212 @@ function remplirFormFiche(){
     const e = document.getElementById('o-'+k); if(e) e.value = (p.objectifs||{})[k] || '';
   });
   const b = document.getElementById('p-budget'); if(b) b.value = (p.budget_prevu!=null? p.budget_prevu : '');
+}
+
+// ============================ Permanences ============================
+let QUE_LIBRES = false;
+
+function basculerLibres(){
+  QUE_LIBRES = !QUE_LIBRES;
+  document.getElementById('btn-libres').textContent =
+    QUE_LIBRES ? 'Voir tous les créneaux' : 'Ne voir que les places libres';
+  dessinerCreneaux();
+}
+
+function dessinerCreneaux(){
+  const cs = FICHE.creneaux || [], st = FICHE.stats_creneaux || {}, d = FICHE.droits;
+  document.getElementById('cr-kpi').innerHTML =
+    `<div><b>${st.creneaux||0}</b><span>créneaux</span></div>
+     <div><b>${st.pris||0}/${st.places||0}</b><span>places prises</span></div>`
+    + ((st.a_pourvoir||0) ? `<div><b style="color:var(--amber)">${st.a_pourvoir}</b><span>à pourvoir</span></div>` : '')
+    + ((st.creneaux_vides||0) ? `<div><b style="color:var(--iad-coral)">${st.creneaux_vides}</b><span>sans personne</span></div>` : '');
+
+  const g = document.getElementById('cr-grille');
+  if(!cs.length){
+    g.innerHTML = `<div class="empty">Aucune permanence ouverte.${d.creneaux
+      ? ' Générez la grille ci-dessous : une ligne par créneau, sur tous les jours de l\u2019opération.' : ''}</div>`;
+    return;
+  }
+  const visibles = QUE_LIBRES ? cs.filter(c=>!c.complet && !c.passe) : cs;
+  if(!visibles.length){ g.innerHTML = `<div class="empty">Toutes les permanences sont pourvues.</div>`; return; }
+
+  const jours = [];
+  visibles.forEach(c=>{
+    const j = String(c.date).slice(0,10);
+    let e = jours.find(x=>x.j===j);
+    if(!e){ e = {j, cs:[]}; jours.push(e); }
+    e.cs.push(c);
+  });
+
+  g.innerHTML = jours.map(({j, cs:liste})=>{
+    const libres = liste.reduce((n,c)=>n+(c.passe?0:c.restant),0);
+    return `<div class="jour">
+      <h4>${esc(jourLong(j))}<span>${libres ? libres+' place'+(libres>1?'s':'')+' à pourvoir' : 'complet'}</span></h4>
+      ${liste.map(ligneCreneau).join('')}
+    </div>`;
+  }).join('');
+}
+
+function jourLong(iso){
+  const d = new Date(String(iso).slice(0,10)+'T00:00:00');
+  return d.toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+function heureFr(h){
+  if(!h) return '';
+  const [hh,mm] = String(h).split(':');
+  return mm && mm!=='00' ? `${Number(hh)}h${mm}` : `${Number(hh)}h`;
+}
+
+function ligneCreneau(c){
+  const d = FICHE.droits;
+  const moi = c.je_suis_dessus;
+  const gens = (c.inscrits||[]).map(i=>{
+    const estMoi = i.email === MOI.email;
+    const nom = i.name || i.email.split('@')[0];
+    const croix = (d.creneaux || estMoi)
+      ? ` <a href="#" onclick="retirerDuCreneau(${c.id},'${esc(i.email)}');return false" style="text-decoration:none">×</a>` : '';
+    return `<span class="pers${estMoi?' moi':''}">${esc(nom)}${croix}</span>`;
+  }).join('');
+
+  const jauge = c.complet ? 'plein' : (c.restant <= 1 ? 'tendu' : 'libre');
+  const texteJauge = c.complet ? 'complet' : `${c.restant} place${c.restant>1?'s':''}`;
+
+  let act = '';
+  if(!c.passe){
+    if(moi) act += `<button class="btn sm ghost" onclick="retirerDuCreneau(${c.id},'${esc(MOI.email)}')">Me retirer</button>`;
+    else if(!c.complet && d.se_positionner) act += `<button class="btn sm" onclick="prendreCreneau(${c.id})">Je prends</button>`;
+    if(d.creneaux){
+      act += ` <select onchange="affecter(${c.id}, this)" style="width:auto;padding:6px 8px;font-size:12.5px">
+          <option value="">Placer quelqu'un…</option>
+          ${(FICHE.membres||[]).filter(m=>!(c.inscrits||[]).some(i=>i.email===m.email))
+            .map(m=>`<option value="${esc(m.email)}">${esc(nomCourt(m))}</option>`).join('')}
+        </select>`;
+      act += ` <button class="btn sm danger" onclick="supprimerCreneau(${c.id})">Supprimer</button>`;
+    }
+  }
+
+  return `<div class="cre${moi?' moi':''}${c.passe?' passe':''}">
+    <div class="h">${heureFr(c.hour_from)}–${heureFr(c.hour_to)}${c.label?`<div class="muted">${esc(c.label)}</div>`:''}</div>
+    <div class="qui">${gens || '<em>personne pour l\u2019instant</em>'}</div>
+    <span class="jauge ${jauge}">${texteJauge}</span>
+    <div class="act">${act}</div>
+  </div>`;
+}
+
+async function prendreCreneau(sid){
+  try{
+    await api(`/projets/${FICHE.projet.id}/creneaux/${sid}/inscription`, {method:'POST', body:JSON.stringify({})});
+    await ouvrirFiche(FICHE.projet.id); setOnglet('creneaux');
+  }catch(e){ flash('fi-err', e.message); }
+}
+async function affecter(sid, sel){
+  const email = sel.value; if(!email) return;
+  try{
+    const d = await api(`/projets/${FICHE.projet.id}/creneaux/${sid}/inscription`,
+      {method:'POST', body:JSON.stringify({email, notifier:true})});
+    flash('fi-ok', d.email_envoye ? 'Conseiller placé, e-mail envoyé.' : 'Conseiller placé.');
+    await ouvrirFiche(FICHE.projet.id); setOnglet('creneaux');
+  }catch(e){ sel.value=''; flash('fi-err', e.message); }
+}
+async function retirerDuCreneau(sid, email){
+  try{
+    await api(`/projets/${FICHE.projet.id}/creneaux/${sid}/inscription?email=${encodeURIComponent(email)}`,
+      {method:'DELETE'});
+    await ouvrirFiche(FICHE.projet.id); setOnglet('creneaux');
+  }catch(e){ flash('fi-err', e.message); }
+}
+async function supprimerCreneau(sid){
+  if(!confirm('Supprimer ce créneau ?')) return;
+  try{
+    await api(`/projets/${FICHE.projet.id}/creneaux/${sid}`, {method:'DELETE'});
+    await ouvrirFiche(FICHE.projet.id); setOnglet('creneaux');
+  }catch(e){ flash('fi-err', e.message); }
+}
+async function genererGrille(){
+  const cap = Number(document.getElementById('g-cap').value||4);
+  if(!confirm(`Ouvrir les permanences de ${document.getElementById('g-hf').value} à `
+    + `${document.getElementById('g-ht').value}, ${cap} conseillers par créneau ?`)) return;
+  try{
+    const d = await api(`/projets/${FICHE.projet.id}/creneaux/generer`, {method:'POST', body:JSON.stringify({
+      hour_from: document.getElementById('g-hf').value,
+      hour_to: document.getElementById('g-ht').value,
+      duree_minutes: Number(document.getElementById('g-duree').value),
+      capacity: cap,
+      pause_from: document.getElementById('g-pf').value || null,
+      pause_to: document.getElementById('g-pt').value || null,
+    })});
+    flash('fi-ok', d.creneaux_crees ? `${d.creneaux_crees} créneaux ouverts.` : 'La grille était déjà complète.');
+    await ouvrirFiche(FICHE.projet.id); setOnglet('creneaux');
+  }catch(e){ flash('fi-err', e.message); }
+}
+async function ajouterCreneau(){
+  try{
+    await api(`/projets/${FICHE.projet.id}/creneaux`, {method:'POST', body:JSON.stringify({
+      date: document.getElementById('c-date').value,
+      hour_from: document.getElementById('c-hf').value,
+      hour_to: document.getElementById('c-ht').value,
+      capacity: Number(document.getElementById('c-cap').value||4),
+      label: document.getElementById('c-label').value.trim() || null,
+    })});
+    document.getElementById('c-label').value='';
+    await ouvrirFiche(FICHE.projet.id); setOnglet('creneaux');
+  }catch(e){ flash('fi-err', e.message); }
+}
+
+// Agenda : on fabrique le fichier .ics dans le navigateur, rien à télécharger côté serveur
+function ajouterAgenda(){
+  const miens = (FICHE.creneaux||[]).filter(c=>c.je_suis_dessus);
+  if(!miens.length){ flash('fi-err','Vous n\u2019êtes sur aucune permanence pour le moment.'); return; }
+  const p = FICHE.projet;
+  const pad = n => String(n).padStart(2,'0');
+  // Heure locale de Sens → UTC. Règle européenne : heure d'été du dernier
+  // dimanche de mars au dernier dimanche d'octobre.
+  const dernierDimanche = (Y, mois) => {
+    const d = new Date(Date.UTC(Y, mois, 0));
+    while(d.getUTCDay() !== 0) d.setUTCDate(d.getUTCDate() - 1);
+    return d.getUTCDate();
+  };
+  const decalage = (Y, M, D) => {
+    const apres = (M > 3) || (M === 3 && D >= dernierDimanche(Y, 3));
+    const avant = (M < 10) || (M === 10 && D < dernierDimanche(Y, 10));
+    return (apres && avant) ? 2 : 1;
+  };
+  const utc = (jour, heure) => {
+    const [Y, M, D] = String(jour).slice(0,10).split('-').map(Number);
+    const [hh, mm] = String(heure).split(':').map(Number);
+    const z = new Date(Date.UTC(Y, M-1, D, hh - decalage(Y, M, D), mm));
+    return `${z.getUTCFullYear()}${pad(z.getUTCMonth()+1)}${pad(z.getUTCDate())}`
+         + `T${pad(z.getUTCHours())}${pad(z.getUTCMinutes())}00Z`;
+  };
+  const ech = t => String(t||'').replace(/[\\;,]/g, m=>'\\'+m).replace(/\n/g,'\\n');
+  const now = new Date().toISOString().replace(/[-:]/g,'').split('.')[0]+'Z';
+  const ics = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Pole iad Sens//Projets//FR','CALSCALE:GREGORIAN',
+    `X-WR-CALNAME:${ech(p.title)}`];
+  miens.forEach(c=>{
+    ics.push('BEGIN:VEVENT',
+      `UID:projet-${p.id}-creneau-${c.id}@pole-iad-sens.fr`,
+      `DTSTAMP:${now}`,
+      `DTSTART:${utc(c.date, c.hour_from)}`,
+      `DTEND:${utc(c.date, c.hour_to)}`,
+      `SUMMARY:${ech((c.label||'Permanence')+' — '+p.title)}`,
+      `LOCATION:${ech(p.location||'')}`,
+      `DESCRIPTION:${ech('Avec : '+(c.inscrits||[]).map(i=>i.name||i.email).join(', '))}`,
+      'BEGIN:VALARM','TRIGGER:-PT12H','ACTION:DISPLAY',
+      `DESCRIPTION:${ech('Permanence demain — '+p.title)}`,'END:VALARM',
+      'END:VEVENT');
+  });
+  ics.push('END:VCALENDAR');
+  const blob = new Blob([ics.join('\r\n')+'\r\n'], {type:'text/calendar;charset=utf-8'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `permanences-${(p.title||'operation').toLowerCase().replace(/[^a-z0-9]+/g,'-')}.ics`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 4000);
+  flash('fi-ok', `${miens.length} permanence(s) dans le fichier — ouvrez-le pour les ajouter à votre agenda.`);
+}
+
+function ouvrirPlanning(){
+  window.open(`/projet-planning?p=${FICHE.projet.id}`, '_blank');
 }
 
 // ============================ Actions fiche ============================

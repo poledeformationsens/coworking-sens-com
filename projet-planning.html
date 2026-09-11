@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>Planning des permanences — Pôle iad Sens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&display=swap" rel="stylesheet">
+<style>
+  :root{ --iad-blue:#00B4EC; --iad-coral:#EA584A; --ink:#000; --grey:#5b6b74; --line:#d7edf7; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Montserrat',Arial,sans-serif;color:var(--ink);background:#F4FBFE;line-height:1.45}
+  .page{max-width:1000px;margin:0 auto;padding:24px 20px 60px}
+
+  .barre{display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end;margin-bottom:18px}
+  .btn{border:none;border-radius:9px;padding:10px 18px;font-family:inherit;font-weight:800;font-size:13.5px;
+       cursor:pointer;background:var(--iad-blue);color:#fff;text-decoration:none;display:inline-block}
+  .btn.ghost{background:#fff;color:#026e94;border:1px solid var(--line)}
+
+  .tete{border-bottom:3px solid var(--iad-blue);padding-bottom:14px;margin-bottom:22px;
+        display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap}
+  .tete h1{font-size:26px;font-weight:800;font-style:italic;letter-spacing:-0.025em;color:var(--iad-blue)}
+  .tete .meta{font-size:13.5px;color:var(--grey);margin-top:4px}
+  .tete .logo{height:34px;width:auto}
+
+  .synth{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:22px;font-size:13px;color:var(--grey)}
+  .synth b{color:var(--ink);font-size:17px;font-weight:800;display:block}
+
+  .jour{border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:16px;
+        background:#fff;break-inside:avoid;page-break-inside:avoid}
+  .jour h2{background:var(--iad-blue);color:#fff;font-size:15px;font-weight:800;padding:9px 14px;
+           text-transform:capitalize}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:9px 14px;text-align:left;font-size:13px;border-bottom:1px solid #eef4f7;vertical-align:top}
+  th{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--grey);font-weight:700}
+  tr:last-child td{border-bottom:none}
+  td.h{font-weight:800;white-space:nowrap;width:110px}
+  td.lab{color:var(--grey);width:130px}
+  td.n{white-space:nowrap;width:90px;text-align:right}
+  .manque{color:var(--iad-coral);font-weight:700}
+  .complet{color:#0a7a34;font-weight:700}
+  .vide{color:var(--grey);font-style:italic}
+
+  .pied{margin-top:26px;font-size:11.5px;color:var(--grey);border-top:1px solid var(--line);padding-top:12px}
+  .etat{padding:40px;text-align:center;color:var(--grey)}
+
+  @media print{
+    @page{ size:A4 portrait; margin:12mm; }
+    body{background:#fff}
+    .page{max-width:none;padding:0}
+    .barre{display:none}
+    .jour h2{background:#fff!important;color:var(--iad-blue);border-bottom:2px solid var(--iad-blue);
+             -webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .tete{border-bottom-color:#000}
+    .tete h1{color:#000}
+    a{text-decoration:none;color:inherit}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="barre">
+    <button class="btn" onclick="window.print()">🖨️ Imprimer</button>
+    <a class="btn ghost" href="#" id="retour">← Retour à l'opération</a>
+  </div>
+  <div id="contenu"><div class="etat">Chargement du planning…</div></div>
+</div>
+
+<script>
+const API = '/api/coworking';
+
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function jeton(){
+  try{
+    const c = JSON.parse(localStorage.getItem('cw_client_session')||'null');
+    if(c && c.token) return c.token;
+  }catch(e){}
+  try{
+    const a = JSON.parse(localStorage.getItem('cw_admin_session')||'null');
+    if(a && a.token && !(a.expires && a.expires < Date.now())) return a.token;
+  }catch(e){}
+  return null;
+}
+
+(async function(){
+  const pid = new URLSearchParams(location.search).get('p');
+  const tok = jeton();
+  const zone = document.getElementById('contenu');
+  document.getElementById('retour').href = pid ? `/projets?p=${pid}` : '/projets';
+
+  if(!pid){ zone.innerHTML = `<div class="etat">Aucune opération indiquée.</div>`; return; }
+  if(!tok){ zone.innerHTML = `<div class="etat">Connectez-vous d'abord à votre espace, puis rouvrez ce planning.</div>`; return; }
+
+  let d;
+  try{
+    const r = await fetch(`${API}/projets/${pid}/planning`, {
+      headers:{'Authorization':`Bearer ${tok}`}, cache:'no-store'});
+    d = await r.json();
+    if(!r.ok) throw new Error(d.detail || ('Erreur '+r.status));
+  }catch(e){ zone.innerHTML = `<div class="etat">${esc(e.message)}</div>`; return; }
+
+  const p = d.projet, st = d.stats || {};
+  document.title = `Planning — ${p.title}`;
+
+  if(!(d.jours||[]).length){
+    zone.innerHTML = `<div class="etat">Aucune permanence ouverte sur cette opération.</div>`;
+    return;
+  }
+
+  const tete = `
+    <div class="tete">
+      <div>
+        <h1>${esc(p.title)}</h1>
+        <div class="meta">${esc(p.type_label)} · ${esc(p.periode)}${p.location?' · '+esc(p.location):''}</div>
+      </div>
+      <img class="logo" src="/logo-iad-bleu.png" alt="iad">
+    </div>
+    <div class="synth">
+      <div><b>${st.creneaux||0}</b>créneaux</div>
+      <div><b>${st.pris||0} / ${st.places||0}</b>places pourvues</div>
+      ${(st.a_pourvoir||0) ? `<div><b class="manque">${st.a_pourvoir}</b>encore à pourvoir</div>` : ''}
+    </div>`;
+
+  const jours = d.jours.map(j => `
+    <div class="jour">
+      <h2>${esc(j.libelle)}</h2>
+      <table>
+        <thead><tr><th>Horaire</th><th></th><th>Conseillers</th><th></th></tr></thead>
+        <tbody>
+        ${j.creneaux.map(c=>{
+          const noms = (c.conseillers||[]).map(x=>esc(x.nom)).join(' · ');
+          const reste = c.restant > 0
+            ? `<span class="manque">${c.restant} à pourvoir</span>`
+            : `<span class="complet">complet</span>`;
+          return `<tr>
+            <td class="h">${esc(c.de)} – ${esc(c.a)}</td>
+            <td class="lab">${c.label?esc(c.label):''}</td>
+            <td>${noms || '<span class="vide">personne</span>'}</td>
+            <td class="n">${reste}</td>
+          </tr>`;
+        }).join('')}
+        </tbody>
+      </table>
+    </div>`).join('');
+
+  zone.innerHTML = tete + jours
+    + `<div class="pied">Planning établi le ${esc(d.genere_le)} — Pôle iad Sens, David Landry.
+        Un empêchement se signale à l'équipe au plus tôt : le créneau est rouvert aux autres.</div>`;
+})();
+</script>
+</body>
+</html>
