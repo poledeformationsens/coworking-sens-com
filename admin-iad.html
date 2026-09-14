@@ -133,7 +133,18 @@ function statusBadge(s){
 }
 function forfaitBadges(m){
   const out=[];
-  if(m.full_until)   out.push(`<span class="badge b-forfait">Premium → ${fmtDate(m.full_until)}</span>`);
+  // Le forfait vient des crédits réellement en cours (cw_packs), pas d'une
+  // colonne de date qui n'était plus alimentée.
+  const f = m.forfait;
+  if(f){
+    const nom = /premium/i.test(f.label||'') ? 'Premium' : (f.label || 'Forfait');
+    const reste = (f.credits_restants != null && f.credits_total)
+      ? ` · ${f.credits_restants}/${f.credits_total}` : '';
+    out.push(`<span class="badge b-forfait">${esc(nom)}${reste}`
+      + (f.expires_at ? ` → ${fmtDate(f.expires_at)}` : '') + `</span>`);
+  } else if(m.full_until){
+    out.push(`<span class="badge b-forfait">Premium → ${fmtDate(m.full_until)}</span>`);
+  }
   if(m.reseau_until) out.push(`<span class="badge b-forfait">Réseau → ${fmtDate(m.reseau_until)}</span>`);
   return out.length ? out.join(' ') : '<span class="badge b-none">Aucun forfait</span>';
 }
