@@ -220,6 +220,7 @@
       <button data-t="equipe" class="on" onclick="setOnglet('equipe')">Équipe</button>
       <button data-t="creneaux" onclick="setOnglet('creneaux')">Permanences</button>
       <button data-t="taches" onclick="setOnglet('taches')">Tâches</button>
+      <button data-t="billetterie" onclick="setOnglet('billetterie')" id="tab-billetterie" style="display:none">Billetterie</button>
       <button data-t="fiche" onclick="setOnglet('fiche')" id="tab-fiche" style="display:none">Modifier la fiche</button>
     </div>
 
@@ -304,6 +305,67 @@
       </div>
     </div>
 
+    <div class="panel" id="ong-billetterie" style="display:none">
+      <div id="bil-vide" style="display:none">
+        <p class="lead" style="margin-top:0">Aucun événement n'est rattaché à cette opération.</p>
+        <p class="muted">La billetterie reste gérée dans le module Événements : ici on se contente d'y
+          brancher l'opération, pour suivre les inscrits et inviter des prospects sans quitter la fiche.</p>
+        <div id="bil-choix" style="display:none;margin-top:14px">
+          <label for="bil-event">Événement à rattacher</label>
+          <select id="bil-event"></select>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center">
+            <button class="btn sm" onclick="rattacherEvenement()">Rattacher</button>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#5b6b74;margin:0">
+              <input type="checkbox" id="bil-tous" onchange="chargerRattachables()" style="width:auto;margin:0">
+              voir aussi les événements passés
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div id="bil-plein" style="display:none">
+        <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap">
+          <div>
+            <h3 style="margin:0" id="bil-titre"></h3>
+            <div class="muted" id="bil-meta"></div>
+          </div>
+          <div style="text-align:right" id="bil-liens"></div>
+        </div>
+
+        <div class="obj" id="bil-compteurs" style="margin-top:14px"></div>
+
+        <table style="margin-top:16px">
+          <thead><tr><th>Inscrit</th><th class="hide-s">Origine</th><th>Montant</th><th></th></tr></thead>
+          <tbody id="tb-billetterie"></tbody>
+        </table>
+
+        <div id="bil-form" style="display:none;border-top:1px solid #eef4f7;margin-top:16px;padding-top:14px">
+          <h3 style="font-size:15px">Offrir une place</h3>
+          <p class="muted" style="margin-bottom:10px">La place est réglée d'office : l'invité reçoit sa
+            confirmation et son code d'accès, sans rien à payer.</p>
+          <div class="grid2">
+            <div><label for="bil-email">Adresse e-mail</label><input id="bil-email" placeholder="prenom.nom@exemple.fr"></div>
+            <div><label for="bil-nom">Nom (optionnel)</label><input id="bil-nom"></div>
+            <div><label for="bil-note">Note interne (optionnel)</label><input id="bil-note" placeholder="Rencontré sur le stand"></div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;align-items:center">
+            <button class="btn sm" onclick="offrirPlace()">Offrir la place</button>
+            <label style="display:flex;align-items:center;gap:7px;font-size:12.5px;color:#5b6b74;margin:0">
+              <input type="checkbox" id="bil-notif" checked style="width:auto;margin:0"> prévenir par e-mail
+            </label>
+          </div>
+        </div>
+
+        <div id="bil-detacher" style="display:none;border-top:1px solid #eef4f7;margin-top:16px;padding-top:14px">
+          <button class="btn sm ghost" onclick="detacherEvenement()">Débrancher cet événement</button>
+          <span class="muted" style="margin-left:10px">L'événement, ses inscrits et ses paiements ne sont pas touchés.</span>
+        </div>
+      </div>
+
+      <div class="err" id="bil-err"></div>
+      <div class="ok" id="bil-ok"></div>
+    </div>
+
     <div class="panel" id="ong-fiche" style="display:none">
       <div class="grid2">
         <div><label for="p-titre">Titre</label><input id="p-titre"></div>
@@ -363,6 +425,7 @@ const SESSION_KEY = 'cw_client_session';
 let TOKEN = null, MOI = null;
 let TOUS = [], MIENNES = [], MES_TACHES = [], REF = {types:{}, statuts:{}, roles:{}};
 let FICHE = null;   // {projet, membres, taches, mon_role, droits}
+let BILLET = null;  // {rattache, evenement, inscrits, droits} — chargé à l'ouverture de l'onglet
 let VUE = 'miennes';
 
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -380,6 +443,154 @@ async function api(url, opt){
   if(!r.ok) throw new Error((d && d.detail) || ('Erreur '+r.status));
   return d;
 }
+
+// ======================= Billetterie (phase 3) =======================
+// L'onglet ne fait que refléter le module Événements : on branche, on lit,
+// on invite. Rien n'est dupliqué ici.
+function msgBil(texte, erreur){
+  const e = document.getElementById('bil-err'), o = document.getElementById('bil-ok');
+  e.style.display = 'none'; o.style.display = 'none';
+  if(!texte) return;
+  const c = erreur ? e : o;
+  c.textContent = texte; c.style.display = 'block';
+  if(!erreur) setTimeout(()=>{ c.style.display = 'none'; }, 5000);
+}
+
+async function chargerBilletterie(){
+  if(!FICHE) return;
+  try{
+    BILLET = await api(`/projets/${FICHE.projet.id}/billetterie`);
+  }catch(e){ msgBil(e.message, true); return; }
+  dessinerBilletterie();
+}
+
+function dessinerBilletterie(){
+  if(!BILLET) return;
+  const d = BILLET.droits || {};
+  show('bil-plein', !!BILLET.rattache);
+  show('bil-vide', !BILLET.rattache);
+
+  if(!BILLET.rattache){
+    const vide = document.querySelector('#bil-vide .lead');
+    vide.textContent = BILLET.orphelin
+      ? "L'événement rattaché à cette opération n'existe plus — il a été supprimé depuis."
+      : "Aucun événement n'est rattaché à cette opération.";
+    show('bil-choix', !!d.rattacher);
+    if(d.rattacher) chargerRattachables();
+    return;
+  }
+
+  const ev = BILLET.evenement;
+  document.getElementById('bil-titre').textContent = ev.title || 'Événement';
+  document.getElementById('bil-meta').textContent =
+    [ev.date_label, (ev.hour_from && ev.hour_to) ? `${ev.hour_from}–${ev.hour_to}` : '',
+     ev.location, ev.price_ttc > 0 ? `${ev.price_ttc.toLocaleString('fr-FR')} € par personne` : 'entrée libre']
+    .filter(Boolean).join(' · ');
+  document.getElementById('bil-liens').innerHTML =
+    `<a class="btn sm ghost" style="text-decoration:none" href="${esc(ev.url_publique)}" target="_blank" rel="noopener">Page publique</a>`
+    + (ev.active ? '' : ` <span class="chip non">hors ligne</span>`);
+
+  const tuiles = [
+    `<div><b>${ev.inscrits}</b><span>inscrit${ev.inscrits > 1 ? 's' : ''}</span></div>`,
+    (ev.places_restantes != null
+      ? `<div><b>${ev.places_restantes}</b><span>place${ev.places_restantes > 1 ? 's' : ''} restante${ev.places_restantes > 1 ? 's' : ''}</span></div>`
+      : `<div><b>—</b><span>jauge libre</span></div>`),
+    `<div><b>${ev.offerts}</b><span>place${ev.offerts > 1 ? 's' : ''} offerte${ev.offerts > 1 ? 's' : ''}</span></div>`,
+  ];
+  if(ev.encaisse_ttc > 0)
+    tuiles.push(`<div><b>${ev.encaisse_ttc.toLocaleString('fr-FR')} €</b><span>encaissé</span></div>`);
+  document.getElementById('bil-compteurs').innerHTML = tuiles.join('');
+
+  const rows = (BILLET.inscrits || []).filter(i => !i.annule).map(i => {
+    const origine = i.offert ? '<span class="chip att">offerte</span>'
+      : i.refunded ? '<span class="chip non">remboursée</span>'
+      : '<span class="chip oui">en ligne</span>';
+    const montant = i.amount_ttc > 0 ? `${i.amount_ttc.toLocaleString('fr-FR')} €` : '—';
+    const action = (d.offrir && i.offert)
+      ? `<button class="btn sm danger" onclick="retirerPlace(${i.id})">Retirer</button>` : '';
+    const nom = i.name || (i.email || '').split('@')[0];
+    return `<tr>
+      <td><strong>${esc(nom)}</strong><div class="muted">${esc(i.email)}</div>
+        ${i.note ? `<div class="muted">${esc(i.note)}</div>` : ''}</td>
+      <td class="hide-s">${origine}</td>
+      <td class="n">${montant}</td>
+      <td class="n">${action}</td></tr>`;
+  }).join('');
+  document.getElementById('tb-billetterie').innerHTML = rows ||
+    `<tr><td colspan="4" class="empty">Personne d'inscrit pour le moment.</td></tr>`;
+
+  show('bil-form', !!d.offrir);
+  show('bil-detacher', !!d.rattacher);
+}
+
+async function chargerRattachables(){
+  if(!FICHE) return;
+  const tous = document.getElementById('bil-tous').checked;
+  const sel = document.getElementById('bil-event');
+  try{
+    const d = await api(`/projets/${FICHE.projet.id}/billetterie/evenements${tous ? '?tous=true' : ''}`);
+    const libres = (d.evenements || []).filter(e => !e.deja_rattache);
+    sel.innerHTML = libres.length
+      ? libres.map(e => `<option value="${e.id}">${esc(e.date_label)} — ${esc(e.title)}</option>`).join('')
+      : `<option value="">Aucun événement disponible</option>`;
+    sel.disabled = !libres.length;
+  }catch(e){ msgBil(e.message, true); }
+}
+
+async function rattacherEvenement(){
+  const sel = document.getElementById('bil-event');
+  const id = Number(sel.value || 0);
+  if(!id){ msgBil('Choisissez un événement.', true); return; }
+  try{
+    await api(`/projets/${FICHE.projet.id}/billetterie/rattacher`,
+              {method:'POST', body: JSON.stringify({event_id: id})});
+  }catch(e){ msgBil(e.message, true); return; }
+  msgBil('Événement rattaché.', false);
+  await chargerBilletterie();
+}
+
+async function detacherEvenement(){
+  if(!confirm("Débrancher cet événement de l'opération ? L'événement et ses inscrits ne sont pas supprimés."))
+    return;
+  try{
+    await api(`/projets/${FICHE.projet.id}/billetterie`, {method:'DELETE'});
+  }catch(e){ msgBil(e.message, true); return; }
+  msgBil('Événement débranché.', false);
+  await chargerBilletterie();
+}
+
+async function offrirPlace(){
+  const email = (document.getElementById('bil-email').value || '').trim();
+  if(!email){ msgBil('Indiquez une adresse e-mail.', true); return; }
+  const corps = {
+    email: email,
+    name: (document.getElementById('bil-nom').value || '').trim() || null,
+    note: (document.getElementById('bil-note').value || '').trim() || null,
+    notify: document.getElementById('bil-notif').checked,
+  };
+  let r;
+  try{
+    r = await api(`/projets/${FICHE.projet.id}/billetterie/invitation`,
+                  {method:'POST', body: JSON.stringify(corps)});
+  }catch(e){ msgBil(e.message, true); return; }
+  document.getElementById('bil-email').value = '';
+  document.getElementById('bil-nom').value = '';
+  document.getElementById('bil-note').value = '';
+  let m = r.email_envoye ? 'Place offerte, confirmation envoyée.' : 'Place offerte.';
+  if(r.hors_jauge) m += ' Attention : la jauge de l\'événement est dépassée.';
+  msgBil(m, false);
+  await chargerBilletterie();
+}
+
+async function retirerPlace(rid){
+  if(!confirm('Retirer cette place offerte ?')) return;
+  try{
+    await api(`/projets/${FICHE.projet.id}/billetterie/inscrits/${rid}`, {method:'DELETE'});
+  }catch(e){ msgBil(e.message, true); return; }
+  msgBil('Place retirée.', false);
+  await chargerBilletterie();
+}
+
 
 // ============================ Chargement ============================
 async function charger(){
@@ -573,6 +784,8 @@ function dessinerFiche(){
   show('bloc-budget', d.budget);
 
   show('form-creneaux', d.creneaux);
+  show('tab-billetterie', !!d.billetterie);
+  BILLET = null;
   dessinerEquipe(); dessinerCreneaux(); dessinerTachesProjet(); remplirFormFiche();
   const jour = document.getElementById('c-date');
   if(jour && !jour.value) jour.value = p.date_from || '';
@@ -583,6 +796,8 @@ function setOnglet(t){
   document.querySelectorAll('#fi-tabs button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
   show('ong-equipe', t==='equipe'); show('ong-creneaux', t==='creneaux');
   show('ong-taches', t==='taches'); show('ong-fiche', t==='fiche');
+  show('ong-billetterie', t==='billetterie');
+  if(t==='billetterie') chargerBilletterie();
 }
 
 function dessinerEquipe(){
