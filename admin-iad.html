@@ -123,6 +123,56 @@
   </div>
 </div>
 
+<div class="card" id="bloc-attribution" style="display:none">
+  <h2>Attribuer une formule</h2>
+  <p class="muted">Les droits s'ouvrent immédiatement. En règlement par virement, la facture
+    part par e-mail avec le RIB. Le Premium est un abonnement mensuel prélevé par carte :
+    depuis ici, il ne peut être qu'offert.</p>
+  <div class="toolbar" style="margin-top:14px;align-items:flex-end">
+    <div style="flex:1 1 220px">
+      <label class="muted" for="at-email">Conseiller</label>
+      <select id="at-email" style="width:100%"></select>
+    </div>
+    <div style="flex:0 1 180px">
+      <label class="muted" for="at-formule">Formule</label>
+      <select id="at-formule" style="width:100%" onchange="majAttribution()">
+        <option value="reseau">Adhésion Réseau — 120 €/an</option>
+        <option value="carte">À la carte</option>
+        <option value="premium">Premium — 8 demi-journées</option>
+      </select>
+    </div>
+    <div style="flex:0 1 160px">
+      <label class="muted" for="at-reglement">Règlement</label>
+      <select id="at-reglement" style="width:100%" onchange="majAttribution()">
+        <option value="virement">Virement (facturé)</option>
+        <option value="offert">Offert</option>
+      </select>
+    </div>
+    <div style="flex:0 1 150px" id="at-bloc-mois">
+      <label class="muted" for="at-months">Durée</label>
+      <select id="at-months" style="width:100%" onchange="majAttribution()">
+        <option value="12">12 mois</option>
+        <option value="6">6 mois</option>
+        <option value="3">3 mois</option>
+      </select>
+    </div>
+    <div style="flex:0 1 150px;display:none" id="at-bloc-type">
+      <label class="muted" for="at-type">Type</label>
+      <select id="at-type" style="width:100%" onchange="majAttribution()">
+        <option value="half-day">Demi-journée — 5 €</option>
+        <option value="day">Journée — 10 €</option>
+      </select>
+    </div>
+    <div style="flex:0 1 110px;display:none" id="at-bloc-qty">
+      <label class="muted" for="at-qty">Quantité</label>
+      <input id="at-qty" type="number" min="1" max="40" value="1" style="width:100%" oninput="majAttribution()">
+    </div>
+  </div>
+  <p class="muted" id="at-resume" style="margin:4px 0 0"></p>
+  <button class="btn val" style="margin-top:12px" onclick="attribuer(this)">Attribuer</button>
+  <span id="at-msg" style="font-size:13px;font-weight:600;margin-left:10px"></span>
+</div>
+
 <script>
 const API_BASE = '/api/coworking';
 const STORAGE_KEY = 'cw_admin_session';
@@ -148,7 +198,84 @@ async function load(){
     const c = document.getElementById('count-pending');
     if(data.en_attente>0){ c.textContent = data.en_attente; c.style.display=''; } else { c.style.display='none'; }
     render();
+    remplirAttribution();
   }catch(err){ document.getElementById('list').innerHTML = `<div class="empty">Erreur de chargement : ${esc(err.message)}</div>`; }
+}
+
+// ===== Attribuer une formule =====
+function remplirAttribution(){
+  const valides = ROWS.filter(m => m.iad_status === 'validated');
+  const sel = document.getElementById('at-email');
+  if(!sel) return;
+  const garde = sel.value;
+  sel.innerHTML = valides.map(m =>
+    `<option value="${esc(m.email)}">${esc(m.name || m.email)} — ${esc(m.email)}</option>`).join('');
+  if(garde && valides.some(m => m.email === garde)) sel.value = garde;
+  document.getElementById('bloc-attribution').style.display = valides.length ? '' : 'none';
+  majAttribution();
+}
+
+function majAttribution(){
+  const formule = document.getElementById('at-formule').value;
+  const regl = document.getElementById('at-reglement');
+  const carte = formule === 'carte';
+  document.getElementById('at-bloc-mois').style.display = formule === 'reseau' ? '' : 'none';
+  document.getElementById('at-bloc-type').style.display = carte ? '' : 'none';
+  document.getElementById('at-bloc-qty').style.display  = carte ? '' : 'none';
+
+  // Le Premium est prélevé par carte : depuis l'admin, il ne peut qu'être offert.
+  const optVirement = regl.querySelector('option[value="virement"]');
+  if(formule === 'premium'){ regl.value = 'offert'; optVirement.disabled = true; }
+  else { optVirement.disabled = false; }
+
+  const offert = regl.value === 'offert';
+  let montant = 0, libelle = '';
+  if(formule === 'reseau'){
+    const mois = +document.getElementById('at-months').value || 12;
+    montant = 120 * (mois / 12);
+    libelle = `Adhésion Réseau — ${mois} mois`;
+  } else if(carte){
+    const q = Math.max(1, Math.min(+document.getElementById('at-qty').value || 1, 40));
+    const pu = document.getElementById('at-type').value === 'day' ? 10 : 5;
+    montant = pu * q;
+    libelle = `${q} ${document.getElementById('at-type').value === 'day' ? 'journée' : 'demi-journée'}${q>1?'s':''} à la carte`;
+  } else {
+    libelle = 'Premium — 8 demi-journées ce mois';
+  }
+  document.getElementById('at-resume').textContent = offert
+    ? `${libelle} · offert, aucune facture émise.`
+    : `${libelle} · ${montant.toLocaleString('fr-FR')} € TTC — facture envoyée avec le RIB, droits ouverts immédiatement.`;
+}
+
+async function attribuer(btn){
+  const email = document.getElementById('at-email').value;
+  if(!email){ return; }
+  const formule = document.getElementById('at-formule').value;
+  const reglement = document.getElementById('at-reglement').value;
+  const corps = { email, formule, reglement };
+  if(formule === 'reseau') corps.months = +document.getElementById('at-months').value || 12;
+  if(formule === 'carte'){
+    corps.credit_type = document.getElementById('at-type').value;
+    corps.quantity = Math.max(1, Math.min(+document.getElementById('at-qty').value || 1, 40));
+  }
+  if(!confirm(document.getElementById('at-resume').textContent + '\n\nConfirmer pour ' + email + ' ?')) return;
+
+  const msg = document.getElementById('at-msg');
+  btn.disabled = true; msg.textContent = 'Un instant…'; msg.style.color = 'var(--slate)';
+  try{
+    const r = await fetch(`${API_BASE}/admin/iad/attribuer`, {
+      method:'POST', headers:HEADERS, body: JSON.stringify(corps)});
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail || ('Erreur ' + r.status));
+    msg.style.color = 'var(--green)';
+    msg.textContent = d.invoice_number
+      ? `✓ Attribué — facture ${d.invoice_number} envoyée.`
+      : '✓ Attribué.';
+    load();
+  }catch(err){
+    msg.style.color = 'var(--coral)';
+    msg.textContent = 'Erreur : ' + err.message;
+  }finally{ btn.disabled = false; }
 }
 
 function statusBadge(s){

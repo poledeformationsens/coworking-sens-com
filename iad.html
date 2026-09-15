@@ -66,6 +66,8 @@
        background:var(--iad-blue);color:var(--white);transition:filter .15s;width:100%}
   .btn:hover{filter:brightness(1.06)}
   .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.ghost{background:var(--white);color:#026e94;border:2px solid var(--card-border);margin-top:8px}
+  .btn.ghost:hover{border-color:var(--iad-blue);filter:none}
 
   /* Gélule corail — UNE SEULE sur la page (forfait mis en avant) */
   .gelule{border:none;cursor:pointer;background:var(--iad-coral);color:var(--white);
@@ -185,7 +187,8 @@
           <li>Paiement une fois par an (carte ou SEPA)</li>
           <li>Idéal pour rester connecté à l'équipe</li>
         </ul>
-        <button class="btn" data-plan="reseau">Adhérer →</button>
+        <button class="btn" data-plan="reseau">Adhérer par carte →</button>
+        <button class="btn ghost" data-virement="reseau">Adhérer et régler par virement</button>
         <div class="note">Paiement annuel · renouvellement manuel</div>
       </div>
 
@@ -206,7 +209,8 @@
             <option>5</option><option>6</option><option>8</option><option>10</option>
           </select>
         </div>
-        <button class="btn" data-plan="alc-half">Acheter →</button>
+        <button class="btn" data-plan="alc-half">Acheter par carte →</button>
+        <button class="btn ghost" data-virement="alc-half">Acheter et régler par virement</button>
       </div>
 
       <!-- ALC journée -->
@@ -226,7 +230,8 @@
             <option>5</option><option>6</option><option>8</option><option>10</option>
           </select>
         </div>
-        <button class="btn" data-plan="alc-day">Acheter →</button>
+        <button class="btn" data-plan="alc-day">Acheter par carte →</button>
+        <button class="btn ghost" data-virement="alc-day">Acheter et régler par virement</button>
       </div>
 
     </div>
@@ -491,6 +496,52 @@ async function choose(plan, btn){
   }
 }
 buttons.forEach(b => b.addEventListener('click', () => choose(b.dataset.plan, b)));
+
+// ===== Règlement par virement =====
+// Les droits s'ouvrent tout de suite ; la facture part par e-mail avec le RIB.
+async function parVirement(plan, btn){
+  const email = emailEl.value.trim().toLowerCase();
+  const name  = nameEl.value.trim();
+  if(memberStatus !== 'validated'){
+    showErr(memberStatus === 'pending'
+      ? 'Votre compte est en attente de validation par l\u2019équipe. Vous recevrez un e-mail dès qu\u2019il sera actif.'
+      : 'Renseignez votre e-mail iad en haut de page pour débloquer les forfaits.');
+    window.scrollTo({top:0, behavior:'smooth'});
+    return;
+  }
+  const corps = plan === 'reseau'
+    ? { email, name, formule:'reseau', months:12 }
+    : { email, name, formule:'carte',
+        credit_type: plan === 'alc-day' ? 'day' : 'half-day',
+        quantity: +document.getElementById(plan === 'alc-day' ? 'qty-day' : 'qty-half').value || 1 };
+
+  const montant = plan === 'reseau' ? '120 €'
+    : ((plan === 'alc-day' ? 10 : 5) * corps.quantity) + ' €';
+  if(!confirm(`Régler ${montant} par virement ?\n\nVos droits sont ouverts immédiatement et vous `
+    + `recevez la facture par e-mail avec le RIB.`)) return;
+
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Un instant…';
+  try{
+    const r = await fetch(`${API}/iad/souscrire-virement`, {
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(corps)
+    });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail || 'Souscription impossible');
+    okBadge.textContent = '✓ C\u2019est enregistré. '
+      + (d.detail || '') + ' La facture part par e-mail, réglable par virement.';
+    okBadge.style.display = 'flex';
+    window.scrollTo({top:0, behavior:'smooth'});
+    btn.textContent = '✓ Enregistré';
+    checkStatus(true);
+  }catch(err){
+    showErr('Erreur : ' + err.message);
+    btn.disabled = false; btn.textContent = label;
+    window.scrollTo({top:0, behavior:'smooth'});
+  }
+}
+document.querySelectorAll('button[data-virement]').forEach(b =>
+  b.addEventListener('click', () => parVirement(b.dataset.virement, b)));
 
 // Retour Stripe
 (function(){

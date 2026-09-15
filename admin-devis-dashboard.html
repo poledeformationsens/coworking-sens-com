@@ -466,6 +466,18 @@
 
 </div>
 
+<!-- Historique des e-mails -->
+<div class="modal-bg" id="modal-emails" onclick="if(event.target.id==='modal-emails') fermerEmails()">
+  <div class="modal" style="max-width:640px">
+    <h2 id="emails-titre">Historique des e-mails</h2>
+    <p class="muted" id="emails-sous-titre" style="margin:-6px 0 14px;font-size:13px;color:#5A6A85"></p>
+    <div id="emails-liste" style="max-height:55vh;overflow:auto"></div>
+    <div style="text-align:right;margin-top:16px">
+      <button class="btn btn-secondary" onclick="fermerEmails()">Fermer</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Nouveau Devis -->
 <div class="modal-bg" id="modal-new">
   <div class="modal">
@@ -913,6 +925,7 @@ function actionButtons(d) {
   const ref = d.devis_reference || '?';
   const dupBtn = `<button class="btn btn-secondary" onclick="duplicateDevis('${id}')" title="Dupliquer ce devis">⧉</button>`;
   const delBtn = `<button class="btn btn-danger" onclick="deleteDevis('${id}', '${ref}')" title="Supprimer définitivement">🗑</button>`;
+  const histoBtn = `<button class="btn btn-secondary" onclick="voirEmails('${ref}','${(d.email||'').replace(/'/g,"\\'")}')" title="Historique des e-mails envoyés">✉️</button>`;
   switch(d.devis_status) {
     case 'draft':
       return `
@@ -926,30 +939,32 @@ function actionButtons(d) {
         <button class="btn btn-primary" onclick="validateDevis('${id}','acompte')" title="Valider et demander l'acompte">Valider · acompte</button>
         <button class="btn btn-primary" onclick="validateDevis('${id}','total')" title="Valider et demander le règlement total">Valider · total</button>
         <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">PDF</a>
-        ${dupBtn}
+        ${histoBtn} ${dupBtn}
         <button class="btn btn-danger" onclick="cancelDevis('${id}')">×</button>
         ${delBtn}
       `;
     case 'validated':
       return `
+        <button class="btn btn-primary" onclick="sendFacture('${id}')" title="Envoyer la facture au client (montant dû, échéance et RIB)">📧 Facture</button>
         <button class="btn btn-primary" onclick="sendAccess('${id}')" title="Envoyer le code d'accès au client maintenant, sans attendre le paiement">🔑 Envoyer accès</button>
         <button class="btn btn-success" onclick="markAcompte('${id}')">Acompte reçu</button>
         <button class="btn btn-success" onclick="markTotal('${id}')">Total reçu</button>
-        ${dupBtn}
+        ${histoBtn} ${dupBtn}
         <button class="btn btn-danger" onclick="cancelDevis('${id}')">×</button>
         ${delBtn}
       `;
     case 'acompte_paid':
       return `
+        <button class="btn btn-primary" onclick="sendFacture('${id}')" title="Envoyer la facture du solde restant">📧 Facture</button>
         <button class="btn btn-secondary" onclick="sendAccess('${id}')" title="Renvoyer le code d'accès au client">🔑 Renvoyer accès</button>
         <button class="btn btn-success" onclick="markSolde('${id}')">Solde reçu</button>
-        ${dupBtn} ${delBtn}
+        ${histoBtn} ${dupBtn} ${delBtn}
       `;
     case 'fully_paid':
       return `
-        <button class="btn btn-primary" onclick="sendFactureAcquittee('${id}')" title="Envoyer la facture acquittée au client">📧 Envoyer facture acquittée</button>
+        <button class="btn btn-primary" onclick="sendFacture('${id}')" title="Envoyer la facture acquittée au client">📧 Facture acquittée</button>
         <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank">Facture PDF</a>
-        ${dupBtn} ${delBtn}
+        ${histoBtn} ${dupBtn} ${delBtn}
       `;
     case 'cancelled':
     case 'expired':
@@ -995,6 +1010,65 @@ async function sendFactureAcquittee(id) {
   await callApi(`/devis/${id}/send-facture-acquittee`);
   alert('Facture acquittée envoyée ✅');
   loadDevis();
+}
+
+// Envoie la facture, qu'elle soit acquittée ou encore à régler.
+async function sendFacture(id) {
+  if (!confirm('Envoyer la facture au client ?')) return;
+  const res = await callApi(`/devis/${id}/send-facture`);
+  if (res) alert(res.acquittee ? 'Facture acquittée envoyée ✅' : 'Facture envoyée ✅');
+  loadDevis();
+}
+
+// ===== Historique des e-mails =====
+function fermerEmails(){ document.getElementById('modal-emails').classList.remove('open'); }
+
+async function voirEmails(reference, email){
+  const boite = document.getElementById('modal-emails');
+  document.getElementById('emails-titre').textContent = 'E-mails — ' + (reference || '');
+  document.getElementById('emails-sous-titre').textContent = email || '';
+  document.getElementById('emails-liste').innerHTML = '<p style="color:#5A6A85;font-size:14px">Chargement…</p>';
+  boite.classList.add('open');
+
+  const params = new URLSearchParams();
+  if (reference) params.set('reference', reference);
+  else if (email) params.set('email', email);
+  let d = null;
+  try {
+    const r = await fetch(`${API_BASE}/admin/emails?${params}`, { headers: HEADERS, cache: 'no-store' });
+    d = await r.json();
+    if (!r.ok) throw new Error(d.detail || ('Erreur ' + r.status));
+  } catch (e) {
+    document.getElementById('emails-liste').innerHTML =
+      `<p style="color:#C0392B;font-size:14px">${e.message}</p>`;
+    return;
+  }
+
+  const lignes = d.emails || [];
+  if (!lignes.length) {
+    document.getElementById('emails-liste').innerHTML =
+      `<p style="color:#5A6A85;font-size:14px">Aucun e-mail enregistré pour ce document.<br>
+       <span style="font-size:12.5px">Le journal ne remonte pas avant sa mise en service.</span></p>`;
+    return;
+  }
+  document.getElementById('emails-liste').innerHTML = lignes.map(m => {
+    const quand = new Date(m.sent_at).toLocaleString('fr-FR',
+      {day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit'});
+    const ok = m.status === 'envoye';
+    const pastille = ok
+      ? '<span style="color:#2E7D52;font-weight:700">✓ envoyé</span>'
+      : `<span style="color:#C0392B;font-weight:700">✗ échec</span>`;
+    return `<div style="border-bottom:1px solid #eee;padding:11px 0">
+      <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+        <strong style="font-size:13.5px">${(m.subject||'—').replace(/[<>&]/g,'')}</strong>
+        <span style="font-size:12px;color:#5A6A85;white-space:nowrap">${quand}</span>
+      </div>
+      <div style="font-size:12.5px;color:#5A6A85;margin-top:3px">
+        ${(m.to_email||'').replace(/[<>&]/g,'')} · ${pastille}
+        ${m.error ? ' · <span style="color:#C0392B">'+String(m.error).slice(0,120).replace(/[<>&]/g,'')+'</span>' : ''}
+      </div>
+    </div>`;
+  }).join('');
 }
 async function sendAccess(id) {
   if (!confirm('Envoyer le code d\'accès au client maintenant ?\n\nLe créneau sera bloqué et le PIN généré, même si le paiement n\'est pas encore reçu.')) return;
