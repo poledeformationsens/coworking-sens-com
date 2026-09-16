@@ -768,8 +768,10 @@ function dessinerBilan(){
     return `<div style="display:flex;justify-content:space-between;gap:12px;
         border-bottom:1px solid #eef4f7;padding:7px 0;font-size:13.5px">
       <span>${esc(LIB_RES[l.cle]||l.cle)}</span>
-      <span><strong>${l.fait}</strong><span class="muted"> / ${l.vise} visé${l.vise>1?'s':''}</span>
-        ${l.taux!=null?` <span style="color:${c};font-weight:700">${l.taux} %</span>`:''}</span></div>`;
+      <span><strong>${l.fait}</strong>${l.vise
+          ? `<span class="muted"> / ${l.vise} visé${l.vise>1?'s':''}</span>
+             <span style="color:${c};font-weight:700"> ${l.taux} %</span>`
+          : `<span class="muted"> réalisé${l.fait>1?'s':''}, sans objectif fixé</span>`}</span></div>`;
   }).join('');
   document.getElementById('bi-ratios').innerHTML =
     (r.length ? `<h3 style="font-size:15px">Ce que ça a coûté</h3>
