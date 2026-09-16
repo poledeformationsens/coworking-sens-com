@@ -221,6 +221,7 @@
       <button data-t="creneaux" onclick="setOnglet('creneaux')">Permanences</button>
       <button data-t="taches" onclick="setOnglet('taches')">Tâches</button>
       <button data-t="billetterie" onclick="setOnglet('billetterie')" id="tab-billetterie" style="display:none">Billetterie</button>
+      <button data-t="bilan" onclick="setOnglet('bilan')" id="tab-bilan" style="display:none">Bilan</button>
       <button data-t="fiche" onclick="setOnglet('fiche')" id="tab-fiche" style="display:none">Modifier la fiche</button>
     </div>
 
@@ -366,6 +367,59 @@
       <div class="ok" id="bil-ok"></div>
     </div>
 
+    <div class="panel" id="ong-bilan" style="display:none">
+      <div class="obj" id="bi-compteurs"></div>
+      <p class="muted" id="bi-lecture" style="display:none;margin-top:10px">
+        Vous consultez le budget. Sa saisie et son arbitrage reviennent au porteur de l'opération.</p>
+
+      <h3 style="font-size:15px;margin-top:20px">Les dépenses</h3>
+      <table>
+        <thead><tr><th>Dépense</th><th class="hide-s">Avancée par</th><th>Montant</th>
+          <th>Remboursement</th><th></th></tr></thead>
+        <tbody id="tb-depenses"></tbody>
+      </table>
+
+      <div id="bi-avances" style="margin-top:16px"></div>
+
+      <div id="form-depense" style="display:none;border-top:1px solid #eef4f7;margin-top:16px;padding-top:14px">
+        <h3 style="font-size:15px">Ajouter une dépense</h3>
+        <div class="grid2">
+          <div><label for="dp-label">Ce qui a été payé</label><input id="dp-label" placeholder="Stand 12 m²"></div>
+          <div><label for="dp-montant">Montant TTC (€)</label><input id="dp-montant" type="number" min="0" step="0.01"></div>
+          <div><label for="dp-date">Date</label><input id="dp-date" type="date"></div>
+          <div><label for="dp-cat">Catégorie</label><select id="dp-cat"></select></div>
+          <div><label for="dp-avance">Avancée par</label><select id="dp-avance"></select></div>
+          <div><label for="dp-entite">Remboursée par</label><select id="dp-entite"></select></div>
+          <div><label for="dp-statut">Remboursement</label><select id="dp-statut"></select></div>
+          <div><label for="dp-fichier">Justificatif</label><input id="dp-fichier" type="file"
+                 accept=".pdf,.png,.jpg,.jpeg,.heic,.webp"></div>
+        </div>
+        <label for="dp-note">Note (optionnel)</label><input id="dp-note">
+        <div style="margin-top:12px">
+          <button class="btn sm" onclick="ajouterDepense(this)">Ajouter la dépense</button>
+        </div>
+        <p class="muted" style="margin-top:8px">PDF, JPG, PNG, HEIC ou WEBP, 10 Mo maximum.
+          Une photo du ticket suffit.</p>
+      </div>
+
+      <h3 style="font-size:15px;margin-top:24px">Ce que l'opération a rapporté</h3>
+      <p class="muted" style="margin-bottom:10px" id="bi-res-aide">Un total saisi à la clôture,
+        pas un suivi contact par contact — c'est le rôle du CRM.</p>
+      <div class="grid2" id="bi-res-champs"></div>
+      <label for="bi-commentaire">Ce qu'on retient</label><textarea id="bi-commentaire"
+        placeholder="Ce qui a marché, ce qu'on changera l'an prochain"></textarea>
+      <div id="bi-res-actions" style="display:none;margin-top:12px;gap:10px;flex-wrap:wrap">
+        <button class="btn sm" onclick="enregistrerResultats(false, this)">Enregistrer</button>
+        <button class="btn sm ghost" id="bi-btn-cloture" onclick="cloturerBilan(this)">Clôturer l'opération</button>
+      </div>
+      <div id="bi-cloture-info" style="display:none;margin-top:10px" class="muted"></div>
+
+      <div id="bi-ratios" style="margin-top:20px"></div>
+
+      <div class="err" id="bi-err"></div>
+      <div class="ok" id="bi-ok"></div>
+    </div>
+
     <div class="panel" id="ong-fiche" style="display:none">
       <div class="grid2">
         <div><label for="p-titre">Titre</label><input id="p-titre"></div>
@@ -426,6 +480,7 @@ let TOKEN = null, MOI = null;
 let TOUS = [], MIENNES = [], MES_TACHES = [], REF = {types:{}, statuts:{}, roles:{}};
 let FICHE = null;   // {projet, membres, taches, mon_role, droits}
 let BILLET = null;  // {rattache, evenement, inscrits, droits} — chargé à l'ouverture de l'onglet
+let BILAN = null;   // {depenses, resultats, bilan, droits} — phase 4
 let VUE = 'miennes';
 
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
@@ -589,6 +644,233 @@ async function retirerPlace(rid){
   }catch(e){ msgBil(e.message, true); return; }
   msgBil('Place retirée.', false);
   await chargerBilletterie();
+}
+
+
+// ========================== Bilan (phase 4) ==========================
+// Ce que l'opération a coûté, ce qu'elle a rapporté, et les deux seuls chiffres
+// qui décident si on y retourne : le coût par contact et le coût par mandat.
+const LIB_RES = {contacts:'Contacts', avis_valeur:'Avis de valeur', mandats:'Mandats',
+                 recrutements:'Nouveaux conseillers', ventes:'Ventes'};
+
+function eur(n){ return (Number(n)||0).toLocaleString('fr-FR',
+  {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €'; }
+
+function msgBil4(texte, erreur){
+  const e = document.getElementById('bi-err'), o = document.getElementById('bi-ok');
+  e.style.display='none'; o.style.display='none';
+  if(!texte) return;
+  const c = erreur ? e : o;
+  c.textContent = texte; c.style.display='block';
+  if(!erreur) setTimeout(()=>{ c.style.display='none'; }, 5000);
+}
+
+async function chargerBilan(){
+  if(!FICHE) return;
+  try{ BILAN = await api(`/projets/${FICHE.projet.id}/bilan`); }
+  catch(e){ msgBil4(e.message, true); return; }
+  dessinerBilan();
+}
+
+function dessinerBilan(){
+  if(!BILAN) return;
+  const b = BILAN.bilan, d = BILAN.droits, res = BILAN.resultats || {};
+
+  const tuiles = [`<div><b>${eur(b.total_ttc)}</b><span>dépensé</span></div>`];
+  if(b.budget_prevu > 0){
+    const depasse = b.ecart_budget > 0;
+    tuiles.push(`<div><b>${eur(b.budget_prevu)}</b><span>budget prévu</span></div>`);
+    tuiles.push(`<div><b style="color:${depasse ? '#EA584A' : '#1f8a52'}">${depasse?'+':''}${eur(b.ecart_budget)}</b><span>${depasse?'au-dessus':'sous le budget'}</span></div>`);
+  }
+  if(b.reste_a_rembourser > 0)
+    tuiles.push(`<div><b>${eur(b.reste_a_rembourser)}</b><span>reste à rembourser</span></div>`);
+  document.getElementById('bi-compteurs').innerHTML = tuiles.join('');
+  show('bi-lecture', !d.saisir);
+
+  // --- les dépenses
+  const rows = (BILAN.depenses||[]).map(x=>{
+    const justif = x.justificatif
+      ? `<button class="btn sm ghost" onclick="voirJustificatif(${x.id})">Justificatif</button>`
+      : `<span class="chip att">sans justificatif</span>`;
+    let statut = `<span class="chip ${x.soldee?'oui':'att'}">${esc(x.refund_label)}</span>`;
+    if(d.saisir){
+      statut = `<select style="width:auto;padding:6px 8px;font-size:12.5px"
+          onchange="changerRemboursement(${x.id}, this.value)">`
+        + Object.entries(BILAN.statuts_remboursement).map(([k,v])=>
+            `<option value="${k}"${k===x.refund_status?' selected':''}>${esc(v)}</option>`).join('')
+        + `</select>`;
+    }
+    const suppr = d.saisir
+      ? `<button class="btn sm danger" onclick="supprimerDepense(${x.id})">Retirer</button>` : '';
+    return `<tr>
+      <td><strong>${esc(x.label)}</strong>
+        <div class="muted">${esc(x.category_label)}${x.spent_on_label ? ' · '+esc(x.spent_on_label) : ''}</div>
+        ${x.note ? `<div class="muted">${esc(x.note)}</div>` : ''}</td>
+      <td class="hide-s">${esc(x.paid_by_name || (x.paid_by_email||'').split('@')[0])}
+        <div class="muted">remb. ${esc(x.entity)}</div></td>
+      <td class="n">${eur(x.amount_ttc)}</td>
+      <td class="n">${statut}</td>
+      <td class="n">${justif} ${suppr}</td></tr>`;
+  }).join('');
+  document.getElementById('tb-depenses').innerHTML = rows ||
+    `<tr><td colspan="5" class="empty">Aucune dépense saisie.</td></tr>`;
+
+  // --- qui a avancé quoi
+  const av = (b.avances||[]).filter(a=>a.du > 0);
+  document.getElementById('bi-avances').innerHTML = av.length
+    ? `<p class="muted" style="margin-bottom:6px">Reste à rembourser</p>`
+      + av.map(a=>`<div style="display:flex;justify-content:space-between;gap:12px;
+            border-bottom:1px solid #eef4f7;padding:7px 0;font-size:13.5px">
+          <span>${esc(a.name || (a.email||'').split('@')[0])}</span>
+          <strong>${eur(a.du)}</strong></div>`).join('')
+    : '';
+
+  // --- le formulaire de saisie
+  show('form-depense', !!d.saisir);
+  if(d.saisir && !document.getElementById('dp-cat').options.length){
+    const opts = (obj) => Object.entries(obj).map(([k,v])=>
+      `<option value="${k}">${esc(v)}</option>`).join('');
+    document.getElementById('dp-cat').innerHTML = opts(BILAN.categories);
+    document.getElementById('dp-statut').innerHTML = opts(BILAN.statuts_remboursement);
+    document.getElementById('dp-entite').innerHTML = (BILAN.entites||[]).map(e=>
+      `<option value="${esc(e)}">${esc(e)}</option>`).join('');
+    document.getElementById('dp-avance').innerHTML =
+      `<option value="">Moi (${esc(MOI.email)})</option>`
+      + (FICHE.membres||[]).map(m=>`<option value="${esc(m.email)}">${esc(nomCourt(m))}</option>`).join('');
+    const dt = document.getElementById('dp-date');
+    if(dt && !dt.value) dt.value = new Date().toISOString().slice(0,10);
+  }
+
+  // --- les résultats
+  const cles = BILAN.cles_resultat || Object.keys(LIB_RES);
+  document.getElementById('bi-res-champs').innerHTML = cles.map(k=>
+    `<div><label for="rs-${k}">${esc(LIB_RES[k]||k)}</label>
+      <input id="rs-${k}" type="number" min="0" value="${res[k]!=null?res[k]:''}"
+        ${d.saisir?'':'disabled'}></div>`).join('');
+  const com = document.getElementById('bi-commentaire');
+  com.value = res.commentaire || ''; com.disabled = !d.saisir;
+  document.getElementById('bi-res-actions').style.display = d.saisir ? 'flex' : 'none';
+  const btnCl = document.getElementById('bi-btn-cloture');
+  if(btnCl) btnCl.textContent = res.cloture ? 'Rouvrir le bilan' : "Clôturer l'opération";
+  const info = document.getElementById('bi-cloture-info');
+  show('bi-cloture-info', !!res.cloture);
+  if(res.cloture) info.textContent =
+    `Bilan clôturé par ${res.closed_by || '—'}.`;
+
+  // --- les ratios : le cœur du sujet
+  const r = [];
+  if(b.cout_par_contact != null) r.push([eur(b.cout_par_contact), 'le contact']);
+  if(b.cout_par_avis_valeur != null) r.push([eur(b.cout_par_avis_valeur), "l'avis de valeur"]);
+  if(b.cout_par_mandat != null) r.push([eur(b.cout_par_mandat), 'le mandat']);
+  if(b.cout_par_recrutement != null) r.push([eur(b.cout_par_recrutement), 'le recrutement']);
+  const obj = (b.objectifs||[]).map(l=>{
+    const c = l.taux == null ? '#5b6b74' : (l.taux >= 100 ? '#1f8a52' : '#EA584A');
+    return `<div style="display:flex;justify-content:space-between;gap:12px;
+        border-bottom:1px solid #eef4f7;padding:7px 0;font-size:13.5px">
+      <span>${esc(LIB_RES[l.cle]||l.cle)}</span>
+      <span><strong>${l.fait}</strong><span class="muted"> / ${l.vise} visé${l.vise>1?'s':''}</span>
+        ${l.taux!=null?` <span style="color:${c};font-weight:700">${l.taux} %</span>`:''}</span></div>`;
+  }).join('');
+  document.getElementById('bi-ratios').innerHTML =
+    (r.length ? `<h3 style="font-size:15px">Ce que ça a coûté</h3>
+       <div class="obj">${r.map(([v,l])=>`<div><b>${v}</b><span>par ${l}</span></div>`).join('')}</div>` : '')
+    + (obj ? `<h3 style="font-size:15px;margin-top:18px">Objectif et réalisé</h3>${obj}` : '');
+}
+
+function fichierEnBase64(input){
+  return new Promise((resolve, reject)=>{
+    const f = input && input.files && input.files[0];
+    if(!f) return resolve(null);
+    if(f.size > 10*1024*1024) return reject(new Error('Justificatif trop lourd (10 Mo maximum).'));
+    const fr = new FileReader();
+    fr.onload = ()=> resolve({nom: f.name, b64: String(fr.result).split(',')[1]});
+    fr.onerror = ()=> reject(new Error('Justificatif illisible.'));
+    fr.readAsDataURL(f);
+  });
+}
+
+async function ajouterDepense(btn){
+  const label = (document.getElementById('dp-label').value||'').trim();
+  const montant = Number(document.getElementById('dp-montant').value||0);
+  if(!label){ msgBil4('Indiquez ce qui a été payé.', true); return; }
+  if(!(montant > 0)){ msgBil4('Indiquez un montant supérieur à zéro.', true); return; }
+  let f = null;
+  try{ f = await fichierEnBase64(document.getElementById('dp-fichier')); }
+  catch(e){ msgBil4(e.message, true); return; }
+
+  const corps = {
+    label: label, amount_ttc: montant,
+    spent_on: document.getElementById('dp-date').value || null,
+    category: document.getElementById('dp-cat').value,
+    paid_by_email: document.getElementById('dp-avance').value || null,
+    entity: document.getElementById('dp-entite').value,
+    refund_status: document.getElementById('dp-statut').value,
+    note: (document.getElementById('dp-note').value||'').trim() || null,
+    justificatif_nom: f ? f.nom : null,
+    justificatif_base64: f ? f.b64 : null,
+  };
+  if(btn) btn.disabled = true;
+  try{
+    await api(`/projets/${FICHE.projet.id}/depenses`, {method:'POST', body: JSON.stringify(corps)});
+  }catch(e){ msgBil4(e.message, true); if(btn) btn.disabled = false; return; }
+  if(btn) btn.disabled = false;
+  ['dp-label','dp-montant','dp-note'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('dp-fichier').value = '';
+  msgBil4('Dépense enregistrée.', false);
+  await chargerBilan();
+}
+
+async function changerRemboursement(did, statut){
+  try{
+    await api(`/projets/${FICHE.projet.id}/depenses/${did}`,
+              {method:'PATCH', body: JSON.stringify({refund_status: statut})});
+  }catch(e){ msgBil4(e.message, true); return; }
+  await chargerBilan();
+}
+
+async function supprimerDepense(did){
+  if(!confirm('Retirer cette dépense et son justificatif ?')) return;
+  try{ await api(`/projets/${FICHE.projet.id}/depenses/${did}`, {method:'DELETE'}); }
+  catch(e){ msgBil4(e.message, true); return; }
+  msgBil4('Dépense retirée.', false);
+  await chargerBilan();
+}
+
+async function voirJustificatif(did){
+  try{
+    const r = await api(`/projets/${FICHE.projet.id}/depenses/${did}/justificatif`);
+    window.open(r.url, '_blank', 'noopener');
+  }catch(e){ msgBil4(e.message, true); }
+}
+
+function corpsResultats(){
+  const corps = {};
+  (BILAN.cles_resultat||[]).forEach(k=>{
+    const e = document.getElementById('rs-'+k);
+    if(e) corps[k] = Number(e.value||0);
+  });
+  corps.commentaire = (document.getElementById('bi-commentaire').value||'').trim() || null;
+  return corps;
+}
+
+async function enregistrerResultats(cloturer, btn){
+  const corps = corpsResultats();
+  if(cloturer != null) corps.cloturer = cloturer;
+  if(btn) btn.disabled = true;
+  try{
+    await api(`/projets/${FICHE.projet.id}/resultats`,
+              {method:'PATCH', body: JSON.stringify(corps)});
+  }catch(e){ msgBil4(e.message, true); if(btn) btn.disabled = false; return; }
+  if(btn) btn.disabled = false;
+  msgBil4(cloturer ? 'Bilan clôturé.' : 'Résultats enregistrés.', false);
+  await chargerBilan();
+  if(cloturer != null){ FICHE = await api(`/projets/${FICHE.projet.id}`); dessinerFiche(); setOnglet('bilan'); }
+}
+
+async function cloturerBilan(btn){
+  const ouvert = !(BILAN.resultats && BILAN.resultats.cloture);
+  if(ouvert && !confirm("Clôturer le bilan ? L'opération passera en « terminé ».")) return;
+  await enregistrerResultats(ouvert, btn);
 }
 
 
@@ -785,7 +1067,8 @@ function dessinerFiche(){
 
   show('form-creneaux', d.creneaux);
   show('tab-billetterie', !!d.billetterie);
-  BILLET = null;
+  show('tab-bilan', !!d.bilan);
+  BILLET = null; BILAN = null;
   dessinerEquipe(); dessinerCreneaux(); dessinerTachesProjet(); remplirFormFiche();
   const jour = document.getElementById('c-date');
   if(jour && !jour.value) jour.value = p.date_from || '';
@@ -796,8 +1079,9 @@ function setOnglet(t){
   document.querySelectorAll('#fi-tabs button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
   show('ong-equipe', t==='equipe'); show('ong-creneaux', t==='creneaux');
   show('ong-taches', t==='taches'); show('ong-fiche', t==='fiche');
-  show('ong-billetterie', t==='billetterie');
+  show('ong-billetterie', t==='billetterie'); show('ong-bilan', t==='bilan');
   if(t==='billetterie') chargerBilletterie();
+  if(t==='bilan') chargerBilan();
 }
 
 function dessinerEquipe(){

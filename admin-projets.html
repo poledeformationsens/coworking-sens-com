@@ -252,6 +252,7 @@
       <button data-t="creneaux" onclick="setOnglet('creneaux')">Permanences</button>
       <button data-t="taches" onclick="setOnglet('taches')">Tâches</button>
       <button data-t="billetterie" onclick="setOnglet('billetterie')" id="tab-billetterie" style="display:none">Billetterie</button>
+      <button data-t="bilan" onclick="setOnglet('bilan')" id="tab-bilan" style="display:none">Bilan</button>
       <button data-t="fiche" onclick="setOnglet('fiche')">La fiche</button>
     </div>
 
@@ -389,6 +390,53 @@
       <div class="ok" id="bil-ok" style="display:none"></div>
     </div>
 
+    <div class="card" id="ong-bilan" style="display:none">
+      <div class="kpi" id="bi-compteurs"></div>
+
+      <h3 style="margin-top:20px">Les dépenses</h3>
+      <table>
+        <thead><tr><th>Dépense</th><th class="hide-s">Avancée par</th><th>Montant</th>
+          <th>Remboursement</th><th></th></tr></thead>
+        <tbody id="tb-depenses"></tbody>
+      </table>
+      <div id="bi-avances" style="margin-top:16px"></div>
+
+      <div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px">
+        <h3>Ajouter une dépense</h3>
+        <div class="grid">
+          <div><label for="dp-label">Ce qui a été payé</label><input id="dp-label"></div>
+          <div><label for="dp-montant">Montant TTC (€)</label><input id="dp-montant" type="number" min="0" step="0.01"></div>
+          <div><label for="dp-date">Date</label><input id="dp-date" type="date"></div>
+          <div><label for="dp-cat">Catégorie</label><select id="dp-cat"></select></div>
+          <div><label for="dp-avance">Avancée par</label><select id="dp-avance"></select></div>
+          <div><label for="dp-entite">Remboursée par</label><select id="dp-entite"></select></div>
+          <div><label for="dp-statut">Remboursement</label><select id="dp-statut"></select></div>
+          <div><label for="dp-fichier">Justificatif</label><input id="dp-fichier" type="file"
+                 accept=".pdf,.png,.jpg,.jpeg,.heic,.webp"></div>
+          <div><label for="dp-note">Note</label><input id="dp-note"></div>
+        </div>
+        <button class="btn" onclick="ajouterDepense(this)">Ajouter la dépense</button>
+        <p class="muted" style="margin-top:8px">PDF, JPG, PNG, HEIC ou WEBP, 10 Mo maximum.</p>
+      </div>
+
+      <div style="border-top:1px solid #eee;margin-top:16px;padding-top:14px">
+        <h3>Ce que l'opération a rapporté</h3>
+        <p class="muted" style="margin-bottom:10px">Un total saisi à la clôture, pas un suivi
+          contact par contact — c'est le rôle du CRM.</p>
+        <div class="grid" id="bi-res-champs"></div>
+        <label for="bi-commentaire">Ce qu'on retient</label><textarea id="bi-commentaire"></textarea>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-top:10px">
+          <button class="btn" onclick="enregistrerResultats(null, this)">Enregistrer</button>
+          <button class="btn ghost" id="bi-btn-cloture" onclick="cloturerBilan(this)">Clôturer l'opération</button>
+          <span class="muted" id="bi-cloture-info"></span>
+        </div>
+      </div>
+
+      <div id="bi-ratios" style="margin-top:20px"></div>
+      <div class="err" id="bi-err" style="display:none"></div>
+      <div class="ok" id="bi-ok" style="display:none"></div>
+    </div>
+
     <div class="card" id="ong-fiche" style="display:none">
       <div class="grid">
         <div><label for="p-titre">Titre</label><input id="p-titre"></div>
@@ -424,6 +472,7 @@ let HEADERS = {'Content-Type':'application/json'};
 let PROJETS = [], REF = {types:{}, statuts:{}, roles:{}}, CONSEILLERS = [], MODELES = [];
 let FICHE = null;
 let BILLET = null;   // billetterie de l'opération ouverte (phase 3)
+let BILAN = null;    // bilan de l'opération ouverte (phase 4)
 let FILTRES = {periode:'future', statut:'', type:'', q:''};
 let FILTRES_CHARGES = false;
 
@@ -572,6 +621,208 @@ async function retirerPlace(rid){
   catch(e){ msgBil(e.message, true); return; }
   msgBil('Place retirée.', false);
   await chargerBilletterie();
+}
+
+
+// ========================== Bilan (phase 4) ==========================
+// Ce que l'opération a coûté, ce qu'elle a rapporté, et les deux chiffres qui
+// décident si on y retourne : le coût par contact et le coût par mandat.
+const LIB_RES = {contacts:'Contacts', avis_valeur:'Avis de valeur', mandats:'Mandats',
+                 recrutements:'Nouveaux conseillers', ventes:'Ventes'};
+
+function eur(n){ return (Number(n)||0).toLocaleString('fr-FR',
+  {minimumFractionDigits:2, maximumFractionDigits:2}) + ' €'; }
+
+function msgBil4(texte, erreur){
+  document.getElementById('bi-err').style.display='none';
+  document.getElementById('bi-ok').style.display='none';
+  if(!texte) return;
+  if(erreur) flash('bi-err', texte, 6000); else flash('bi-ok', texte, 5000);
+}
+
+async function chargerBilan(){
+  if(!FICHE) return;
+  try{ BILAN = await api('/projets/'+FICHE.projet.id+'/bilan'); }
+  catch(e){ msgBil4(e.message, true); return; }
+  dessinerBilan();
+}
+
+function dessinerBilan(){
+  if(!BILAN) return;
+  const b = BILAN.bilan, d = BILAN.droits, res = BILAN.resultats || {};
+
+  const tuiles = [`<div><b>${eur(b.total_ttc)}</b><span>dépensé</span></div>`];
+  if(b.budget_prevu > 0){
+    const depasse = b.ecart_budget > 0;
+    tuiles.push(`<div><b>${eur(b.budget_prevu)}</b><span>budget prévu</span></div>`);
+    tuiles.push(`<div><b style="color:${depasse?'var(--red)':'var(--green)'}">${depasse?'+':''}${eur(b.ecart_budget)}</b><span>${depasse?'au-dessus':'sous le budget'}</span></div>`);
+  }
+  if(b.reste_a_rembourser > 0)
+    tuiles.push(`<div><b style="color:var(--amber)">${eur(b.reste_a_rembourser)}</b><span>reste à rembourser</span></div>`);
+  if(b.sans_justificatif > 0)
+    tuiles.push(`<div><b style="color:var(--amber)">${b.sans_justificatif}</b><span>sans justificatif</span></div>`);
+  document.getElementById('bi-compteurs').innerHTML = tuiles.join('');
+
+  const rows = (BILAN.depenses||[]).map(x=>{
+    const justif = x.justificatif
+      ? `<button class="btn ghost" onclick="voirJustificatif(${x.id})">Justificatif</button>`
+      : `<span class="chip att">sans justificatif</span>`;
+    const statut = `<select style="width:auto;padding:5px 8px;font-size:12.5px"
+        onchange="changerRemboursement(${x.id}, this.value)">`
+      + Object.entries(BILAN.statuts_remboursement).map(([k,v])=>
+          `<option value="${k}"${k===x.refund_status?' selected':''}>${esc(v)}</option>`).join('')
+      + `</select>`;
+    return `<tr>
+      <td><strong>${esc(x.label)}</strong>
+        <div class="muted">${esc(x.category_label)}${x.spent_on_label?' · '+esc(x.spent_on_label):''}</div>
+        ${x.note?`<div class="muted">${esc(x.note)}</div>`:''}</td>
+      <td class="hide-s">${esc(x.paid_by_name || (x.paid_by_email||'').split('@')[0])}
+        <div class="muted">remb. ${esc(x.entity)}</div></td>
+      <td class="n">${eur(x.amount_ttc)}</td>
+      <td class="n">${statut}</td>
+      <td class="n">${justif} <button class="btn del" onclick="supprimerDepense(${x.id})">Retirer</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tb-depenses').innerHTML = rows ||
+    `<tr><td colspan="5" class="empty">Aucune dépense saisie.</td></tr>`;
+
+  const av = (b.avances||[]).filter(a=>a.du > 0);
+  document.getElementById('bi-avances').innerHTML = av.length
+    ? `<p class="muted" style="margin-bottom:6px">Reste à rembourser</p>`
+      + av.map(a=>`<div style="display:flex;justify-content:space-between;gap:12px;
+          border-bottom:1px solid #eee;padding:7px 0;font-size:13.5px">
+        <span>${esc(a.name || (a.email||'').split('@')[0])}</span>
+        <strong>${eur(a.du)}</strong></div>`).join('')
+    : '';
+
+  if(!document.getElementById('dp-cat').options.length){
+    const opts = (o) => Object.entries(o).map(([k,v])=>`<option value="${k}">${esc(v)}</option>`).join('');
+    document.getElementById('dp-cat').innerHTML = opts(BILAN.categories);
+    document.getElementById('dp-statut').innerHTML = opts(BILAN.statuts_remboursement);
+    document.getElementById('dp-entite').innerHTML = (BILAN.entites||[]).map(e=>
+      `<option value="${esc(e)}">${esc(e)}</option>`).join('');
+    document.getElementById('dp-avance').innerHTML =
+      `<option value="">Administration</option>`
+      + (FICHE.membres||[]).map(m=>`<option value="${esc(m.email)}">${esc(m.name||m.email)}</option>`).join('');
+    const dt = document.getElementById('dp-date');
+    if(dt && !dt.value) dt.value = new Date().toISOString().slice(0,10);
+  }
+
+  const cles = BILAN.cles_resultat || Object.keys(LIB_RES);
+  document.getElementById('bi-res-champs').innerHTML = cles.map(k=>
+    `<div><label for="rs-${k}">${esc(LIB_RES[k]||k)}</label>
+      <input id="rs-${k}" type="number" min="0" value="${res[k]!=null?res[k]:''}"></div>`).join('');
+  document.getElementById('bi-commentaire').value = res.commentaire || '';
+  const btnCl = document.getElementById('bi-btn-cloture');
+  if(btnCl) btnCl.textContent = res.cloture ? 'Rouvrir le bilan' : "Clôturer l'opération";
+  document.getElementById('bi-cloture-info').textContent =
+    res.cloture ? `Clôturé par ${res.closed_by || '—'}.` : '';
+
+  const r = [];
+  if(b.cout_par_contact != null) r.push([eur(b.cout_par_contact), 'le contact']);
+  if(b.cout_par_avis_valeur != null) r.push([eur(b.cout_par_avis_valeur), "l'avis de valeur"]);
+  if(b.cout_par_mandat != null) r.push([eur(b.cout_par_mandat), 'le mandat']);
+  if(b.cout_par_recrutement != null) r.push([eur(b.cout_par_recrutement), 'le recrutement']);
+  const obj = (b.objectifs||[]).map(l=>{
+    const c = l.taux == null ? 'var(--slate)' : (l.taux >= 100 ? 'var(--green)' : 'var(--red)');
+    return `<div style="display:flex;justify-content:space-between;gap:12px;
+        border-bottom:1px solid #eee;padding:7px 0;font-size:13.5px">
+      <span>${esc(LIB_RES[l.cle]||l.cle)}</span>
+      <span><strong>${l.fait}</strong><span class="muted"> / ${l.vise} visé${l.vise>1?'s':''}</span>
+        ${l.taux!=null?` <span style="color:${c};font-weight:700">${l.taux} %</span>`:''}</span></div>`;
+  }).join('');
+  document.getElementById('bi-ratios').innerHTML =
+    (r.length ? `<h3>Ce que ça a coûté</h3><div class="kpi">`
+       + r.map(([v,l])=>`<div><b>${v}</b><span>par ${l}</span></div>`).join('') + `</div>` : '')
+    + (obj ? `<h3 style="margin-top:18px">Objectif et réalisé</h3>${obj}` : '');
+}
+
+function fichierEnBase64(input){
+  return new Promise((resolve, reject)=>{
+    const f = input && input.files && input.files[0];
+    if(!f) return resolve(null);
+    if(f.size > 10*1024*1024) return reject(new Error('Justificatif trop lourd (10 Mo maximum).'));
+    const fr = new FileReader();
+    fr.onload = ()=> resolve({nom: f.name, b64: String(fr.result).split(',')[1]});
+    fr.onerror = ()=> reject(new Error('Justificatif illisible.'));
+    fr.readAsDataURL(f);
+  });
+}
+
+async function ajouterDepense(btn){
+  const label = val('dp-label');
+  const montant = Number(val('dp-montant')||0);
+  if(!label){ msgBil4('Indiquez ce qui a été payé.', true); return; }
+  if(!(montant > 0)){ msgBil4('Indiquez un montant supérieur à zéro.', true); return; }
+  let f = null;
+  try{ f = await fichierEnBase64(document.getElementById('dp-fichier')); }
+  catch(e){ msgBil4(e.message, true); return; }
+  if(btn) btn.disabled = true;
+  try{
+    await api('/projets/'+FICHE.projet.id+'/depenses', {method:'POST', body: JSON.stringify({
+      label: label, amount_ttc: montant,
+      spent_on: val('dp-date') || null,
+      category: document.getElementById('dp-cat').value,
+      paid_by_email: document.getElementById('dp-avance').value || null,
+      entity: document.getElementById('dp-entite').value,
+      refund_status: document.getElementById('dp-statut').value,
+      note: val('dp-note') || null,
+      justificatif_nom: f ? f.nom : null,
+      justificatif_base64: f ? f.b64 : null,
+    })});
+  }catch(e){ msgBil4(e.message, true); if(btn) btn.disabled = false; return; }
+  if(btn) btn.disabled = false;
+  ['dp-label','dp-montant','dp-note'].forEach(id=>{ document.getElementById(id).value=''; });
+  document.getElementById('dp-fichier').value = '';
+  msgBil4('Dépense enregistrée.', false);
+  await chargerBilan();
+}
+
+async function changerRemboursement(did, statut){
+  try{
+    await api('/projets/'+FICHE.projet.id+'/depenses/'+did,
+              {method:'PATCH', body: JSON.stringify({refund_status: statut})});
+  }catch(e){ msgBil4(e.message, true); return; }
+  await chargerBilan();
+}
+
+async function supprimerDepense(did){
+  if(!confirm('Retirer cette dépense et son justificatif ?')) return;
+  try{ await api('/projets/'+FICHE.projet.id+'/depenses/'+did, {method:'DELETE'}); }
+  catch(e){ msgBil4(e.message, true); return; }
+  msgBil4('Dépense retirée.', false);
+  await chargerBilan();
+}
+
+async function voirJustificatif(did){
+  try{
+    const r = await api('/projets/'+FICHE.projet.id+'/depenses/'+did+'/justificatif');
+    window.open(r.url, '_blank', 'noopener');
+  }catch(e){ msgBil4(e.message, true); }
+}
+
+async function enregistrerResultats(cloturer, btn){
+  const corps = {};
+  (BILAN.cles_resultat||[]).forEach(k=>{
+    const e = document.getElementById('rs-'+k);
+    if(e) corps[k] = Number(e.value||0);
+  });
+  corps.commentaire = val('bi-commentaire') || null;
+  if(cloturer != null) corps.cloturer = cloturer;
+  if(btn) btn.disabled = true;
+  try{
+    await api('/projets/'+FICHE.projet.id+'/resultats', {method:'PATCH', body: JSON.stringify(corps)});
+  }catch(e){ msgBil4(e.message, true); if(btn) btn.disabled = false; return; }
+  if(btn) btn.disabled = false;
+  msgBil4(cloturer ? 'Bilan clôturé.' : 'Résultats enregistrés.', false);
+  if(cloturer != null){ await ouvrirFiche(FICHE.projet.id); setOnglet('bilan'); }
+  else await chargerBilan();
+}
+
+async function cloturerBilan(btn){
+  const ouvert = !(BILAN.resultats && BILAN.resultats.cloture);
+  if(ouvert && !confirm("Clôturer le bilan ? L'opération passera en « terminé ».")) return;
+  await enregistrerResultats(ouvert, btn);
 }
 
 
@@ -727,8 +978,9 @@ function setOnglet(t){
   document.querySelectorAll('#fi-tabs button').forEach(b=>b.classList.toggle('on', b.dataset.t===t));
   show('ong-equipe',t==='equipe'); show('ong-creneaux',t==='creneaux');
   show('ong-taches',t==='taches'); show('ong-fiche',t==='fiche');
-  show('ong-billetterie', t==='billetterie');
+  show('ong-billetterie', t==='billetterie'); show('ong-bilan', t==='bilan');
   if(t==='billetterie') chargerBilletterie();
+  if(t==='bilan') chargerBilan();
 }
 
 const LIB_OBJ = {contacts:'Contacts', avis_valeur:'Avis de valeur', mandats:'Mandats',
@@ -758,9 +1010,10 @@ function dessinerFiche(){
         ? `<div><b>${FICHE.stats_creneaux.pris}/${FICHE.stats_creneaux.places}</b><span>permanences pourvues</span></div>` : '')
     + obj;
 
-  BILLET = null;
+  BILLET = null; BILAN = null;
   const tabBil = document.getElementById('tab-billetterie');
   show('tab-billetterie', !!(FICHE.droits||{}).billetterie);
+  show('tab-bilan', !!(FICHE.droits||{}).bilan);
   // Un point sur l'onglet quand un événement est branché : David voit d'un coup
   // d'œil quelles opérations ont une billetterie, sans ouvrir l'onglet.
   if(tabBil) tabBil.textContent = p.event_id ? 'Billetterie ·' : 'Billetterie';
