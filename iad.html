@@ -134,6 +134,19 @@
     </div>
 
     <div class="badge-ok" id="okBadge">✓ Adresse iad vérifiée — choisissez votre forfait ci-dessous.</div>
+
+    <!-- Espace conseiller — visible dès que le compte est validé, forfait ou non -->
+    <div id="espaceBloc" style="display:none;margin-top:12px;padding:16px 18px;background:#E8F7FD;
+         border:1px solid #9fdcf3;border-radius:12px">
+      <div style="font-size:15px;font-weight:800;color:#0A3D52;margin-bottom:4px">Votre espace conseiller</div>
+      <p id="espaceTexte" style="margin:0 0 12px;font-size:13.5px;line-height:1.6;color:#0A3D52"></p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <a id="espaceLien" href="/mon-espace" style="display:none;background:#00B4EC;color:#fff;
+           text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:800;font-size:13.5px">Accéder à mon espace →</a>
+        <button id="espaceBtn" class="btn" style="display:none;max-width:260px">Créer mon espace</button>
+        <span id="espaceMsg" style="font-size:13px;color:#0A3D52;font-weight:600"></span>
+      </div>
+    </div>
     <div class="err" id="gateErr"></div>
 
     <!-- Message « en attente de validation » -->
@@ -267,6 +280,8 @@ const logoutEl  = document.getElementById('logout');
 const signupBlock = document.getElementById('signup-block');
 const signupNote  = document.getElementById('signup-note');
 
+let hasEspace = false;   // le conseiller a déjà choisi un mot de passe
+
 // État du parcours : 'none' → 'pending' (compte créé, attente admin) → 'validated' (peut acheter)
 let memberStatus = 'none';
 let hasPremium = false;
@@ -285,8 +300,9 @@ function doLogout(){
   signupBlock.style.display = '';
   if(signupNote) signupNote.style.display = '';
   emailEl.value = ''; nameEl.value = '';
-  memberStatus = 'none'; setPlansEnabled(false);
+  memberStatus = 'none'; hasEspace = false; setPlansEnabled(false);
   okBadge.style.display = 'none'; pendingMsg.style.display = 'none';
+  applyEspace();
   stepReq.style.display = 'block'; stepVer.style.display = 'none';
   btnReq.disabled = false; btnReq.textContent = 'Recevoir mon code de vérification';
   hideErr();
@@ -361,6 +377,7 @@ async function checkStatus(silent){
     const data = await r.json().catch(()=>({status:'none'}));
     memberStatus = data.status || 'none';
     hasPremium = !!data.has_premium;
+    hasEspace = !!data.has_espace;
   }catch(e){ if(!silent) showErr('Vérification impossible pour le moment.'); return; }
   applyStatus();
   applyPremiumFormation();
@@ -378,8 +395,50 @@ function applyPremiumFormation(){
   });
 }
 
+function applyEspace(){
+  const bloc = document.getElementById('espaceBloc');
+  const lien = document.getElementById('espaceLien');
+  const btn  = document.getElementById('espaceBtn');
+  const txt  = document.getElementById('espaceTexte');
+  if(!bloc) return;
+  if(memberStatus !== 'validated'){ bloc.style.display = 'none'; return; }
+  bloc.style.display = 'block';
+  if(hasEspace){
+    txt.textContent = "Vos réservations, vos crédits et vos factures y sont réunis.";
+    lien.style.display = 'inline-block';
+    btn.style.display = 'none';
+  }else{
+    txt.textContent = "Ouvrez-le dès maintenant en choisissant un mot de passe — "
+      + "aucun forfait n'est nécessaire. Vous choisirez votre formule quand vous en aurez l'usage.";
+    lien.style.display = 'none';
+    btn.style.display = 'inline-block';
+  }
+}
+
+async function demanderEspace(){
+  const btn = document.getElementById('espaceBtn');
+  const msg = document.getElementById('espaceMsg');
+  const email = emailEl.value.trim().toLowerCase();
+  if(!isIadEmail(email)) return;
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  msg.textContent = '';
+  try{
+    const r = await fetch(`${API}/iad/espace`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email})
+    });
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.detail || 'Envoi impossible.');
+    msg.textContent = data.message || 'Lien envoyé.';
+    if(data.deja_ouvert){ hasEspace = true; applyEspace(); }
+  }catch(e){ msg.textContent = e.message; }
+  finally{ btn.disabled = false; btn.textContent = old; }
+}
+
 function applyStatus(){
   hideErr();
+  applyEspace();
   if(memberStatus === 'validated'){
     // Débloqué : e-mail suffisant, on mémorise pour la prochaine fois.
     stepReq.style.display='none'; stepVer.style.display='none'; pendingMsg.style.display='none';
@@ -401,6 +460,7 @@ function applyStatus(){
   }
 }
 
+document.getElementById('espaceBtn').addEventListener('click', demanderEspace);
 btnReq.addEventListener('click', requestOtp);
 btnVer.addEventListener('click', verifyOtp);
 resendEl.addEventListener('click', (e)=>{ e.preventDefault(); stepVer.style.display='none'; stepReq.style.display='block'; btnReq.disabled=false; btnReq.textContent='Recevoir mon code de vérification'; requestOtp(); });
@@ -410,8 +470,9 @@ logoutEl && logoutEl.addEventListener('click', (e)=>{ e.preventDefault(); doLogo
 // À la saisie de l'e-mail : on interroge le statut (débloque direct si validé).
 let statusTimer = null;
 emailEl.addEventListener('input', ()=>{
-  memberStatus='none'; setPlansEnabled(false);
+  memberStatus='none'; hasEspace=false; setPlansEnabled(false);
   okBadge.style.display='none'; pendingMsg.style.display='none'; stepVer.style.display='none';
+  applyEspace();
   stepReq.style.display='block'; hideErr();
   btnReq.disabled=false; btnReq.textContent='Recevoir mon code de vérification';
   clearTimeout(statusTimer);
