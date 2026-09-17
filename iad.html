@@ -543,6 +543,22 @@ async function parVirement(plan, btn){
 document.querySelectorAll('button[data-virement]').forEach(b =>
   b.addEventListener('click', () => parVirement(b.dataset.virement, b)));
 
+// Invitation : /iad?inv=<jeton> — pré-remplit l'adresse du conseiller invité.
+// Le jeton ne donne aucun droit : la vérification par code reste obligatoire.
+(async function(){
+  const jeton = new URLSearchParams(location.search).get('inv');
+  if(!jeton) return;
+  try{
+    const r = await fetch(`${API}/iad/invitation/${encodeURIComponent(jeton)}`, {cache:'no-store'});
+    if(!r.ok) return;
+    const inv = await r.json();
+    if(!inv.valide || !inv.email) return;
+    // Si l'appareil est déjà rattaché à une autre adresse, on ne l'écrase pas.
+    if(emailEl && !emailEl.value) emailEl.value = inv.email;
+    if(nameEl && !nameEl.value && inv.name) nameEl.value = inv.name;
+  }catch(e){ /* lien d'invitation périmé : la page reste utilisable normalement */ }
+})();
+
 // Retour Stripe
 (function(){
   const st = new URLSearchParams(location.search).get('status');

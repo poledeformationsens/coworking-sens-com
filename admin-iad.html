@@ -19,7 +19,14 @@
   h2{font-family:'Playfair Display',serif;margin:0 0 4px;font-size:20px}
   .muted{color:var(--slate);font-size:13px}
   .toolbar{display:flex;gap:10px;align-items:center;margin:14px 0;flex-wrap:wrap}
-  input,select{padding:9px 12px;border:1px solid var(--light);border-radius:6px;font-family:inherit;font-size:14px;color:var(--navy)}
+  input,select,textarea{padding:9px 12px;border:1px solid var(--light);border-radius:6px;font-family:inherit;font-size:14px;color:var(--navy)}
+  textarea{width:100%;resize:vertical;line-height:1.5}
+  .b-inv{background:#E1F5FE;color:#01579B} .b-rel{background:#FFF3DB;color:#9A6B00}
+  .inv-ligne{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid #f0f0f0}
+  .inv-ligne:last-child{border-bottom:none}
+  .inv-mail{font-weight:600;font-size:14px} .inv-meta{font-size:12px;color:var(--slate)}
+  .bilan{border-radius:8px;padding:12px 14px;margin:12px 0;font-size:13.5px;line-height:1.6}
+  .bilan.ok{background:#E3F4EA;color:#1d5c3a} .bilan.warn{background:#FFF3DB;color:#7a5400}
   .btn{border:none;border-radius:7px;padding:9px 15px;font-weight:700;font-size:13px;cursor:pointer}
   .btn.val{background:var(--green);color:#fff} .btn.rej{background:#fff;color:var(--coral);border:1px solid #f3c2bc}
   .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--light)}
@@ -121,6 +128,30 @@
       <span id="msg"></span>
     </div>
     <div id="list"><div class="empty">Chargement…</div></div>
+  </div>
+
+  <div class="card" id="bloc-invitations">
+    <h2>✉️ Inviter des conseillers <span class="count" id="count-invit" style="display:none">0</span></h2>
+    <p class="muted">Une adresse <strong>@iadfrance.fr</strong> par ligne, ou séparées par des virgules.
+      Chaque conseiller reçoit les trois formules et un lien personnalisé vers <strong>/iad</strong>.
+      Réinviter quelqu'un relance son invitation : pas de doublon, pas de second lien.</p>
+
+    <label class="muted" for="inv-dest" style="display:block;margin-top:12px">Destinataires</label>
+    <textarea id="inv-dest" rows="3" placeholder="marion.bichambre@iadfrance.fr
+Théo Bachmann &lt;theo.bachmann@iadfrance.fr&gt;"></textarea>
+
+    <label class="muted" for="inv-mot" style="display:block;margin-top:10px">Mot personnel (facultatif)</label>
+    <textarea id="inv-mot" rows="2" placeholder="Repris en haut de l'e-mail, avant les formules."></textarea>
+
+    <div class="toolbar">
+      <button class="btn val" id="inv-envoyer" onclick="envoyerInvitations(this)">Envoyer les invitations</button>
+      <button class="btn ghost" id="inv-lien" onclick="copierLien(this)">🔗 Copier le lien d'inscription</button>
+      <button class="btn ghost" onclick="chargerInvitations()">↻ Rafraîchir</button>
+      <span id="inv-msg"></span>
+    </div>
+
+    <div id="inv-bilan"></div>
+    <div id="inv-liste"><div class="empty">Chargement…</div></div>
   </div>
 </div>
 
@@ -347,6 +378,141 @@ async function decide(email, decision, btn){
   }catch(err){ msg('Erreur : '+err.message); siblings.forEach(b=>b.disabled=false); btn.textContent=old; }
 }
 
+// ===== Inviter des conseillers =====
+let INVITATIONS = [];
+let LIEN_PUBLIC = '';
+
+function msgInv(t){
+  const m = document.getElementById('inv-msg');
+  m.textContent = t;
+  if(t) setTimeout(()=>{ if(m.textContent===t) m.textContent=''; }, 5000);
+}
+
+async function chargerInvitations(){
+  try{
+    const r = await fetch(`${API_BASE}/admin/iad/invitations`, {headers:HEADERS, cache:'no-store'});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||('Erreur '+r.status)); }
+    const data = await r.json();
+    INVITATIONS = data.invitations || [];
+    LIEN_PUBLIC = data.lien_public || '';
+    const c = document.getElementById('count-invit');
+    if(data.en_attente>0){ c.textContent = data.en_attente; c.style.display=''; } else { c.style.display='none'; }
+    rendreInvitations();
+  }catch(err){
+    document.getElementById('inv-liste').innerHTML =
+      `<div class="empty">Erreur de chargement : ${esc(err.message)}</div>`;
+  }
+}
+
+function rendreInvitations(){
+  const box = document.getElementById('inv-liste');
+  if(!INVITATIONS.length){
+    box.innerHTML = '<div class="empty">Aucune invitation envoyée pour le moment.</div>';
+    return;
+  }
+  box.innerHTML = INVITATIONS.map(inv => {
+    const inscrit = inv.statut === 'inscrite';
+    const badge = inscrit
+      ? '<span class="badge b-val">Inscrit</span>'
+      : (inv.relances > 0
+          ? `<span class="badge b-rel">Relancé ${inv.relances}×</span>`
+          : '<span class="badge b-inv">Invité</span>');
+    const quand = inscrit
+      ? `Inscrit le ${fmtDate(inv.registered_at)}`
+      : `Invité le ${fmtDate(inv.last_sent_at || inv.created_at)}`;
+    const actions = inscrit ? '' :
+      `<button class="btn ghost" onclick="relancerInvitation(${inv.id}, this)">Relancer</button>
+       <button class="btn rej" onclick="supprimerInvitation(${inv.id}, this)">Retirer</button>`;
+    return `<div class="inv-ligne">
+      <div style="flex:1;min-width:200px">
+        <div class="inv-mail">${esc(inv.name || inv.email)}</div>
+        <div class="inv-meta">${esc(inv.email)} · ${quand}</div>
+      </div>
+      <div>${badge}</div>
+      <div style="display:flex;gap:6px">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+function afficherBilan(data){
+  const box = document.getElementById('inv-bilan');
+  const parts = [];
+  if(data.envoyees.length) parts.push(`<strong>${data.envoyees.length}</strong> invitation(s) envoyée(s)`);
+  if(data.relancees.length) parts.push(`<strong>${data.relancees.length}</strong> relance(s)`);
+  let html = '';
+  if(parts.length) html += `<div class="bilan ok">✅ ${parts.join(' · ')}.</div>`;
+  if(data.ignorees.length){
+    const lignes = data.ignorees
+      .map(i => `<li>${esc(i.email)} — ${esc(i.raison)}</li>`).join('');
+    html += `<div class="bilan warn">Non envoyé (${data.ignorees.length}) :
+      <ul style="margin:6px 0 0;padding-left:18px">${lignes}</ul></div>`;
+  }
+  box.innerHTML = html;
+}
+
+async function envoyerInvitations(btn){
+  const dest = document.getElementById('inv-dest').value.trim();
+  if(!dest){ msgInv('Indiquez au moins une adresse.'); return; }
+  const mot = document.getElementById('inv-mot').value.trim();
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/iad/invitations`, {
+      method:'POST', headers:HEADERS,
+      body: JSON.stringify({destinataires: dest, message: mot || null})
+    });
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.detail || ('Erreur '+r.status));
+    afficherBilan(data);
+    // On ne vide le champ que si tout est parti : sinon David garde sous les yeux
+    // les adresses à corriger.
+    if(!data.ignorees.length){
+      document.getElementById('inv-dest').value = '';
+      document.getElementById('inv-mot').value = '';
+    }
+    await chargerInvitations();
+  }catch(err){ msgInv('Erreur : '+err.message); }
+  finally{ btn.disabled = false; btn.textContent = old; }
+}
+
+async function relancerInvitation(id, btn){
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = '…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/iad/invitations/${id}/relancer`, {method:'POST', headers:HEADERS});
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.detail || 'Erreur');
+    msgInv(`Relance envoyée à ${data.email}.`);
+    await chargerInvitations();
+  }catch(err){ msgInv('Erreur : '+err.message); btn.disabled=false; btn.textContent=old; }
+}
+
+async function supprimerInvitation(id, btn){
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = '…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/iad/invitations/${id}`, {method:'DELETE', headers:HEADERS});
+    if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
+    msgInv('Invitation retirée.');
+    await chargerInvitations();
+  }catch(err){ msgInv('Erreur : '+err.message); btn.disabled=false; btn.textContent=old; }
+}
+
+async function copierLien(btn){
+  const lien = LIEN_PUBLIC || (location.origin + '/iad');
+  const old = btn.textContent;
+  try{
+    await navigator.clipboard.writeText(lien);
+    btn.textContent = '✅ Lien copié';
+  }catch(e){
+    // Presse-papiers refusé (http, permission) : on montre le lien à copier à la main.
+    window.prompt('Lien d\'inscription des conseillers iad :', lien);
+    btn.textContent = old;
+    return;
+  }
+  setTimeout(()=>{ btn.textContent = old; }, 2200);
+}
+
 document.getElementById('filter').addEventListener('input', render);
 document.getElementById('filter-status').addEventListener('change', render);
 
@@ -357,6 +523,7 @@ document.getElementById('filter-status').addEventListener('change', render);
   TOKEN = s.token;
   HEADERS = {'Content-Type':'application/json','Authorization':`Bearer ${TOKEN}`};
   load();
+  chargerInvitations();
 })();
 </script>
 </body>
