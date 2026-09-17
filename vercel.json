@@ -150,6 +150,14 @@
     {
       "source": "/projet-planning/",
       "destination": "/projet-planning.html"
+    },
+    {
+      "source": "/admin-communication",
+      "destination": "/admin-communication.html"
+    },
+    {
+      "source": "/admin-communication/",
+      "destination": "/admin-communication.html"
     }
   ]
 }

@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Communication — Admin · L'Atelier du Coworking</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; --amber:#B8860B; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:'Inter',-apple-system,sans-serif;background:var(--cream);color:var(--navy)}
+  header{background:var(--navy);color:#fff;padding:16px 24px;display:flex;align-items:center;gap:16px}
+  header h1{font-family:'Playfair Display',serif;font-size:20px;margin:0}
+  nav{display:flex;gap:12px;margin-top:6px;flex-wrap:wrap}
+  nav a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px}
+  nav a.active{background:var(--gold);color:var(--navy);font-weight:600}
+  .wrap{max-width:1000px;margin:24px auto;padding:0 18px}
+  .card{background:#fff;border:1px solid var(--light);border-radius:12px;padding:20px;margin-bottom:20px}
+  .card h2{font-family:'Playfair Display',serif;margin:0 0 4px;font-size:18px}
+  .card .chapo{color:var(--slate);font-size:13px;margin:0 0 16px}
+  label{display:block;font-size:12.5px;color:var(--slate);margin:10px 0 4px}
+  input,select,textarea{width:100%;padding:9px 12px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:14px;color:var(--navy);background:#fff}
+  textarea{min-height:70px;resize:vertical;line-height:1.5}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+  .btn{background:var(--navy);color:#fff;border:none;border-radius:8px;padding:11px 18px;font-weight:700;font-size:14px;cursor:pointer;margin-top:14px}
+  .btn:hover{filter:brightness(1.12)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--light);padding:7px 13px;font-size:12.5px;margin:0}
+  .btn.gold{background:var(--gold);color:var(--navy)}
+  .btn.del{background:#fff;color:var(--red);border:1px solid var(--light);padding:7px 13px;font-size:12.5px;margin:0}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px 12px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee;vertical-align:top}
+  th{color:var(--slate);font-weight:600;font-size:12px;text-transform:uppercase}
+  td.n{text-align:right;white-space:nowrap}
+  .muted{color:var(--slate);font-size:12.5px}
+  .empty{padding:24px;text-align:center;color:var(--slate)}
+  .ok{color:var(--green);font-size:13px;display:none;margin-top:8px;font-weight:600}
+  .err{color:var(--red);font-size:13px;display:none;margin-top:8px;font-weight:600}
+  .kpi{display:flex;gap:14px;flex-wrap:wrap;margin:4px 0 0}
+  .kpi>div{background:var(--cream);border:1px solid var(--light);border-radius:10px;padding:12px 16px;min-width:110px}
+  .kpi b{display:block;font-size:21px;font-family:'Playfair Display',serif}
+  .kpi span{font-size:11.5px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em}
+  .chip{display:inline-block;font-size:11px;font-weight:700;padding:3px 9px;border-radius:99px;background:var(--cream);color:var(--slate)}
+  .chip.goog{background:#E8F0FE;color:#1A56C4}
+  .chip.main{background:#FFF4E0;color:var(--amber)}
+  .chip.off{background:#F1EEE8;color:var(--slate)}
+  .etoiles{color:var(--gold);letter-spacing:2px;font-size:15px}
+  .qrbloc{display:flex;gap:22px;flex-wrap:wrap;align-items:flex-start}
+  .qrbloc .cadre{background:#fff;border:1px solid var(--light);border-radius:12px;padding:12px;line-height:0}
+  .qrbloc .cadre img{width:190px;height:190px;display:block}
+  .modeles{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+  .modele{border:1px solid var(--light);border-radius:10px;padding:14px;background:var(--cream)}
+  .modele h3{margin:0 0 2px;font-size:14px}
+  .modele .objet{font-size:12.5px;color:var(--slate);margin:0 0 8px}
+  .modele pre{white-space:pre-wrap;font-family:inherit;font-size:12.5px;line-height:1.55;background:#fff;border:1px solid var(--light);border-radius:8px;padding:10px;margin:0 0 10px;max-height:210px;overflow:auto}
+  .supports{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+  .support{border:1px solid var(--light);border-radius:10px;padding:14px;background:var(--cream);display:flex;flex-direction:column;gap:8px}
+  .support strong{font-size:13.5px}
+  .visuels{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+  .visuel{border:1px solid var(--light);border-radius:10px;padding:12px;background:var(--cream)}
+  .visuel .apercu{background:#fff;border:1px solid var(--light);border-radius:8px;overflow:hidden;margin-bottom:8px;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+  .visuel .apercu img{width:100%;height:100%;object-fit:contain}
+  .visuel.story .apercu{aspect-ratio:9/16}
+  .bandeau{display:flex;align-items:center;gap:10px;background:var(--cream);border:1px solid var(--light);border-radius:10px;padding:12px 14px;margin-bottom:14px}
+  .bandeau input[type=checkbox]{width:auto;margin:0}
+  #login{position:fixed;inset:0;background:var(--navy);display:none;align-items:center;justify-content:center;z-index:100}
+  #login .box{background:#fff;border-radius:12px;padding:28px;width:330px;text-align:center}
+</style>
+<style>/* ACW-RESPONSIVE */
+@media (max-width:820px){
+  html,body{overflow-x:hidden !important;max-width:100vw !important}
+  header{flex-wrap:wrap !important;padding:12px 14px !important;gap:8px !important}
+  header > div{min-width:0 !important;max-width:100% !important}
+  header > div > div{min-width:0 !important;max-width:100% !important}
+  header h1{font-size:17px !important}
+  header img{width:90px !important;height:90px !important}
+  nav{display:flex !important;gap:6px !important;flex-wrap:nowrap !important;overflow-x:auto !important;width:100% !important;max-width:100% !important;-webkit-overflow-scrolling:touch;padding-bottom:4px;margin-top:8px !important}
+  nav a{white-space:nowrap !important;flex:0 0 auto !important;font-size:12px !important;padding:6px 10px !important}
+  .wrap{padding:0 12px !important;margin:16px auto !important;max-width:100% !important}
+  .card{padding:14px !important;overflow-x:auto;max-width:100%}
+  .grid,.kpis{grid-template-columns:repeat(2,1fr) !important}
+  .modal-grid{grid-template-columns:1fr !important}
+  .toolbar{flex-wrap:wrap !important}
+  .toolbar input,.toolbar select,.toolbar .chip{flex:1 1 100% !important;width:100% !important}
+  .row-card{flex-wrap:wrap !important;gap:6px 12px !important;padding:12px 14px !important}
+  .row-card .name{flex:1 1 100% !important;min-width:0 !important;font-size:14px !important}
+  .row-card .meta{min-width:0 !important;flex:1 1 auto !important;text-align:left !important;font-size:13px !important}
+  .row-card .amt{min-width:0 !important;flex:0 0 auto !important;margin-left:auto !important;font-size:15px !important}
+  .row-card .bar{flex:1 1 100% !important}
+  .export-card{padding:14px !important}
+  .podium-row .who{min-width:0 !important}
+  table.tbl-cards,table.tbl-cards tbody{display:block !important;width:100% !important;min-width:0 !important}
+  table.tbl-cards thead{display:none !important}
+  table.tbl-cards tr{display:block !important;border:1px solid var(--light,#E5DDCB) !important;border-radius:10px !important;padding:8px 14px !important;margin-bottom:10px !important;background:#fff !important}
+  table.tbl-cards td{display:block !important;padding:6px 0 !important;border:none !important;border-bottom:1px solid #f3efe6 !important;text-align:left !important;font-size:13.5px !important;min-width:0 !important}
+  table.tbl-cards td:last-child{border-bottom:none !important}
+  table.tbl-cards td::before{content:attr(data-label);display:block;font-weight:700;color:var(--slate,#5A6A85);font-size:10px;text-transform:uppercase;letter-spacing:.04em;margin-bottom:2px}
+  table.tbl-cards td[data-label=""]::before,table.tbl-cards td:not([data-label])::before{content:none}
+  .fc,.fc table,.fc-scrollgrid,.fc-scrollgrid table,.fc .fc-view-harness{min-width:0 !important;width:100% !important;max-width:100% !important}
+  .fc .fc-daygrid-day-number{font-size:12px}
+  .fc .fc-daygrid-event{font-size:9.5px !important;padding:1px 3px !important}
+  .modal,.modal-box,.box{max-width:94vw !important;width:94vw !important}
+  h1,h2,.h1{font-size:20px !important}
+  .fc .fc-toolbar.fc-header-toolbar{flex-direction:column;gap:8px;align-items:stretch}
+  .fc-toolbar-title{font-size:18px !important}
+  .fc .fc-toolbar-chunk{display:flex;justify-content:center;flex-wrap:wrap;gap:4px}
+}
+@media (max-width:480px){
+  .grid,.kpis{grid-template-columns:1fr !important}
+  nav a{font-size:11px !important;padding:5px 8px !important}
+  header h1{font-size:16px !important}
+}
+</style></head>
+<body>
+
+<div id="login"><div class="box">
+  <h2 style="font-family:'Playfair Display',serif;color:var(--navy)">Admin — Communication</h2>
+  <p class="muted">Session admin requise.</p>
+  <a class="btn" href="admin-devis-dashboard.html" style="text-decoration:none;display:inline-block;margin-top:10px">Se connecter sur le dashboard</a>
+</div></div>
+
+<header>
+  <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="132" height="132">
+  <div>
+    <h1>L'Atelier du Coworking</h1>
+    <nav>
+      <a href="admin-devis-dashboard.html">🏠 Menu</a>
+      <a href="admin-hub.html">✨ Hub</a>
+      <a href="admin-calendar.html">📅 Calendrier</a>
+      <a href="admin-evenements.html">🎉 Événements</a>
+      <a href="admin-projets.html">🗂️ Projets</a>
+      <a href="admin-communication.html" class="active">📣 Communication</a>
+      <a href="admin-clients.html">👤 Clients</a>
+      <a href="admin-stats.html">📊 Statistiques</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ====================== 1. LE KIT AVIS GOOGLE ====================== -->
+  <div class="card">
+    <h2>Le kit avis Google</h2>
+    <p class="chapo">Le lien, le QR code à poser sur le bureau d'accueil, et le compte
+      des clics — pour savoir si l'affichette sert vraiment à quelque chose.</p>
+
+    <div class="grid">
+      <div>
+        <label for="r-lien">Lien « laissez un avis »</label>
+        <input id="r-lien" placeholder="https://g.page/r/…/review">
+      </div>
+      <div>
+        <label for="r-fiche">Lien de la fiche Google (voir tous les avis)</label>
+        <input id="r-fiche" placeholder="https://maps.google.com/?cid=…">
+      </div>
+      <div>
+        <label for="r-place">Identifiant de la fiche (pour la synchronisation)</label>
+        <input id="r-place" placeholder="ChIJ…">
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+      <button class="btn" onclick="enregistrerReglages(this)">Enregistrer</button>
+      <button class="btn ghost" style="margin-top:14px" onclick="ouvrirAide()">Où trouver ces liens ?</button>
+    </div>
+    <div id="aide" style="display:none;margin-top:12px" class="muted">
+      <strong>Le lien d'avis :</strong> dans votre fiche d'établissement Google, bouton
+      « Demander des avis » — Google vous donne un lien court en <code>g.page/r/…</code>.<br>
+      <strong>L'identifiant de fiche :</strong> nécessaire seulement pour la synchronisation
+      automatique. Il commence par <code>ChIJ</code> et se trouve avec l'outil
+      « Place ID Finder » de Google.
+    </div>
+    <div class="ok" id="r-ok"></div>
+    <div class="err" id="r-err"></div>
+
+    <div class="qrbloc" style="margin-top:20px">
+      <div>
+        <div class="cadre"><img id="qr-img" alt="QR code du lien d'avis"></div>
+        <div id="qr-absent" class="muted" style="display:none;max-width:190px">
+          Renseignez le lien d'avis : le QR apparaîtra ici.
+        </div>
+      </div>
+      <div style="flex:1;min-width:240px">
+        <div class="kpi" id="kpi-clics"></div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+          <button class="btn ghost" onclick="telechargerQR('png')">QR en PNG</button>
+          <button class="btn ghost" onclick="telechargerQR('svg')">QR en SVG</button>
+          <button class="btn ghost" onclick="ouvrirPdf('affichette-avis')">Affichette A5 à imprimer</button>
+          <button class="btn ghost" onclick="testerLien()">Ouvrir le lien d'avis</button>
+        </div>
+        <p class="muted" style="margin-top:12px">L'affichette A5 se pose telle quelle sur le
+          comptoir : le QR, une phrase, et vos coordonnées en bas.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================== 2. LES AVIS PUBLIÉS ====================== -->
+  <div class="card">
+    <h2>Les avis affichés sur le site</h2>
+    <p class="chapo">Ce que voient les visiteurs de la page d'accueil. Vous décidez de
+      chaque avis affiché, de son ordre, et vous pouvez en masquer un sans le supprimer.</p>
+
+    <div class="bandeau">
+      <input type="checkbox" id="r-actifs" onchange="basculerBandeau(this)">
+      <label for="r-actifs" style="margin:0;font-size:13.5px;color:var(--navy)">
+        Afficher le bandeau d'avis sur la page d'accueil</label>
+      <span class="muted" id="etat-bandeau" style="margin-left:auto"></span>
+    </div>
+
+    <div class="kpi" id="kpi-avis" style="margin-bottom:16px"></div>
+
+    <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <button class="btn ghost" id="btn-synchro" onclick="synchroniser(this)">↻ Synchroniser depuis Google</button>
+      <span class="muted" id="etat-synchro" style="align-self:center"></span>
+    </div>
+
+    <table>
+      <thead><tr><th>Avis</th><th>Note</th><th>Origine</th><th>Ordre</th><th></th></tr></thead>
+      <tbody id="tb-avis"></tbody>
+    </table>
+
+    <div style="border-top:1px solid #eee;margin-top:18px;padding-top:14px">
+      <h3 style="font-size:15px;margin:0 0 4px">Ajouter un avis à la main</h3>
+      <p class="muted" style="margin:0 0 10px">Recopiez un avis reçu sur votre fiche Google,
+        ou saisissez un témoignage reçu autrement — il sera étiqueté comme tel.</p>
+      <div class="grid">
+        <div><label for="a-nom">Auteur</label><input id="a-nom" placeholder="Clément B."></div>
+        <div><label for="a-note">Note</label>
+          <select id="a-note">
+            <option value="5">★★★★★ — 5</option><option value="4">★★★★ — 4</option>
+            <option value="3">★★★ — 3</option><option value="2">★★ — 2</option>
+            <option value="1">★ — 1</option>
+          </select></div>
+        <div><label for="a-date">Date</label><input id="a-date" type="date"></div>
+        <div><label for="a-source">Origine</label>
+          <select id="a-source">
+            <option value="google">Recopié de ma fiche Google</option>
+            <option value="manuel">Témoignage reçu autrement</option>
+          </select></div>
+        <div><label for="a-lien">Lien vers l'avis (optionnel)</label><input id="a-lien" placeholder="https://maps.google.com/…"></div>
+      </div>
+      <label for="a-texte">Texte de l'avis</label>
+      <textarea id="a-texte" placeholder="Endroit calme, accueil au top, je reviendrai."></textarea>
+      <button class="btn" onclick="ajouterAvis(this)">Ajouter l'avis</button>
+      <div class="ok" id="a-ok"></div>
+      <div class="err" id="a-err"></div>
+    </div>
+  </div>
+
+  <!-- ====================== 3. LES MODÈLES ====================== -->
+  <div class="card">
+    <h2>Demander un avis</h2>
+    <p class="chapo">Textes prêts à envoyer, avec votre lien déjà dedans.
+      <code>{prenom}</code> se remplace par le prénom du client.</p>
+    <div class="modeles" id="liste-modeles"></div>
+  </div>
+
+  <!-- ====================== 4. SUPPORTS IMPRIMABLES ====================== -->
+  <div class="card">
+    <h2>Affiches et flyers</h2>
+    <p class="chapo">PDF prêts à imprimer, à la charte de la maison. Le QR d'avis figure
+      discrètement en bas de chaque affiche.</p>
+    <div class="supports" id="liste-supports"></div>
+  </div>
+
+  <!-- ====================== 5. RÉSEAUX SOCIAUX ====================== -->
+  <div class="card">
+    <h2>Kit réseaux sociaux</h2>
+    <p class="chapo">Visuels au carré et en story, avec le texte d'accompagnement à copier.
+      Le SVG s'ouvre dans Canva si vous voulez le retoucher.</p>
+    <div class="visuels" id="liste-visuels"></div>
+  </div>
+
+</div>
+
+<script>
+const API = '/api/coworking';
+const STORAGE_KEY = 'cw_admin_session';
+let HEADERS = {'Content-Type':'application/json'};
+let DATA = null;
+
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function show(id,on){ const e=document.getElementById(id); if(e) e.style.display = on?'':'none'; }
+function val(id){ const e=document.getElementById(id); return e? e.value.trim() : ''; }
+function flash(id,msg,ms){ const e=document.getElementById(id); if(!e) return;
+  e.textContent=msg; e.style.display='block'; clearTimeout(e._t);
+  e._t=setTimeout(()=>{e.style.display='none';}, ms||4000); }
+function etoiles(n){ return '★'.repeat(n) + '☆'.repeat(5-n); }
+
+function getSession(){
+  try{ const s=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null');
+    if(s && s.expires && s.expires < Date.now()) return null;
+    return s; }catch(e){ return null; }
+}
+
+async function api(url, opt){
+  const r = await fetch(API+url, Object.assign({headers:HEADERS, cache:'no-store'}, opt||{}));
+  if(r.status===401||r.status===403){ document.getElementById('login').style.display='flex';
+    throw new Error('Session admin expirée'); }
+  let d=null; try{ d=await r.json(); }catch(e){}
+  if(!r.ok) throw new Error((d&&d.detail)||('Erreur '+r.status));
+  return d;
+}
+
+// Les PDF et visuels demandent le jeton : on passe par un blob plutôt que par
+// un <img src> ou un lien direct, qui n'emporteraient pas l'en-tête.
+async function blobAuth(url){
+  const r = await fetch(API+url, {headers:{'Authorization':HEADERS['Authorization']}, cache:'no-store'});
+  if(!r.ok) throw new Error('Erreur '+r.status);
+  return await r.blob();
+}
+
+// ============================ Chargement ============================
+async function charger(){
+  DATA = await api('/communication');
+  dessinerReglages();
+  dessinerAvis();
+  dessinerModeles();
+  dessinerSupports();
+  dessinerVisuels();
+}
+
+function dessinerReglages(){
+  const r = DATA.reglages;
+  document.getElementById('r-lien').value  = r.google_review_url || '';
+  document.getElementById('r-fiche').value = r.google_maps_url || '';
+  document.getElementById('r-place').value = r.google_place_id || '';
+  document.getElementById('r-actifs').checked = !!r.avis_actifs;
+  document.getElementById('etat-bandeau').textContent =
+    r.avis_actifs ? 'Visible par les visiteurs' : 'Masqué pour le moment';
+
+  // QR (endpoint public : un <img> suffit)
+  const img = document.getElementById('qr-img');
+  show('qr-absent', !DATA.qr_disponible);
+  img.style.display = DATA.qr_disponible ? '' : 'none';
+  if(DATA.qr_disponible) img.src = API + '/communication/qr.svg?taille=380&_=' + Date.now();
+
+  const c = DATA.clics || {par_support:{}};
+  document.getElementById('kpi-clics').innerHTML =
+      `<div><b>${c.total||0}</b><span>clics en tout</span></div>`
+    + `<div><b>${c['30_jours']||0}</b><span>ces 30 jours</span></div>`
+    + `<div><b>${(c.par_support||{})['qr-comptoir']||0}</b><span>par le QR</span></div>`
+    + `<div><b>${(c.par_support||{})['email']||0}</b><span>par e-mail</span></div>`;
+
+  // Synchronisation
+  const btn = document.getElementById('btn-synchro');
+  const etat = document.getElementById('etat-synchro');
+  btn.disabled = !DATA.synchro_google_possible;
+  if(!DATA.synchro_google_possible){
+    etat.textContent = "La clé Google Places n'est pas configurée sur le serveur — "
+      + "la saisie à la main prend le relais.";
+  } else if(r.derniere_synchro){
+    const d = new Date(r.derniere_synchro);
+    etat.textContent = 'Dernière synchronisation le ' + d.toLocaleDateString('fr-FR')
+      + ' à ' + d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})
+      + ' — Google ne renvoie que 5 avis.';
+  } else {
+    etat.textContent = 'Jamais synchronisé. Google ne renvoie que les 5 avis les plus pertinents.';
+  }
+}
+
+function dessinerAvis(){
+  const r = DATA.reglages;
+  const note = r.note_moyenne || DATA.moyenne_affichee;
+  document.getElementById('kpi-avis').innerHTML =
+      (note ? `<div><b>${note.toLocaleString('fr-FR',{minimumFractionDigits:1})}</b><span>note moyenne</span></div>` : '')
+    + `<div><b>${DATA.nb_visibles}</b><span>affichés sur le site</span></div>`
+    + `<div><b>${DATA.avis.length}</b><span>enregistrés</span></div>`
+    + (r.nb_avis_google ? `<div><b>${r.nb_avis_google}</b><span>sur Google</span></div>` : '');
+
+  const rows = (DATA.avis||[]).map(a=>{
+    const origine = a.source==='google'
+      ? '<span class="chip goog">Google</span>'
+      : '<span class="chip main">Saisi</span>';
+    const quand = a.relative_time || (a.published_at
+      ? new Date(a.published_at+'T00:00:00').toLocaleDateString('fr-FR') : '');
+    return `<tr>
+      <td><strong>${esc(a.author_name)}</strong>
+        ${a.visible?'':' <span class="chip off">masqué</span>'}
+        ${quand?`<div class="muted">${esc(quand)}</div>`:''}
+        ${a.text?`<div style="margin-top:4px;font-size:13px">${esc(a.text)}</div>`:''}</td>
+      <td><span class="etoiles">${etoiles(a.rating)}</span></td>
+      <td>${origine}</td>
+      <td class="n"><input type="number" value="${a.position}" style="width:70px;padding:5px 7px;font-size:12.5px"
+            onchange="changerOrdre(${a.id}, this.value)"></td>
+      <td class="n">
+        <button class="btn ghost" onclick="basculerVisible(${a.id}, ${a.visible?'false':'true'})">${a.visible?'Masquer':'Afficher'}</button>
+        <button class="btn del" onclick="supprimerAvis(${a.id})">Retirer</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('tb-avis').innerHTML = rows ||
+    `<tr><td colspan="5" class="empty">Aucun avis enregistré pour le moment.</td></tr>`;
+}
+
+function dessinerModeles(){
+  document.getElementById('liste-modeles').innerHTML = (DATA.modeles||[]).map((m,i)=>{
+    const canal = m.canal==='email' ? '✉️ E-mail' : (m.canal==='sms' ? '💬 SMS' : '🟢 WhatsApp');
+    const actions = m.canal==='email'
+      ? `<button class="btn ghost" onclick="copier(${i})">Copier le texte</button>
+         <button class="btn ghost" onclick="ouvrirMail(${i})">Ouvrir dans le mail</button>`
+      : `<button class="btn ghost" onclick="copier(${i})">Copier le texte</button>
+         <button class="btn ghost" onclick="ouvrirSms(${i})">Ouvrir dans les messages</button>`;
+    return `<div class="modele">
+      <h3>${esc(m.titre)}</h3>
+      <p class="objet">${canal}${m.objet?' · '+esc(m.objet):''}</p>
+      <pre id="mod-${i}">${esc(m.corps)}</pre>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${actions}</div>
+    </div>`;
+  }).join('');
+}
+
+function dessinerSupports(){
+  document.getElementById('liste-supports').innerHTML = (DATA.supports||[]).map(s=>
+    `<div class="support"><strong>${esc(s.titre)}</strong>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:auto">
+        <button class="btn ghost" onclick="ouvrirPdf('${esc(s.cle)}')">Ouvrir</button>
+        <button class="btn ghost" onclick="telechargerPdf('${esc(s.cle)}')">Télécharger</button>
+      </div></div>`).join('');
+}
+
+function dessinerVisuels(){
+  document.getElementById('liste-visuels').innerHTML = (DATA.visuels||[]).map((v,i)=>
+    `<div class="visuel${v.cle.endsWith('story')?' story':''}">
+      <div class="apercu"><img id="vis-${esc(v.cle)}" alt="${esc(v.titre)}"></div>
+      <strong style="font-size:13px">${esc(v.titre)}</strong>
+      ${v.texte?`<pre style="white-space:pre-wrap;font-family:inherit;font-size:12px;line-height:1.5;
+         background:#fff;border:1px solid var(--light);border-radius:8px;padding:8px;margin:8px 0;
+         max-height:120px;overflow:auto" id="txt-${i}">${esc(v.texte)}</pre>`:''}
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn ghost" onclick="telechargerVisuel('${esc(v.cle)}')">Télécharger</button>
+        ${v.texte?`<button class="btn ghost" onclick="copierTexte(${i})">Copier le texte</button>`:''}
+      </div></div>`).join('');
+  (DATA.visuels||[]).forEach(v=>chargerApercu(v.cle));
+}
+
+async function chargerApercu(cle){
+  try{
+    const b = await blobAuth('/communication/visuel/'+cle+'.svg');
+    const el = document.getElementById('vis-'+cle);
+    if(el) el.src = URL.createObjectURL(b);
+  }catch(e){ /* l'aperçu est un confort, pas un bloquant */ }
+}
+
+// ============================ Actions ============================
+function ouvrirAide(){ const a=document.getElementById('aide');
+  a.style.display = a.style.display==='none' ? 'block' : 'none'; }
+
+async function enregistrerReglages(btn){
+  btn.disabled = true;
+  try{
+    await api('/communication/reglages', {method:'PATCH', body: JSON.stringify({
+      google_review_url: val('r-lien') || null,
+      google_maps_url: val('r-fiche') || null,
+      google_place_id: val('r-place') || null,
+    })});
+  }catch(e){ flash('r-err', e.message, 6000); btn.disabled=false; return; }
+  btn.disabled = false;
+  flash('r-ok', 'Enregistré.');
+  await charger();
+}
+
+async function basculerBandeau(cb){
+  try{
+    await api('/communication/reglages', {method:'PATCH',
+      body: JSON.stringify({avis_actifs: cb.checked})});
+  }catch(e){ flash('r-err', e.message, 6000); cb.checked = !cb.checked; return; }
+  document.getElementById('etat-bandeau').textContent =
+    cb.checked ? 'Visible par les visiteurs' : 'Masqué pour le moment';
+}
+
+async function ajouterAvis(btn){
+  const nom = val('a-nom');
+  if(!nom){ flash('a-err', "Indiquez le nom de l'auteur.", 5000); return; }
+  btn.disabled = true;
+  try{
+    await api('/communication/avis', {method:'POST', body: JSON.stringify({
+      author_name: nom,
+      rating: Number(document.getElementById('a-note').value||5),
+      text: val('a-texte') || null,
+      published_at: val('a-date') || null,
+      profile_url: val('a-lien') || null,
+      source: document.getElementById('a-source').value,
+    })});
+  }catch(e){ flash('a-err', e.message, 6000); btn.disabled=false; return; }
+  btn.disabled = false;
+  ['a-nom','a-texte','a-date','a-lien'].forEach(id=>{ document.getElementById(id).value=''; });
+  flash('a-ok', 'Avis ajouté.');
+  await charger();
+}
+
+async function basculerVisible(rid, visible){
+  try{ await api('/communication/avis/'+rid, {method:'PATCH',
+        body: JSON.stringify({visible: visible})}); }
+  catch(e){ alert(e.message); return; }
+  await charger();
+}
+
+async function changerOrdre(rid, position){
+  try{ await api('/communication/avis/'+rid, {method:'PATCH',
+        body: JSON.stringify({position: Number(position||0)})}); }
+  catch(e){ alert(e.message); return; }
+  await charger();
+}
+
+async function supprimerAvis(rid){
+  if(!confirm('Retirer cet avis ? Il disparaîtra du site.')) return;
+  try{ await api('/communication/avis/'+rid, {method:'DELETE'}); }
+  catch(e){ alert(e.message); return; }
+  await charger();
+}
+
+async function synchroniser(btn){
+  btn.disabled = true;
+  const etat = document.getElementById('etat-synchro');
+  etat.textContent = 'Interrogation de Google…';
+  let r;
+  try{ r = await api('/communication/avis/synchroniser', {method:'POST'}); }
+  catch(e){ etat.textContent = e.message; btn.disabled = false; return; }
+  btn.disabled = false;
+  etat.textContent = r.importes + ' avis remonté' + (r.importes>1?'s':'')
+    + (r.note_moyenne ? ' · note ' + r.note_moyenne : '')
+    + ' — Google n\'en renvoie que 5.';
+  await charger();
+}
+
+function testerLien(){
+  const lien = val('r-lien');
+  if(!lien){ flash('r-err', "Renseignez d'abord le lien d'avis.", 5000); return; }
+  fetch(API+'/communication/clic', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({support:'avis-google', canal:'admin'})}).catch(()=>{});
+  window.open(lien, '_blank', 'noopener');
+}
+
+// --- QR : le SVG vient du serveur, le PNG est rendu ici pour Instagram & co.
+async function telechargerQR(format){
+  if(!DATA.qr_disponible){ flash('r-err', "Renseignez d'abord le lien d'avis.", 5000); return; }
+  const url = API + '/communication/qr.svg?taille=1024';
+  const svg = await fetch(url, {cache:'no-store'}).then(r=>r.text());
+  if(format === 'svg'){
+    telecharger(new Blob([svg], {type:'image/svg+xml'}), 'qr-avis-google.svg');
+    return;
+  }
+  const img = new Image();
+  const blobSvg = new Blob([svg], {type:'image/svg+xml;charset=utf-8'});
+  const src = URL.createObjectURL(blobSvg);
+  img.onload = ()=>{
+    const c = document.createElement('canvas');
+    c.width = 1024; c.height = 1024;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#FFFFFF'; ctx.fillRect(0,0,1024,1024);
+    ctx.drawImage(img, 0, 0, 1024, 1024);
+    URL.revokeObjectURL(src);
+    c.toBlob(b => telecharger(b, 'qr-avis-google.png'), 'image/png');
+  };
+  img.onerror = ()=>{ URL.revokeObjectURL(src);
+    flash('r-err', "Le PNG n'a pas pu être produit — le SVG reste disponible.", 6000); };
+  img.src = src;
+}
+
+function telecharger(blob, nom){
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nom;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+async function ouvrirPdf(cle){
+  try{
+    const b = await blobAuth('/communication/support/'+cle+'.pdf');
+    window.open(URL.createObjectURL(b), '_blank', 'noopener');
+  }catch(e){ flash('r-err', e.message, 6000); }
+}
+
+async function telechargerPdf(cle){
+  try{ telecharger(await blobAuth('/communication/support/'+cle+'.pdf'), cle+'.pdf'); }
+  catch(e){ flash('r-err', e.message, 6000); }
+}
+
+async function telechargerVisuel(cle){
+  try{ telecharger(await blobAuth('/communication/visuel/'+cle+'.svg'), cle+'.svg'); }
+  catch(e){ flash('r-err', e.message, 6000); }
+}
+
+function copier(i){
+  const m = DATA.modeles[i];
+  const texte = (m.objet ? m.objet + '\n\n' : '') + m.corps;
+  navigator.clipboard.writeText(texte).then(
+    ()=>flash('r-ok', 'Texte copié.'),
+    ()=>alert('Copie impossible — sélectionnez le texte à la main.'));
+}
+
+function copierTexte(i){
+  const v = DATA.visuels[i];
+  navigator.clipboard.writeText(v.texte).then(
+    ()=>flash('r-ok', 'Texte copié.'),
+    ()=>alert('Copie impossible — sélectionnez le texte à la main.'));
+}
+
+function ouvrirMail(i){
+  const m = DATA.modeles[i];
+  fetch(API+'/communication/clic', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({support:'email', canal:'admin'})}).catch(()=>{});
+  window.location.href = 'mailto:?subject=' + encodeURIComponent(m.objet||'')
+    + '&body=' + encodeURIComponent(m.corps);
+}
+
+function ouvrirSms(i){
+  const m = DATA.modeles[i];
+  fetch(API+'/communication/clic', {method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({support:'sms', canal:'admin'})}).catch(()=>{});
+  window.location.href = 'sms:?&body=' + encodeURIComponent(m.corps);
+}
+
+// ============================ Démarrage ============================
+(async function(){
+  const s = getSession();
+  if(!s || !s.token){ document.getElementById('login').style.display='flex'; return; }
+  HEADERS = {'Content-Type':'application/json','Authorization':'Bearer '+s.token};
+  try{ await charger(); }
+  catch(e){ console.warn(e); }
+})();
+</script>
+</body>
+</html>

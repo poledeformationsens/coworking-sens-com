@@ -33,6 +33,23 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
 .step.active{display:block}
 
 .grid-spaces{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;margin-top:10px}
+/* ---- Bandeau d'avis Google (étape 1) ---- */
+.avis-bloc{margin-top:26px;padding-top:22px;border-top:1px solid rgba(255,255,255,.14);display:none}
+.avis-tete{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.avis-note{font-size:26px;font-weight:800;color:#FFFFFF;line-height:1}
+.avis-etoiles{color:var(--gold);letter-spacing:2px;font-size:16px}
+.avis-compte{font-size:12.5px;color:rgba(255,255,255,.72)}
+.avis-compte a{color:var(--gold);text-decoration:none}
+.avis-compte a:hover{text-decoration:underline}
+.avis-liste{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px}
+.avis-carte{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:10px;padding:14px}
+.avis-carte .haut{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+.avis-carte .rond{width:30px;height:30px;border-radius:50%;background:var(--gold);color:var(--navy);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;flex:0 0 auto;background-size:cover;background-position:center}
+.avis-carte .qui{font-size:13px;font-weight:700;color:#FFFFFF;line-height:1.2}
+.avis-carte .quand{font-size:11px;color:rgba(255,255,255,.6)}
+.avis-carte .txt{font-size:12.5px;line-height:1.55;color:rgba(255,255,255,.88)}
+.avis-carte .mini{color:var(--gold);font-size:12px;letter-spacing:1px;margin-bottom:6px}
+@media (max-width:520px){ .avis-liste{grid-template-columns:1fr} }
 .card{position:relative;background:var(--cream);border-radius:8px;cursor:pointer;border:2px solid transparent;transition:.15s;color:#03234D;overflow:hidden;display:flex;flex-direction:column}
 .card:hover{border-color:var(--gold)}
 .card.selected{background:var(--gold);border-color:#8E764A}
@@ -215,6 +232,16 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
         <div class="card-photo" style="background-image:url('https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@10df05b/Privatisation.jpg')"></div>
         <div class="card-body"><div class="card-name">Privatisation</div><div class="card-sub">Atelier complet · événements & formations</div><div class="card-price">Sur devis</div></div>
       </div>
+    </div>
+
+    <!-- Ce qu'en disent ceux qui sont venus. Alimenté depuis l'admin. -->
+    <div class="avis-bloc" id="avis-bloc">
+      <div class="avis-tete">
+        <span class="avis-note" id="avis-note"></span>
+        <span class="avis-etoiles" id="avis-etoiles"></span>
+        <span class="avis-compte" id="avis-compte"></span>
+      </div>
+      <div class="avis-liste" id="avis-liste"></div>
     </div>
   </div>
 
@@ -1142,6 +1169,50 @@ let lastBookingSnapshot = null;
     return;
   }
   goStep(1);
+})();
+
+/* ---------------- Avis publics ----------------
+   Le bandeau n'apparaît que s'il y a des avis à montrer : pas de section vide
+   sur la page, et rien à toucher ici quand un avis est ajouté côté admin. */
+(async function chargerAvis(){
+  let d;
+  try{
+    d = await fetch('/api/coworking/avis-publics?limite=3', {cache:'no-store'}).then(r=>r.json());
+  }catch(e){ return; }
+  if(!d || !d.actif || !d.avis || !d.avis.length) return;
+
+  const ech = v => (v==null?'':String(v)).replace(/[&<>"]/g,c=>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const etoiles = n => '\u2605'.repeat(n) + '\u2606'.repeat(5-n);
+  const moyenne = d.moyenne || (d.avis.reduce((t,a)=>t+a.rating,0)/d.avis.length);
+
+  document.getElementById('avis-note').textContent =
+    moyenne.toLocaleString('fr-FR',{minimumFractionDigits:1, maximumFractionDigits:1});
+  document.getElementById('avis-etoiles').textContent = etoiles(Math.round(moyenne));
+
+  const nb = d.total || d.avis.length;
+  document.getElementById('avis-compte').innerHTML = d.fiche_google
+    ? 'sur ' + ech(nb) + ' avis \u00b7 <a href="' + ech(d.fiche_google)
+      + '" target="_blank" rel="noopener nofollow">voir sur Google</a>'
+    : 'sur ' + ech(nb) + ' avis';
+
+  document.getElementById('avis-liste').innerHTML = d.avis.map(function(a){
+    const initiale = (a.author_name||'?').trim().charAt(0).toUpperCase();
+    const rond = a.author_photo
+      ? '<div class="rond" style="background-image:url(\'' + ech(a.author_photo) + '\')"></div>'
+      : '<div class="rond">' + ech(initiale) + '</div>';
+    const quand = a.relative_time || (a.published_at
+      ? new Date(a.published_at + 'T00:00:00').toLocaleDateString('fr-FR',
+          {month:'long', year:'numeric'}) : '');
+    return '<div class="avis-carte"><div class="haut">' + rond
+      + '<div><div class="qui">' + ech(a.author_name) + '</div>'
+      + (quand ? '<div class="quand">' + ech(quand) + '</div>' : '')
+      + '</div></div><div class="mini">' + etoiles(a.rating) + '</div>'
+      + (a.text ? '<div class="txt">' + ech(a.text) + '</div>' : '')
+      + '</div>';
+  }).join('');
+
+  document.getElementById('avis-bloc').style.display = 'block';
 })();
 
 // ============================================================================
