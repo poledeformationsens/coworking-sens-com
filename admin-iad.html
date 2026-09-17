@@ -30,6 +30,7 @@
   .btn{border:none;border-radius:7px;padding:9px 15px;font-weight:700;font-size:13px;cursor:pointer}
   .btn.val{background:var(--green);color:#fff} .btn.rej{background:#fff;color:var(--coral);border:1px solid #f3c2bc}
   .btn.ghost{background:#fff;color:var(--navy);border:1px solid var(--light)}
+  .btn.wa{background:#25D366;color:#0b3d24}
   .btn:disabled{opacity:.5;cursor:not-allowed}
   table{width:100%;border-collapse:collapse;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
   th,td{padding:11px 13px;text-align:left;font-size:13.5px;border-bottom:1px solid #eee;vertical-align:middle}
@@ -148,6 +149,18 @@ Théo Bachmann &lt;theo.bachmann@iadfrance.fr&gt;"></textarea>
       <button class="btn ghost" id="inv-lien" onclick="copierLien(this)">🔗 Copier le lien d'inscription</button>
       <button class="btn ghost" onclick="chargerInvitations()">↻ Rafraîchir</button>
       <span id="inv-msg"></span>
+    </div>
+
+    <div style="border-top:1px solid #f0efe9;margin-top:16px;padding-top:14px">
+      <label class="muted" for="inv-wa" style="display:block">Message WhatsApp</label>
+      <p class="muted" style="margin:2px 0 8px">Pour un conseiller que tu as en contact, ou un groupe de bassin.
+        Modifie le texte si tu veux — le lien d'inscription est ajouté automatiquement s'il n'y figure pas.</p>
+      <textarea id="inv-wa" rows="4"></textarea>
+      <div class="toolbar">
+        <button class="btn wa" onclick="envoyerWhatsapp(this)">💬 Envoyer par WhatsApp</button>
+        <button class="btn ghost" onclick="copierMessage(this)">📋 Copier le message</button>
+        <button class="btn ghost" onclick="reinitMessage()">↺ Texte par défaut</button>
+      </div>
     </div>
 
     <div id="inv-bilan"></div>
@@ -419,6 +432,9 @@ async function chargerInvitations(){
     LIEN_PUBLIC = data.lien_public || '';
     const c = document.getElementById('count-invit');
     if(data.en_attente>0){ c.textContent = data.en_attente; c.style.display=''; } else { c.style.display='none'; }
+    // On ne réécrit jamais par-dessus un texte que David a commencé à modifier.
+    const wa = document.getElementById('inv-wa');
+    if(wa && !wa.value.trim()) reinitMessage();
     rendreInvitations();
   }catch(err){
     document.getElementById('inv-liste').innerHTML =
@@ -518,6 +534,51 @@ async function supprimerInvitation(id, btn){
     msgInv('Invitation retirée.');
     await chargerInvitations();
   }catch(err){ msgInv('Erreur : '+err.message); btn.disabled=false; btn.textContent=old; }
+}
+
+// ===== Partage WhatsApp =====
+// Le texte est modifiable : David l'ajuste selon qu'il écrit à une personne
+// qu'il connaît ou à un groupe de bassin.
+const MESSAGE_WA_DEFAUT =
+  "Salut ! L'Atelier du Coworking accueille les conseillers iad à Sens : "
+  + "un bureau quand tu en as besoin, la salle de réunion pour recevoir tes clients, "
+  + "et les rendez-vous Réseau du mardi.\n\n"
+  + "Les formules sont négociées pour le réseau, à partir de 5 € la demi-journée. "
+  + "Tu crées ton accès ici, ça prend deux minutes :\n{lien}\n\n"
+  + "À bientôt,\nDavid";
+
+function lienInscription(){
+  return LIEN_PUBLIC || (location.origin + '/iad');
+}
+
+function messageWhatsapp(){
+  const champ = document.getElementById('inv-wa');
+  let texte = (champ.value || '').trim();
+  if(!texte) texte = MESSAGE_WA_DEFAUT.replace('{lien}', lienInscription());
+  // Un message sans lien ne sert à rien : on l'ajoute plutôt que de laisser partir.
+  const lien = lienInscription();
+  if(texte.indexOf(lien) === -1 && texte.indexOf('/iad') === -1) texte += '\n\n' + lien;
+  return texte;
+}
+
+function reinitMessage(){
+  document.getElementById('inv-wa').value = MESSAGE_WA_DEFAUT.replace('{lien}', lienInscription());
+}
+
+function envoyerWhatsapp(btn){
+  // wa.me sans numéro : WhatsApp ouvre le sélecteur de contact ou de groupe.
+  window.open('https://wa.me/?text=' + encodeURIComponent(messageWhatsapp()), '_blank', 'noopener');
+}
+
+async function copierMessage(btn){
+  const old = btn.textContent;
+  try{
+    await navigator.clipboard.writeText(messageWhatsapp());
+    btn.textContent = '✅ Message copié';
+    setTimeout(()=>{ btn.textContent = old; }, 2200);
+  }catch(e){
+    window.prompt('Message à copier :', messageWhatsapp());
+  }
 }
 
 async function copierLien(btn){
