@@ -338,7 +338,13 @@ function actions(m){
   const val = `<button class="btn val" onclick="decide('${esc(m.email)}','validate',this)">Valider</button>`;
   const rej = `<button class="btn rej" onclick="decide('${esc(m.email)}','reject',this)">Refuser</button>`;
   if(s==='pending')   return val+' '+rej;
-  if(s==='validated') return `<button class="btn rej" onclick="decide('${esc(m.email)}','reject',this)">Retirer l'accès</button>`;
+  if(s==='validated'){
+    // Un conseiller validé sans mot de passe ne peut pas encore entrer dans son
+    // espace : on propose de lui (re)envoyer le lien de création.
+    const espace = m.espace_ouvert ? ''
+      : `<button class="btn ghost" onclick="envoyerEspace('${esc(m.email)}',this)">✉️ Lien d'espace</button> `;
+    return espace + `<button class="btn rej" onclick="decide('${esc(m.email)}','reject',this)">Retirer l'accès</button>`;
+  }
   if(s==='rejected')  return val;
   return val+' '+rej;
 }
@@ -376,6 +382,22 @@ async function decide(email, decision, btn){
     msg(decision==='validate' ? `✅ ${email} validé — il peut souscrire et a reçu un e-mail.` : `${email} : accès retiré.`);
     await load();
   }catch(err){ msg('Erreur : '+err.message); siblings.forEach(b=>b.disabled=false); btn.textContent=old; }
+}
+
+async function envoyerEspace(email, btn){
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = '…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/iad/members/espace`, {
+      method:'POST', headers:HEADERS, body: JSON.stringify({email})
+    });
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(data.detail || 'Erreur');
+    msg(data.deja_ouvert
+      ? `${email} a déjà son espace.`
+      : `✉️ Lien d'espace envoyé à ${email}.`);
+    await load();
+  }catch(err){ msg('Erreur : '+err.message); btn.disabled=false; btn.textContent=old; }
 }
 
 // ===== Inviter des conseillers =====
