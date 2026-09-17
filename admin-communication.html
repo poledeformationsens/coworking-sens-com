@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Communication — Admin · L'Atelier du Coworking</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 <style>
   :root{ --navy:#03234D; --gold:#C9B584; --cream:#F8F7F4; --slate:#5A6A85; --light:#E5DDCB; --green:#2E7D52; --red:#C0392B; --amber:#B8860B; }
   *{box-sizing:border-box}
@@ -302,9 +303,15 @@ async function api(url, opt){
 }
 
 // Les PDF et visuels demandent le jeton : on passe par un blob plutôt que par
-// un <img src> ou un lien direct, qui n'emporteraient pas l'en-tête.
+// un <img src> ou un lien direct, qui n'emporteraient pas l'en-tête. La matrice
+// du QR voyage dans le corps de la requête.
 async function blobAuth(url){
-  const r = await fetch(API+url, {headers:{'Authorization':HEADERS['Authorization']}, cache:'no-store'});
+  const r = await fetch(API+url, {
+    method: 'POST',
+    headers: HEADERS,
+    cache: 'no-store',
+    body: JSON.stringify({qr: matriceCourante()}),
+  });
   if(!r.ok) throw new Error('Erreur '+r.status);
   return await r.blob();
 }
@@ -328,11 +335,15 @@ function dessinerReglages(){
   document.getElementById('etat-bandeau').textContent =
     r.avis_actifs ? 'Visible par les visiteurs' : 'Masqué pour le moment';
 
-  // QR (endpoint public : un <img> suffit)
+  // Le QR est encodé ici, par une bibliothèque éprouvée, et envoyé au serveur
+  // pour les PDF : rien à installer côté serveur.
   const img = document.getElementById('qr-img');
   show('qr-absent', !DATA.qr_disponible);
   img.style.display = DATA.qr_disponible ? '' : 'none';
-  if(DATA.qr_disponible) img.src = API + '/communication/qr.svg?taille=380&_=' + Date.now();
+  if(DATA.qr_disponible){
+    const svg = qrSvg(r.google_review_url, 380);
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
 
   const c = DATA.clics || {par_support:{}};
   document.getElementById('kpi-clics').innerHTML =
@@ -530,11 +541,46 @@ function testerLien(){
   window.open(lien, '_blank', 'noopener');
 }
 
-// --- QR : le SVG vient du serveur, le PNG est rendu ici pour Instagram & co.
+// --- QR : encodé ici. La matrice part au serveur pour les PDF, et sert aussi
+// à produire le SVG affiché et le PNG que réclament les réseaux sociaux.
+function qrMatrice(texte){
+  if(typeof qrcode !== 'function') return null;
+  // typeNumber 0 = la bibliothèque choisit la version ; 'M' = correction moyenne
+  const q = qrcode(0, 'M');
+  q.addData(texte);
+  q.make();
+  const n = q.getModuleCount();
+  const m = [];
+  for(let y=0; y<n; y++){
+    const ligne = [];
+    for(let x=0; x<n; x++) ligne.push(q.isDark(y, x) ? 1 : 0);
+    m.push(ligne);
+  }
+  return m;
+}
+
+function qrSvg(texte, taille){
+  const m = qrMatrice(texte);
+  if(!m) return '';
+  const n = m.length, b = 2, T = n + b*2;
+  let d = '';
+  for(let y=0; y<n; y++) for(let x=0; x<n; x++)
+    if(m[y][x]) d += 'M'+(x+b)+' '+(y+b)+'h1v1h-1z';
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="'+taille+'" height="'+taille+'" '
+    + 'viewBox="0 0 '+T+' '+T+'" shape-rendering="crispEdges">'
+    + '<rect width="'+T+'" height="'+T+'" fill="#FFFFFF"/>'
+    + '<path d="'+d+'" fill="#03234D"/></svg>';
+}
+
+function matriceCourante(){
+  const lien = (DATA && DATA.reglages && DATA.reglages.google_review_url) || '';
+  return lien ? qrMatrice(lien) : null;
+}
+
 async function telechargerQR(format){
   if(!DATA.qr_disponible){ flash('r-err', "Renseignez d'abord le lien d'avis.", 5000); return; }
-  const url = API + '/communication/qr.svg?taille=1024';
-  const svg = await fetch(url, {cache:'no-store'}).then(r=>r.text());
+  const svg = qrSvg(DATA.reglages.google_review_url, 1024);
+  if(!svg){ flash('r-err', "Le QR n'a pas pu être produit.", 6000); return; }
   if(format === 'svg'){
     telecharger(new Blob([svg], {type:'image/svg+xml'}), 'qr-avis-google.svg');
     return;

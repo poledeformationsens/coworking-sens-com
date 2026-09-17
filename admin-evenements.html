@@ -215,6 +215,35 @@
     <div class="ok" id="ok-msg">✅ Enregistré.</div>
   </div>
 
+  <div class="card" id="carte-parrainage">
+    <h2>Parrainage des matinales</h2>
+    <p class="muted" style="margin:0 0 14px">Un entrepreneur amène un nouveau visage :
+      quand vous validez l'invitation, sa place à la matinale suivante lui est offerte.
+      Une invitation transformée par matinale et par parrain.</p>
+
+    <div class="kpi" id="pk-compteurs" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:16px"></div>
+
+    <h3 style="font-size:15px;margin:0 0 8px">À valider</h3>
+    <table class="tbl-cards">
+      <thead><tr><th>Invitation</th><th class="hide-s">Matinale</th><th>Inscrit ?</th><th></th></tr></thead>
+      <tbody id="tb-invitations"></tbody>
+    </table>
+
+    <details style="margin-top:16px">
+      <summary style="cursor:pointer;font-weight:700;font-size:14px;color:var(--navy)">
+        Les avoirs en cours et l'historique</summary>
+      <table class="tbl-cards" style="margin-top:12px">
+        <thead><tr><th>Parrain</th><th class="hide-s">Gagné sur</th><th>État</th><th></th></tr></thead>
+        <tbody id="tb-avoirs"></tbody>
+      </table>
+      <h3 style="font-size:14px;margin:16px 0 6px">Invitations traitées</h3>
+      <div id="invit-traitees" class="muted"></div>
+    </details>
+
+    <div class="ok" id="pk-ok"></div>
+    <div class="ok" id="pk-err" style="color:var(--red)"></div>
+  </div>
+
   <div class="card">
     <h2>Événements</h2>
 
@@ -282,7 +311,130 @@ async function load(){
     const d = await r.json();
     render(d.events||[]);
   }catch(e){ document.getElementById('list').innerHTML = `<div class="empty">Erreur : ${e.message}</div>`; }
+  chargerParrainage();
 }
+
+// ====================== Parrainage des matinales ======================
+// Rien ne se déclenche tout seul : l'avoir n'existe qu'une fois l'invitation
+// validée ici. C'est ce qui empêche quelqu'un de s'auto-inviter.
+let PARRAINAGE = null;
+
+function pkMsg(texte, erreur){
+  const e=document.getElementById('pk-err'), o=document.getElementById('pk-ok');
+  e.style.display='none'; o.style.display='none';
+  if(!texte) return;
+  const c = erreur ? e : o;
+  c.textContent = texte; c.style.display='block';
+  clearTimeout(c._t); c._t=setTimeout(()=>{ c.style.display='none'; }, erreur?7000:5000);
+}
+
+async function chargerParrainage(){
+  try{
+    const r = await fetch(`${API_BASE}/admin/invitations`, {headers:HEADERS, cache:'no-store'});
+    if(!r.ok) return;
+    PARRAINAGE = await r.json();
+  }catch(e){ return; }
+  dessinerParrainage();
+}
+
+function dessinerParrainage(){
+  if(!PARRAINAGE) return;
+  const c = PARRAINAGE.compteurs || {};
+  document.getElementById('pk-compteurs').innerHTML =
+      tuile(c.a_valider||0, 'à valider', (c.a_valider>0)?'var(--amber, #B8860B)':null)
+    + tuile(c.inscrits||0, 'invités inscrits')
+    + tuile(c.avoirs_disponibles||0, 'places offertes en attente')
+    + tuile(c.avoirs_utilises||0, 'places déjà utilisées');
+
+  const aValider = PARRAINAGE.a_valider || [];
+  document.getElementById('tb-invitations').innerHTML = aValider.length
+    ? aValider.map(i=>`<tr>
+        <td data-label="Invitation">
+          <strong>${esc(i.invite_name || i.invite_email)}</strong>
+          <div class="muted">${esc(i.invite_email)}${i.invite_company?' · '+esc(i.invite_company):''}</div>
+          <div class="muted">invité par ${esc(i.parrain_name || i.parrain_email)}</div>
+          ${i.message?`<div class="muted" style="font-style:italic">« ${esc(i.message)} »</div>`:''}
+        </td>
+        <td data-label="Matinale" class="hide-s">${esc(i.evenement)}<div class="muted">${esc(i.date_label||'')}</div></td>
+        <td data-label="Inscrit ?">${i.inscrit
+            ? '<span class="chip" style="background:#EAF7EF;color:#1f6b42">inscrit</span>'
+            : '<span class="chip" style="background:#FFF4E0;color:#B8860B">pas encore</span>'}</td>
+        <td data-label="">
+          <button class="btn ghost" onclick="validerInvitation(${i.id})">Valider</button>
+          <button class="btn del" onclick="refuserInvitation(${i.id})">Refuser</button>
+        </td></tr>`).join('')
+    : `<tr><td colspan="4" class="empty">Aucune invitation en attente.</td></tr>`;
+
+  const avoirs = PARRAINAGE.avoirs || [];
+  document.getElementById('tb-avoirs').innerHTML = avoirs.length
+    ? avoirs.map(a=>{
+        const etat = a.statut==='disponible'
+          ? '<span class="chip" style="background:#EAF7EF;color:#1f6b42">disponible</span>'
+          : (a.statut==='utilise'
+             ? '<span class="chip" style="background:#EEF2F7;color:#5A6A85">utilisée</span>'
+             : '<span class="chip" style="background:#F6E8E6;color:#9a3b2f">annulée</span>');
+        return `<tr>
+          <td data-label="Parrain"><strong>${esc(a.name||a.email)}</strong>
+            <div class="muted">${esc(a.email)}</div></td>
+          <td data-label="Gagné sur" class="hide-s">${esc(a.origine)}
+            ${a.expire_label?`<div class="muted">valable jusqu'au ${esc(a.expire_label)}</div>`:''}</td>
+          <td data-label="État">${etat}${a.utilise_sur?`<div class="muted">${esc(a.utilise_sur)}</div>`:''}</td>
+          <td data-label="">${a.statut==='disponible'
+              ? `<button class="btn del" onclick="annulerAvoir(${a.id})">Annuler</button>` : ''}</td>
+        </tr>`;
+      }).join('')
+    : `<tr><td colspan="4" class="empty">Aucune place offerte pour le moment.</td></tr>`;
+
+  const traitees = (PARRAINAGE.invitations||[]).filter(i=>i.statut!=='en-attente');
+  document.getElementById('invit-traitees').innerHTML = traitees.length
+    ? traitees.map(i=>`<div style="border-bottom:1px solid #eee;padding:7px 0;font-size:13px">
+        ${esc(i.invite_name||i.invite_email)} — ${esc(i.statut_label)}
+        <span class="muted">· par ${esc(i.parrain_name||i.parrain_email)} · ${esc(i.evenement)}</span>
+        ${i.refus_motif?`<div class="muted">motif : ${esc(i.refus_motif)}</div>`:''}
+      </div>`).join('')
+    : '<div class="muted">Rien pour l\'instant.</div>';
+}
+
+function tuile(valeur, libelle, couleur){
+  return `<div style="background:var(--cream);border:1px solid var(--light);border-radius:10px;padding:11px 15px;min-width:100px">
+    <b style="display:block;font-size:20px;font-family:'Playfair Display',serif${couleur?';color:'+couleur:''}">${valeur}</b>
+    <span style="font-size:11px;color:var(--slate);text-transform:uppercase;letter-spacing:.04em">${libelle}</span></div>`;
+}
+
+async function validerInvitation(id){
+  if(!confirm("Valider cette invitation ? La place du parrain à la prochaine matinale sera offerte.")) return;
+  try{
+    const r = await fetch(`${API_BASE}/admin/invitations/${id}/valider`, {method:'POST', headers:HEADERS});
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||'Erreur '+r.status);
+    pkMsg(d.message || 'Invitation validée.', false);
+  }catch(e){ pkMsg(e.message, true); return; }
+  await chargerParrainage();
+}
+
+async function refuserInvitation(id){
+  const motif = prompt("Motif du refus (visible seulement par vous) :", "");
+  if(motif === null) return;
+  try{
+    const r = await fetch(`${API_BASE}/admin/invitations/${id}/refuser`, {method:'POST',
+      headers:HEADERS, body: JSON.stringify({motif: motif||null})});
+    if(!r.ok) throw new Error('Erreur '+r.status);
+    pkMsg('Invitation refusée.', false);
+  }catch(e){ pkMsg(e.message, true); return; }
+  await chargerParrainage();
+}
+
+async function annulerAvoir(id){
+  if(!confirm("Annuler cette place offerte ?")) return;
+  try{
+    const r = await fetch(`${API_BASE}/admin/avoirs/${id}/annuler`, {method:'POST', headers:HEADERS});
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||'Erreur '+r.status);
+    pkMsg('Place offerte annulée.', false);
+  }catch(e){ pkMsg(e.message, true); return; }
+  await chargerParrainage();
+}
+
 
 // ===== Filtres de la liste =====
 const FILTER_KEY = 'cw_admin_ev_filtres';

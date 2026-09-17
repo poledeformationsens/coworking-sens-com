@@ -37,6 +37,22 @@
   .foot{text-align:center;font-size:12.5px;color:var(--slate);margin:24px 0}
   .foot a{color:var(--slate)}
   .back{display:inline-block;margin-top:10px;font-size:13px;color:var(--gold);text-decoration:none}
+  /* ---- Parrainage : inviter un entrepreneur ---- */
+  .parrain{margin-top:22px;border-top:1px solid var(--light);padding-top:20px}
+  .parrain h2{font-family:'Playfair Display',serif;font-size:18px;margin:0 0 4px}
+  .parrain .pitch{font-size:14px;line-height:1.65;color:var(--slate);margin:0 0 6px}
+  .parrain .regle{font-size:13px;line-height:1.6;color:var(--navy);background:var(--cream);
+    border-left:3px solid var(--gold);border-radius:0 8px 8px 0;padding:11px 14px;margin:12px 0 4px}
+  .parrain summary{cursor:pointer;font-weight:700;font-size:14.5px;color:var(--navy);
+    list-style:none;display:flex;align-items:center;gap:8px;padding:12px 0}
+  .parrain summary::-webkit-details-marker{display:none}
+  .parrain summary::before{content:'＋';color:var(--gold);font-weight:800;font-size:17px}
+  .parrain details[open] summary::before{content:'－'}
+  .duo{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media (max-width:520px){ .duo{grid-template-columns:1fr} }
+  .invite-bandeau{background:var(--cream);border:1px solid var(--gold);border-radius:10px;
+    padding:14px 16px;margin:0 0 16px;font-size:14px;line-height:1.6}
+  .invite-bandeau strong{color:var(--navy)}
 </style>
 </head>
 <body>
@@ -60,7 +76,9 @@ const app=document.getElementById('app');
 const params=new URLSearchParams(location.search);
 const EID=params.get('id');
 const TEST_MODE=params.get('test')==='1';   // ?test=1 → paiement Stripe en mode test
+const JETON_INVIT=params.get('inv')||'';   // ?inv=… → l'invité arrive par le lien de son parrain
 let CUR_EVENT=null;
+let INVIT=null;                            // ce que le parrain a rempli pour lui
 
 function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 function fmtEUR(v){return Number(v||0).toFixed(2).replace('.',',')+' €';}
@@ -79,6 +97,7 @@ function spotsLabel(e){
 
 async function loadOne(){
   try{
+    await chargerInvitation();
     const r=await fetch(`${API}/events/${EID}/public`,{cache:'no-store'});
     if(!r.ok){ app.innerHTML='<div class="card">Cet événement n\'est pas disponible. <a class="back" href="/evenement">← Voir tous les événements</a></div>'; return; }
     const e=await r.json(); CUR_EVENT=e; renderOne(e);
@@ -108,7 +127,13 @@ function renderOne(e){
   }
   const cancelled = status==='cancelled'
     ? '<div class="msg err" style="display:block">Paiement annulé — vous n\'avez pas été débité. Vous pouvez réessayer ci-dessous.</div>' : '';
+  const bandeauInvit = INVIT ? `<div class="invite-bandeau">
+      🤝 <strong>${esc(INVIT.parrain)}</strong> vous invite à ce rendez-vous.
+      ${INVIT.message?`<div style="margin-top:6px;font-style:italic">« ${esc(INVIT.message)} »</div>`:''}
+      <div style="margin-top:6px;color:var(--slate);font-size:13px">Votre nom et votre e-mail sont déjà remplis, il ne reste qu'à confirmer.</div>
+    </div>` : '';
   app.innerHTML=`<div class="card">
+    ${bandeauInvit}
     ${e.category?`<span class="cat">${esc(e.category)}</span>`:''}
     <h1>${esc(e.title)}</h1>
     <div class="when">📅 ${frDate(e.date,e.hour_from,e.hour_to)}</div>
@@ -118,8 +143,10 @@ function renderOne(e){
     <h2 style="font-family:'Playfair Display',serif;font-size:18px;margin:22px 0 0">Participer</h2>
     ${cancelled}
     ${formOrFull}
+    ${blocParrainage(e)}
     <a class="back" href="/evenement">← Tous les événements</a>
   </div>`;
+  if(INVIT) remplirDepuisInvitation();
 }
 async function register(){
   const name=(document.getElementById('r-name').value||'').trim();
@@ -134,7 +161,7 @@ async function register(){
     // Formation : gratuite pour un abonné Premium → on tente l'inscription directe.
     // Le backend renvoie 402 si la personne n'est pas éligible → on bascule sur Stripe.
     try{
-      const rf=await fetch(`${API}/events/${EID}/register-public`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
+      const rf=await fetch(`${API}/events/${EID}/register-public`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,invitation:JETON_INVIT||null})});
       if(rf.ok){
         document.getElementById('form').innerHTML='<div class="msg ok" style="display:block">✅ Inscription confirmée (offerte — abonné Premium) ! Vous allez recevoir un email de confirmation.</div>';
         return;
@@ -146,7 +173,7 @@ async function register(){
         purchaseType:'event', eventId:EID, eventTitle:CUR_EVENT.title,
         eventDate:frDate(CUR_EVENT.date,CUR_EVENT.hour_from,CUR_EVENT.hour_to),
         amountTTC:Number(CUR_EVENT.price_ttc), email, name,
-        testMode:TEST_MODE, returnPath:`/evenement?id=${EID}`,
+        testMode:TEST_MODE, returnPath:`/evenement?id=${EID}${JETON_INVIT?('&inv='+encodeURIComponent(JETON_INVIT)):''}`,
       })});
       const d=await res.json();
       if(d && d.url){ window.location.href=d.url; }
@@ -157,10 +184,81 @@ async function register(){
   // ── Événement gratuit : inscription directe ──
   btn.disabled=true; btn.textContent='Inscription…';
   try{
-    const r=await fetch(`${API}/events/${EID}/register-public`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
+    const r=await fetch(`${API}/events/${EID}/register-public`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,invitation:JETON_INVIT||null})});
     if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||'Erreur'); }
     document.getElementById('form').innerHTML='<div class="msg ok" style="display:block">✅ Inscription confirmée ! Vous allez recevoir un email de confirmation. À très bientôt à L\'Atelier du Coworking.</div>';
   }catch(e){ msg.className='msg err'; msg.textContent='Erreur : '+e.message; btn.disabled=false; btn.textContent='Je m\'inscris'; }
+}
+
+/* ====================== Parrainage ======================
+   Le parrain invite un nouveau visage depuis cette page. Quand David valide
+   la venue de l'invité, la place du parrain sur la matinale suivante est
+   offerte — une par matinale. */
+function blocParrainage(e){
+  if(INVIT) return '';                 // l'invité n'a pas à inviter à son tour ici
+  return `<div class="parrain">
+    <h2>Vous connaissez quelqu'un qui aurait sa place ici ?</h2>
+    <p class="pitch">Ces matinales valent par les gens qu'on y croise. Si vous amenez
+      un entrepreneur qui n'est jamais venu, votre place à la prochaine vous est offerte.</p>
+    <div class="regle">Votre invité réserve sa place comme tout le monde. Une fois sa venue
+      confirmée, vous recevez un e-mail : la matinale suivante ne vous coûtera rien.
+      Une invitation transformée par matinale.</div>
+    <details>
+      <summary>Inviter un entrepreneur</summary>
+      <div class="duo">
+        <div><label for="p-nom">Votre nom</label><input id="p-nom" placeholder="Prénom Nom"></div>
+        <div><label for="p-mail">Votre e-mail</label><input id="p-mail" type="email" placeholder="vous@email.fr"></div>
+        <div><label for="i-nom">Nom de votre invité</label><input id="i-nom" placeholder="Prénom Nom"></div>
+        <div><label for="i-mail">Son e-mail</label><input id="i-mail" type="email" placeholder="lui@email.fr"></div>
+        <div><label for="i-soc">Sa société (optionnel)</label><input id="i-soc" placeholder="Nom de la société"></div>
+        <div><label for="i-mot">Un mot pour lui (optionnel)</label><input id="i-mot" placeholder="On s'y retrouve ?"></div>
+      </div>
+      <button class="btn" id="p-btn" onclick="envoyerInvitation()">Envoyer l'invitation</button>
+      <div class="msg" id="p-msg"></div>
+    </details>
+  </div>`;
+}
+
+async function envoyerInvitation(){
+  const msg=document.getElementById('p-msg'); msg.className='msg';
+  const corps={
+    parrain_name:(document.getElementById('p-nom').value||'').trim(),
+    parrain_email:(document.getElementById('p-mail').value||'').trim(),
+    invite_name:(document.getElementById('i-nom').value||'').trim(),
+    invite_email:(document.getElementById('i-mail').value||'').trim(),
+    invite_company:(document.getElementById('i-soc').value||'').trim()||null,
+    message:(document.getElementById('i-mot').value||'').trim()||null,
+  };
+  if(!corps.parrain_email.includes('@')){ msg.className='msg err'; msg.textContent="Indiquez votre e-mail."; return; }
+  if(!corps.invite_name){ msg.className='msg err'; msg.textContent="Indiquez le nom de votre invité."; return; }
+  if(!corps.invite_email.includes('@')){ msg.className='msg err'; msg.textContent="Indiquez l'e-mail de votre invité."; return; }
+  const btn=document.getElementById('p-btn');
+  btn.disabled=true; btn.textContent='Envoi…';
+  try{
+    const r=await fetch(`${API}/events/${EID}/invitation`,{method:'POST',
+      headers:{'Content-Type':'application/json'},body:JSON.stringify(corps)});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail||'Erreur');
+    document.querySelector('.parrain details').innerHTML =
+      `<div class="msg ok" style="display:block">✅ ${esc(d.message||'Invitation envoyée.')}</div>`;
+  }catch(err){
+    msg.className='msg err'; msg.textContent='Erreur : '+err.message;
+    btn.disabled=false; btn.textContent="Envoyer l'invitation";
+  }
+}
+
+async function chargerInvitation(){
+  if(!JETON_INVIT) return;
+  try{
+    const r=await fetch(`${API}/invitation/${encodeURIComponent(JETON_INVIT)}`,{cache:'no-store'});
+    if(r.ok) INVIT=await r.json();
+  }catch(e){ /* un lien abîmé ne doit pas empêcher l'inscription normale */ }
+}
+
+function remplirDepuisInvitation(){
+  const n=document.getElementById('r-name'), m=document.getElementById('r-email');
+  if(n && !n.value && INVIT.invite_name) n.value=INVIT.invite_name;
+  if(m && !m.value && INVIT.invite_email) m.value=INVIT.invite_email;
 }
 
 async function loadList(){
