@@ -19,6 +19,8 @@ export default async function handler(req, res) {
   try {
     const {
       space, spaceUnit, slot, date, hourFrom, hourTo, amountTTC, email, clientType, name, company, reference, testMode, returnPath, comment,
+      // Adresse du service comptabilité, quand elle diffère du contact
+      billingEmail,
       // Achat d'un forfait prépayé (pack)
       purchaseType, pricingId, packSpace, packCreditType, packCredits, packLabel,
       // Marqueur d'origine (ex. "iad") — propagé jusqu'au forfait pour le cutover 2027
@@ -255,6 +257,8 @@ export default async function handler(req, res) {
         company: company || "",
         reference: reference || "",
         comment: (comment || "").slice(0, 480),
+        // Le serveur revalide cette adresse : ici on se contente de la porter.
+        billing_email: (billingEmail || "").trim().slice(0, 190),
         test_mode: testMode ? "true" : "false",
       };
     }
