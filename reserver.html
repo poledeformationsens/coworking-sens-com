@@ -378,6 +378,21 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
       </div>
       <div style="margin-bottom:10px"><label class="label">Email pro</label><input class="input" type="email" id="pro-mail" placeholder="contact@masociete.fr" /></div>
       <div style="margin-bottom:12px"><label class="label">Téléphone</label><input class="input" id="pro-tel" placeholder="06 12 34 56 78" /></div>
+
+      <!-- Beaucoup d'entreprises ont un service comptabilité distinct du contact -->
+      <label for="pro-facturation-autre"
+             style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">
+        <input type="checkbox" id="pro-facturation-autre" style="margin-top:3px;width:16px;height:16px;flex:0 0 auto">
+        <span style="font-size:13.5px;line-height:1.5;color:rgba(255,255,255,.85)">
+          Envoyer la facture à une autre adresse
+          <span style="display:block;font-size:12px;color:rgba(255,255,255,.55)">Service comptabilité, cabinet comptable…</span>
+        </span>
+      </label>
+      <div id="pro-facturation-bloc" style="display:none;margin-bottom:12px">
+        <label class="label">Email de facturation</label>
+        <input class="input" type="email" id="pro-mail-facturation" placeholder="comptabilite@masociete.fr" />
+        <span class="hint">La facture partira sur cette adresse. Vos codes d'accès, eux, restent envoyés au contact ci-dessus.</span>
+      </div>
     </div>
 
     <div style="margin:4px 0 12px"><label class="label">Commentaire (facultatif)</label><textarea class="input" rows="2" id="resa-comment" placeholder="Une précision pour votre réservation ? (ex. arrivée tardive, besoin particulier…)"></textarea></div>
@@ -1082,6 +1097,17 @@ async function payAndConfirm(){
       btn.disabled=false; btn.textContent=originalText; btn.style.opacity='';
       goStep(2); loadAvailability(); return;
     }
+    // Case cochée mais adresse vide ou mal saisie : mieux vaut le dire ici que
+    // de laisser la facture partir sur la mauvaise boîte.
+    const coche = document.getElementById('pro-facturation-autre');
+    const billingEmail = emailFacturation();
+    if(selectedClientType === 'pro' && coche && coche.checked && !billingEmail){
+      alert("Merci de renseigner une adresse de facturation valide, ou de décocher la case.");
+      const champ = document.getElementById('pro-mail-facturation');
+      if(champ) champ.focus();
+      btn.disabled=false; btn.textContent=originalText; btn.style.opacity=''; return;
+    }
+
     btn.textContent = 'Redirection vers Stripe…';
     const company = selectedClientType === 'pro' ? document.getElementById('pro-societe').value : '';
     const dateInput = document.getElementById('resa-date').value;
@@ -1103,6 +1129,7 @@ async function payAndConfirm(){
         slot: selectedSlot, date: dateInput, hourFrom, hourTo,
         amountTTC: computeCurrentPriceTTC(),
         email, clientType: selectedClientType, name, company,
+        billingEmail,
         comment: (document.getElementById('resa-comment')||{}).value || '',
         reference: refNum, testMode: TEST_MODE, returnPath: window.location.pathname,
       }),
@@ -1239,10 +1266,43 @@ async function prefillFromAccount(){
       setV('pro-tel', c.phone);
       setV('pro-contact-prenom', first);
       setV('pro-contact-nom', last);
+      // Une entreprise qui l'a déjà renseignée la retrouve pré-remplie.
+      if(c.billing_email){
+        setV('pro-mail-facturation', c.billing_email);
+        const coche = document.getElementById('pro-facturation-autre');
+        if(coche && !coche.checked){ coche.checked = true; majBlocFacturation(); }
+      }
     }
   } catch(e){ /* silencieux : le client peut saisir manuellement */ }
 }
 prefillFromAccount();
+
+// ===== Adresse de facturation distincte =====
+function majBlocFacturation(){
+  const coche = document.getElementById('pro-facturation-autre');
+  const bloc  = document.getElementById('pro-facturation-bloc');
+  if(!coche || !bloc) return;
+  bloc.style.display = coche.checked ? '' : 'none';
+  if(coche.checked){
+    const champ = document.getElementById('pro-mail-facturation');
+    if(champ && !champ.value) champ.focus();
+  }
+}
+
+function emailFacturation(){
+  // Ne vaut que pour une entreprise, case cochée, adresse plausible.
+  if(selectedClientType !== 'pro') return '';
+  const coche = document.getElementById('pro-facturation-autre');
+  if(!coche || !coche.checked) return '';
+  const champ = document.getElementById('pro-mail-facturation');
+  const valeur = ((champ && champ.value) || '').trim().toLowerCase();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valeur) ? valeur : '';
+}
+
+(function brancherFacturation(){
+  const coche = document.getElementById('pro-facturation-autre');
+  if(coche) coche.addEventListener('change', majBlocFacturation);
+})();
 </script>
 
 <script>

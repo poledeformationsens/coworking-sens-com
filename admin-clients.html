@@ -340,6 +340,13 @@ function openClient(email){
       <h3>Documents (${docs.length})</h3>
       ${docList}
 
+      <h3>Facturation</h3>
+      <p class="muted" style="text-transform:none;letter-spacing:0;margin:0 0 6px">
+        Adresse du service comptabilité, quand elle diffère du contact. Laissez vide pour
+        envoyer les factures à l'adresse du client.</p>
+      <input id="crm-billing" type="email" placeholder="comptabilite@masociete.fr" value="${esc(c.billing_email||'')}"
+        style="width:100%;padding:9px 11px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:13.5px;margin-bottom:14px">
+
       <h3>Notes & tags <span class="muted" style="text-transform:none;letter-spacing:0">(privé, admin uniquement)</span></h3>
       <input id="crm-tags" type="text" placeholder="Tags séparés par des virgules : VIP, entreprise, à relancer…" value="${esc(c.tags||'')}"
         style="width:100%;padding:9px 11px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:13.5px;margin-bottom:8px">
@@ -391,12 +398,16 @@ async function saveCRM(email, btn){
   const notes = document.getElementById('crm-notes').value;
   const civility = (document.getElementById('crm-civility')||{}).value || '';
   const name = ((document.getElementById('crm-name')||{}).value || '').trim();
+  const billing_email = ((document.getElementById('crm-billing')||{}).value || '').trim().toLowerCase();
+  if(billing_email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(billing_email)){
+    toast("Adresse de facturation invalide."); return;
+  }
   const orig = btn.textContent; btn.disabled=true; btn.textContent='Enregistrement…';
   try{
-    const r = await fetch(`${API_BASE}/admin/customers/crm`, {method:'POST', headers:HEADERS, body:JSON.stringify({email, notes, tags, civility, name})});
+    const r = await fetch(`${API_BASE}/admin/customers/crm`, {method:'POST', headers:HEADERS, body:JSON.stringify({email, notes, tags, civility, name, billing_email})});
     if(!r.ok){ const e=await r.json().catch(()=>({})); throw new Error(e.detail||('Erreur '+r.status)); }
     const c = CLIENTS.find(x=>(x.email||'').toLowerCase()===email);
-    if(c){ c.notes=notes; c.tags=tags; c.civilite=civility||null; if(name) c.nom_complet=name; }
+    if(c){ c.notes=notes; c.tags=tags; c.civilite=civility||null; c.billing_email=billing_email||null; if(name) c.nom_complet=name; }
     toast('✅ Fiche enregistrée');
   }catch(e){ toast('Erreur : '+e.message); }
   finally{ btn.disabled=false; btn.textContent=orig; }
