@@ -156,6 +156,35 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
 <body>
 
 <style>
+/* ---- Fenêtre d'explication : facture à une autre adresse ---- */
+.mdl-fond{position:fixed;inset:0;background:rgba(3,35,77,.78);backdrop-filter:blur(3px);
+  z-index:200;display:none;align-items:center;justify-content:center;padding:18px}
+.mdl-fond.ouvert{display:flex}
+.mdl{background:var(--cream);color:var(--navy);border-radius:14px;max-width:460px;width:100%;
+  max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+.mdl-tete{background:var(--navy);color:#fff;padding:22px 26px 18px;border-radius:14px 14px 0 0;position:relative}
+.mdl-tete .sur{font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.mdl-tete h3{font-family:'Playfair Display',serif;font-weight:500;font-size:21px;line-height:1.3;margin:0}
+.mdl-fermer{position:absolute;top:14px;right:16px;background:none;border:none;color:rgba(255,255,255,.65);
+  font-size:26px;line-height:1;cursor:pointer;padding:2px 6px}
+.mdl-fermer:hover{color:#fff}
+.mdl-corps{padding:22px 26px 6px;font-size:14.5px;line-height:1.65;color:var(--slate)}
+.mdl-etapes{list-style:none;counter-reset:e;margin:16px 0 4px;padding:0}
+.mdl-etapes li{counter-increment:e;position:relative;padding-left:36px;margin-bottom:13px;font-size:14px;line-height:1.55}
+.mdl-etapes li::before{content:counter(e);position:absolute;left:0;top:-1px;width:24px;height:24px;
+  border-radius:50%;background:var(--gold);color:var(--navy);font-weight:700;font-size:12.5px;
+  display:flex;align-items:center;justify-content:center}
+.mdl-note{background:#fff;border-left:3px solid var(--gold);padding:12px 14px;border-radius:0 6px 6px 0;
+  font-size:13.5px;line-height:1.6;margin:16px 0 0;color:var(--slate)}
+.mdl-pied{padding:18px 26px 24px;display:flex;gap:10px;flex-wrap:wrap}
+.mdl-btn{flex:1 1 180px;border:none;border-radius:8px;padding:12px 18px;font-family:inherit;
+  font-size:13.5px;font-weight:700;cursor:pointer}
+.mdl-btn.principal{background:var(--navy);color:#fff}
+.mdl-btn.discret{background:#fff;color:var(--navy);border:1px solid rgba(3,35,77,.18)}
+.lien-facture{background:none;border:none;color:var(--gold);font-family:inherit;font-size:12.5px;
+  text-decoration:underline;cursor:pointer;padding:0;margin-bottom:12px;display:inline-block}
+@media(max-width:480px){ .mdl-btn{flex:1 1 100%} }
+
 .acw-reviews{position:fixed;top:0;bottom:0;width:260px;display:none;flex-direction:column;justify-content:center;gap:14px;padding:24px 18px;z-index:1;pointer-events:none}
 .acw-reviews.left{left:0}
 .acw-reviews.right{right:0}
@@ -380,6 +409,9 @@ body{font-family:'Inter',-apple-system,sans-serif;color:#333;min-height:100vh;di
       <div style="margin-bottom:12px"><label class="label">Téléphone</label><input class="input" id="pro-tel" placeholder="06 12 34 56 78" /></div>
 
       <!-- Beaucoup d'entreprises ont un service comptabilité distinct du contact -->
+      <button type="button" class="lien-facture" onclick="ouvrirAideFacturation()">
+        Comment recevoir la facture sur une autre adresse ?
+      </button>
       <label for="pro-facturation-autre"
              style="display:flex;align-items:flex-start;gap:10px;cursor:pointer;margin-bottom:10px">
         <input type="checkbox" id="pro-facturation-autre" style="margin-top:3px;width:16px;height:16px;flex:0 0 auto">
@@ -971,6 +1003,9 @@ document.querySelectorAll('.toggle-card').forEach(t=>{
     selectedClientType = t.dataset.type;
     document.getElementById('form-particulier').style.display = selectedClientType==='particulier' ? 'block' : 'none';
     document.getElementById('form-pro').style.display = selectedClientType==='pro' ? 'block' : 'none';
+    // L'explication ne concerne que les entreprises, et ne s'ouvre qu'une fois
+    // par visite : un habitué ne la revoit pas à chaque clic.
+    if(selectedClientType === 'pro') proposerAideFacturation();
   });
 });
 
@@ -1303,6 +1338,50 @@ function emailFacturation(){
   const coche = document.getElementById('pro-facturation-autre');
   if(coche) coche.addEventListener('change', majBlocFacturation);
 })();
+
+// ===== Fenêtre d'explication =====
+const CLE_AIDE_FACTURATION = 'acw_aide_facturation_vue';
+
+function ouvrirAideFacturation(){
+  const f = document.getElementById('mdl-facturation');
+  if(f) f.classList.add('ouvert');
+}
+
+function fermerAideFacturation(){
+  const f = document.getElementById('mdl-facturation');
+  if(f) f.classList.remove('ouvert');
+}
+
+function proposerAideFacturation(){
+  // Une fois par visite, et jamais si l'adresse est déjà renseignée.
+  const champ = document.getElementById('pro-mail-facturation');
+  if(champ && champ.value.trim()) return;
+  try{
+    if(sessionStorage.getItem(CLE_AIDE_FACTURATION)) return;
+    sessionStorage.setItem(CLE_AIDE_FACTURATION, '1');
+  }catch(e){ /* navigation privée : on affiche, sans mémoriser */ }
+  setTimeout(ouvrirAideFacturation, 350);
+}
+
+function renseignerFacturation(){
+  const coche = document.getElementById('pro-facturation-autre');
+  if(coche && !coche.checked){ coche.checked = true; majBlocFacturation(); }
+  fermerAideFacturation();
+  const champ = document.getElementById('pro-mail-facturation');
+  if(champ){
+    champ.scrollIntoView({behavior:'smooth', block:'center'});
+    setTimeout(()=>champ.focus(), 320);
+  }
+}
+
+// Fermeture au clic sur le fond et à la touche Échap.
+(function brancherFenetreFacturation(){
+  const fond = document.getElementById('mdl-facturation');
+  if(fond) fond.addEventListener('click', e => { if(e.target === fond) fermerAideFacturation(); });
+  document.addEventListener('keydown', e => {
+    if(e.key === 'Escape') fermerAideFacturation();
+  });
+})();
 </script>
 
 <script>
@@ -1339,6 +1418,36 @@ function emailFacturation(){
   mount('acw-rev-mobile', 2);
 })();
 </script>
+
+<!-- Explication : facture envoyée à une autre adresse -->
+<div class="mdl-fond" id="mdl-facturation" role="dialog" aria-modal="true" aria-labelledby="mdl-facturation-titre">
+  <div class="mdl">
+    <div class="mdl-tete">
+      <button class="mdl-fermer" type="button" aria-label="Fermer" onclick="fermerAideFacturation()">&times;</button>
+      <div class="sur">Bon à savoir</div>
+      <h3 id="mdl-facturation-titre">Votre facture peut partir<br>sur une autre adresse</h3>
+    </div>
+    <div class="mdl-corps">
+      <p>Si votre comptabilité a sa propre adresse e-mail, indiquez-la : la facture lui sera
+        envoyée directement, sans que vous ayez à la faire suivre.</p>
+      <ol class="mdl-etapes">
+        <li>Dans le formulaire ci-dessous, cochez <strong>« Envoyer la facture à une autre adresse »</strong>.</li>
+        <li>Saisissez l'adresse de votre service comptabilité ou de votre cabinet.</li>
+        <li>Terminez votre réservation normalement.</li>
+      </ol>
+      <div class="mdl-note">
+        <strong>Vos codes d'accès ne changent pas de destinataire.</strong> Ils restent envoyés
+        sur votre adresse à vous — la comptabilité ne reçoit que la facture.
+      </div>
+      <p style="margin-top:16px;font-size:13.5px">Cette adresse est mémorisée : vos prochaines
+        réservations la reprendront automatiquement.</p>
+    </div>
+    <div class="mdl-pied">
+      <button class="mdl-btn principal" type="button" onclick="renseignerFacturation()">Renseigner l'adresse</button>
+      <button class="mdl-btn discret" type="button" onclick="fermerAideFacturation()">Plus tard</button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
