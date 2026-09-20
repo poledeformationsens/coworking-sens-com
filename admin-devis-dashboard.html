@@ -180,6 +180,7 @@
     display: flex;
     justify-content: flex-end;
     gap: 12px;
+    flex-wrap: wrap;
     margin-top: 24px;
     padding-top: 16px;
     border-top: 1px solid var(--light);
@@ -311,12 +312,16 @@
   .fc .fc-daygrid-day-number{font-size:12px}
   .fc .fc-daygrid-event{font-size:9.5px !important;padding:1px 3px !important}
   .modal,.modal-box,.box{max-width:94vw !important;width:94vw !important}
+  .modal-footer{justify-content:stretch !important;gap:8px !important;flex-wrap:wrap !important}
+  .modal-footer .btn{flex:1 1 calc(50% - 4px) !important;min-width:0 !important;
+    padding:11px 10px !important;font-size:12.5px !important;text-align:center !important}
   h1,h2,.h1{font-size:20px !important}
   .fc .fc-toolbar.fc-header-toolbar{flex-direction:column;gap:8px;align-items:stretch}
   .fc-toolbar-title{font-size:18px !important}
   .fc .fc-toolbar-chunk{display:flex;justify-content:center;flex-wrap:wrap;gap:4px}
 }
 @media (max-width:480px){
+  .modal-footer .btn{flex:1 1 100% !important}
   .grid,.kpis{grid-template-columns:1fr !important}
   nav a{font-size:11px !important;padding:5px 8px !important}
   header h1{font-size:16px !important}
