@@ -484,6 +484,33 @@
   </div>
 </div>
 
+<!-- Envoi de la facture, avec mot d'accompagnement optionnel -->
+<div class="modal-bg" id="modal-envoi-facture"
+     onclick="if(event.target.id==='modal-envoi-facture') fermerEnvoiFacture()">
+  <div class="modal" style="max-width:560px">
+    <h2 id="envoi-facture-titre">Envoyer la facture</h2>
+    <p class="muted" id="envoi-facture-sous-titre"
+       style="margin:-6px 0 16px;font-size:13px;color:#5A6A85"></p>
+
+    <label class="label" for="envoi-facture-mot"
+           style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#5A6A85;margin-bottom:6px">
+      Mot d'accompagnement <span style="text-transform:none;letter-spacing:0">(facultatif)</span>
+    </label>
+    <textarea id="envoi-facture-mot" rows="4"
+      placeholder="Ex. : geste commercial, facture qui en remplace une autre, report de date…"
+      style="width:100%;padding:10px 12px;border:1px solid var(--light);border-radius:8px;
+             font-family:inherit;font-size:13.5px;line-height:1.5;resize:vertical"></textarea>
+    <p class="muted" style="margin:6px 0 0;font-size:12.5px;color:#5A6A85">
+      S'affiche en tête de l'e-mail, avant le rappel du montant. Laissez vide pour l'e-mail habituel.
+    </p>
+
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="fermerEnvoiFacture()">Annuler</button>
+      <button class="btn btn-primary" id="envoi-facture-ok" onclick="confirmerEnvoiFacture()">Envoyer la facture</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Nouveau Devis -->
 <div class="modal-bg" id="modal-new">
   <div class="modal">
@@ -1019,11 +1046,43 @@ async function sendFactureAcquittee(id) {
 }
 
 // Envoie la facture, qu'elle soit acquittée ou encore à régler.
-async function sendFacture(id) {
-  if (!confirm('Envoyer la facture au client ?')) return;
-  const res = await callApi(`/devis/${id}/send-facture`);
-  if (res) alert(res.acquittee ? 'Facture acquittée envoyée ✅' : 'Facture envoyée ✅');
-  loadDevis();
+// Une facture n'est pas toujours ordinaire : geste commercial, remplacement
+// d'un document précédent, report. Le mot d'accompagnement évite au client
+// de recevoir un montant sans explication.
+let envoiFactureId = null;
+
+function sendFacture(id) {
+  envoiFactureId = id;
+  const d = (allDevis || []).find(x => String(x.id) === String(id)) || {};
+  const libelle = [d.devis_reference, d.name].filter(Boolean).join(' — ');
+  document.getElementById('envoi-facture-mot').value = '';
+  document.getElementById('envoi-facture-sous-titre').textContent = libelle;
+  document.getElementById('modal-envoi-facture').classList.add('open');
+  setTimeout(() => document.getElementById('envoi-facture-mot').focus(), 120);
+}
+
+function fermerEnvoiFacture() {
+  document.getElementById('modal-envoi-facture').classList.remove('open');
+  envoiFactureId = null;
+}
+
+async function confirmerEnvoiFacture() {
+  if (!envoiFactureId) return;
+  const btn = document.getElementById('envoi-facture-ok');
+  const message = document.getElementById('envoi-facture-mot').value.trim();
+  const id = envoiFactureId;
+  const old = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  try {
+    const res = await callApi(`/devis/${id}/send-facture`, 'POST', {message: message || null});
+    fermerEnvoiFacture();
+    if (res) alert(res.acquittee ? 'Facture acquittée envoyée ✅' : 'Facture envoyée ✅');
+    loadDevis();
+  } catch (e) {
+    // callApi a déjà signalé l'erreur : on laisse la fenêtre ouverte pour réessayer.
+  } finally {
+    btn.disabled = false; btn.textContent = old;
+  }
 }
 
 // ===== Historique des e-mails =====
