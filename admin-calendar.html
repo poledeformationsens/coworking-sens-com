@@ -1042,7 +1042,15 @@ async function submitCreate() {
   btn.disabled = true; btn.textContent = 'Création…';
   try {
     const r = await fetch(`${API_BASE}/admin/reservations`, { method: 'POST', headers: HEADERS, body: JSON.stringify(body) });
-    if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.detail || 'Erreur'); }
+    if (!r.ok) {
+      // Un 500 renvoie du texte brut, pas du JSON : sans ce repli, le formulaire
+      // affichait « Erreur » tout court et on ne savait pas ce qui avait échoué.
+      const brut = await r.text().catch(() => '');
+      let detail = '';
+      try { const j = JSON.parse(brut); detail = typeof j.detail === 'string' ? j.detail : JSON.stringify(j.detail); }
+      catch (_) { detail = (brut || '').replace(/<[^>]*>/g, ' ').trim().slice(0, 160); }
+      throw new Error(detail ? `${detail} (HTTP ${r.status})` : `HTTP ${r.status}`);
+    }
     const d = await r.json();
     closeCreateModal();
     loadEvents();

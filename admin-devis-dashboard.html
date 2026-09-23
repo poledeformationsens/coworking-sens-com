@@ -979,6 +979,7 @@ function actionButtons(d) {
     case 'validated':
       return `
         <button class="btn btn-primary" onclick="sendFacture('${id}')" title="Envoyer la facture au client (montant dû, échéance et RIB)">📧 Facture</button>
+        <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf" target="_blank" title="La facture telle qu'elle part au client">PDF</a>
         <button class="btn btn-primary" onclick="sendAccess('${id}')" title="Envoyer le code d'accès au client maintenant, sans attendre le paiement">🔑 Envoyer accès</button>
         <button class="btn btn-success" onclick="markAcompte('${id}')">Acompte reçu</button>
         <button class="btn btn-success" onclick="markTotal('${id}')">Total reçu</button>
@@ -987,8 +988,12 @@ function actionButtons(d) {
         ${delBtn}
       `;
     case 'acompte_paid':
+      // Le dossier porte deux factures : l'acompte (acquitté) et le solde restant dû.
       return `
-        <button class="btn btn-primary" onclick="sendFacture('${id}')" title="Envoyer la facture du solde restant">📧 Facture</button>
+        <button class="btn btn-primary" onclick="sendFacture('${id}','solde')" title="Envoyer la facture du solde restant à régler">📧 Facture de solde</button>
+        <button class="btn btn-secondary" onclick="sendFacture('${id}','acompte')" title="Renvoyer la facture d'acompte acquittée">📧 Facture d'acompte</button>
+        <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf?doc=acompte" target="_blank" title="PDF de la facture d'acompte acquittée">PDF acompte</a>
+        <a class="btn btn-secondary" href="${API_BASE}/devis/${id}.pdf?doc=solde" target="_blank" title="PDF de la facture de solde">PDF solde</a>
         <button class="btn btn-secondary" onclick="sendAccess('${id}')" title="Renvoyer le code d'accès au client">🔑 Renvoyer accès</button>
         <button class="btn btn-success" onclick="markSolde('${id}')">Solde reçu</button>
         ${histoBtn} ${dupBtn} ${delBtn}
@@ -1033,9 +1038,19 @@ async function validateDevis(id, mode='acompte') {
   await callApi(`/devis/${id}/validate?mode=${mode}`);
   loadDevis();
 }
+// Un virement se constate parfois plusieurs jours après coup : la date
+// d'encaissement doit être celle du paiement, pas celle de la saisie — c'est
+// elle qui figure sur la facture d'acompte acquittée.
 async function markAcompte(id) {
-  if (!confirm('Marquer l\'acompte reçu ? Le PIN sera généré et envoyé au client.')) return;
-  await callApi(`/devis/${id}/mark-acompte`);
+  const aujourdhui = new Date().toISOString().slice(0, 10);
+  const saisie = prompt(
+    "Date d'encaissement de l'acompte (AAAA-MM-JJ).\n\n"
+    + "Le PIN sera généré et l'e-mail de confirmation envoyé au client.",
+    aujourdhui);
+  if (saisie === null) return;
+  const d = saisie.trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(d)) { alert('Date invalide — format attendu : AAAA-MM-JJ.'); return; }
+  await callApi(`/devis/${id}/mark-acompte?date=${encodeURIComponent(d)}`);
   loadDevis();
 }
 async function sendFactureAcquittee(id) {
@@ -1050,12 +1065,19 @@ async function sendFactureAcquittee(id) {
 // d'un document précédent, report. Le mot d'accompagnement évite au client
 // de recevoir un montant sans explication.
 let envoiFactureId = null;
+let envoiFactureDoc = null;   // 'acompte' | 'solde' | null (facture unique)
 
-function sendFacture(id) {
+const LIBELLE_DOC = {acompte: "facture d'acompte", solde: 'facture de solde'};
+
+function sendFacture(id, doc) {
   envoiFactureId = id;
+  envoiFactureDoc = doc || null;
   const d = (allDevis || []).find(x => String(x.id) === String(id)) || {};
   const libelle = [d.devis_reference, d.name].filter(Boolean).join(' — ');
+  const quoi = LIBELLE_DOC[envoiFactureDoc] || 'facture';
   document.getElementById('envoi-facture-mot').value = '';
+  document.getElementById('envoi-facture-titre').textContent = 'Envoyer la ' + quoi;
+  document.getElementById('envoi-facture-ok').textContent = 'Envoyer la ' + quoi;
   document.getElementById('envoi-facture-sous-titre').textContent = libelle;
   document.getElementById('modal-envoi-facture').classList.add('open');
   setTimeout(() => document.getElementById('envoi-facture-mot').focus(), 120);
@@ -1064,6 +1086,7 @@ function sendFacture(id) {
 function fermerEnvoiFacture() {
   document.getElementById('modal-envoi-facture').classList.remove('open');
   envoiFactureId = null;
+  envoiFactureDoc = null;
 }
 
 async function confirmerEnvoiFacture() {
@@ -1071,12 +1094,17 @@ async function confirmerEnvoiFacture() {
   const btn = document.getElementById('envoi-facture-ok');
   const message = document.getElementById('envoi-facture-mot').value.trim();
   const id = envoiFactureId;
+  const doc = envoiFactureDoc;
   const old = btn.textContent;
   btn.disabled = true; btn.textContent = 'Envoi…';
   try {
-    const res = await callApi(`/devis/${id}/send-facture`, 'POST', {message: message || null});
+    const url = `/devis/${id}/send-facture` + (doc ? `?doc=${doc}` : '');
+    const res = await callApi(url, 'POST', {message: message || null});
+    const quoi = LIBELLE_DOC[doc] || 'Facture';
     fermerEnvoiFacture();
-    if (res) alert(res.acquittee ? 'Facture acquittée envoyée ✅' : 'Facture envoyée ✅');
+    if (res) alert(quoi.charAt(0).toUpperCase() + quoi.slice(1)
+                   + (res.acquittee ? ' acquittée envoyée ✅' : ' envoyée ✅')
+                   + (res.reference ? '\n' + res.reference : ''));
     loadDevis();
   } catch (e) {
     // callApi a déjà signalé l'erreur : on laisse la fenêtre ouverte pour réessayer.
