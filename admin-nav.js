@@ -4,10 +4,6 @@
    ============================================================ */
 (function () {
   const FAMILLES = [
-    { cle: 'pilotage',  emoji: '✨', nom: 'Pilotage',  pages: [
-      { f: 'admin-hub.html',             emoji: '✨', nom: 'Hub' },
-      { f: 'admin-stats.html',           emoji: '📊', nom: 'Statistiques' },
-    ]},
     { cle: 'planning',  emoji: '📅', nom: 'Planning',  pages: [
       { f: 'admin-calendar.html',        emoji: '📅', nom: 'Calendrier' },
       { f: 'admin-fermetures.html',      emoji: '🚫', nom: 'Fermetures' },
@@ -35,11 +31,14 @@
     { cle: 'iad',       emoji: '🤝', nom: 'iad',       pages: [
       { f: 'admin-iad.html',             emoji: '🤝', nom: 'Conseillers iad' },
     ]},
+    { cle: 'stats',     emoji: '📊', nom: 'Statistiques', pages: [
+      { f: 'admin-stats.html',           emoji: '📊', nom: 'Statistiques' },
+    ]},
   ];
 
   function pageCourante() {
     const p = (location.pathname.split('/').pop() || '').toLowerCase();
-    if (!p || p === 'admin') return 'admin-hub.html';
+    if (!p) return 'admin-calendar.html';
     return p.endsWith('.html') ? p : p + '.html';
   }
 
