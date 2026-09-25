@@ -15,6 +15,7 @@
     { cle: 'ventes',    emoji: '📋', nom: 'Ventes',    pages: [
       { f: 'admin-devis-dashboard.html', emoji: '📋', nom: 'Devis' },
       { f: 'admin-documents.html',       emoji: '📄', nom: 'Documents' },
+      { f: 'admin-impressions.html',     emoji: '🖨️', nom: 'Impressions' },
       { f: 'admin-exports.html',         emoji: '📤', nom: 'Exports' },
     ]},
     { cle: 'clients',   emoji: '👤', nom: 'Clients',   pages: [
@@ -25,7 +26,6 @@
     { cle: 'offres',    emoji: '💶', nom: 'Offres',    pages: [
       { f: 'admin-tarifs.html',          emoji: '💶', nom: 'Tarifs' },
       { f: 'admin-forfaits.html',        emoji: '🎟️', nom: 'Forfaits' },
-      { f: 'admin-impressions.html',     emoji: '🖨️', nom: 'Impressions' },
     ]},
     { cle: 'animation', emoji: '🎉', nom: 'Animation', pages: [
       { f: 'admin-evenements.html',      emoji: '🎉', nom: 'Événements' },
