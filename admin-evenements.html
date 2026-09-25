@@ -642,8 +642,8 @@ function drawTable(events){
         <button class="btn share" onclick='openShare(${JSON.stringify(e).replace(/'/g,"&#39;")})'>📤 Partager</button>
         <button class="btn ghost" style="color:#0B7A4B;border-color:#A8D8BE" onclick='offrirPlace(${e.id}, ${JSON.stringify(e.title)})'>🎁 Offrir</button>
         <button class="btn ghost" onclick='showRegs(${e.id}, ${JSON.stringify(e.title)})'>Inscrits</button>
-        <button class="btn ghost" ${e.registered_count ? '' : 'disabled title="Personne n\'est inscrit"'} onclick='ecrireInscrits(${e.id}, ${JSON.stringify(e.title)}, ${e.registered_count||0})'>✉️ Écrire aux inscrits</button>
-        <button class="btn ghost" onclick='ouvrirDeplacement(${JSON.stringify(e).replace(/'/g,"&#39;")})'>📅 Déplacer</button>
+        <button class="btn ghost" ${e.registered_count ? 'title="Un message libre aux inscrits, sans toucher au créneau : une consigne, un intervenant en plus, un code de parking. Le rappel de la date, de l&apos;horaire et de la salle est ajouté sous ton texte."' : 'disabled title="Personne n&apos;est inscrit à cet événement."'} onclick='ecrireInscrits(${e.id}, ${JSON.stringify(e.title)}, ${e.registered_count||0})'>✉️ Écrire aux inscrits</button>
+        <button class="btn ghost" title="Change la date ou l&apos;horaire. La salle et le code d&apos;accès suivent, le rappel J-2 est réarmé, et les inscrits reçoivent l&apos;ancienne et la nouvelle date. Inutile d&apos;écrire en plus." onclick='ouvrirDeplacement(${JSON.stringify(e).replace(/'/g,"&#39;")})'>📅 Déplacer</button>
         <button class="btn ghost" onclick='editEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Modifier</button>
         <button class="btn ghost" onclick='dupEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Dupliquer</button>
         <button class="btn ghost del" onclick="delEvent(${e.id})">Suppr.</button>
