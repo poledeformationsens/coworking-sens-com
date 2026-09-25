@@ -335,6 +335,7 @@
 <meta name="apple-mobile-web-app-title" content="ACW Admin">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="/icon-192.png">
+  <link rel="stylesheet" href="/admin-nav.css">
 </head>
 <body>
 
@@ -371,24 +372,7 @@
     <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="132" height="132" style="display:block;">
     <div>
       <h1>L'Atelier du Coworking</h1>
-      <nav style="display:flex;gap:12px;margin-top:6px;">
-        <a href="admin-hub.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">✨ Hub</a>
-        <a href="admin-devis-dashboard.html" style="background:var(--gold);color:var(--navy);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;font-weight:600;">📋 Devis</a>
-        <a href="admin-calendar.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">📅 Calendrier</a>
-        <a href="admin-forfaits.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">🎟️ Forfaits</a>
-      <a href="admin-iad.html">🤝 Conseillers iad</a>
-        <a href="admin-fermetures.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">🚫 Fermetures</a>
-        <a href="admin-stats.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">📊 Statistiques</a>
-        <a href="admin-prospection.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">🎯 Prospection</a>
-        <a href="admin-evenements.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">🎉 Événements</a>
-        <a href="admin-projets.html">🗂️ Projets</a>
-        <a href="admin-communication.html">📣 Communication</a>
-        <a href="admin-clients.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">👤 Clients</a>
-        <a href="admin-societes.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">🏢 Sociétés</a>
-        <a href="admin-tarifs.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">💶 Tarifs</a>
-        <a href="admin-documents.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">📄 Documents</a>
-        <a href="admin-exports.html" style="color:rgba(255,255,255,0.7);text-decoration:none;font-size:13px;padding:6px 14px;border-radius:16px;">📤 Exports</a>
-      </nav>
+      <nav id="acw-nav"></nav>
     </div>
   </div>
   <span class="user">
@@ -1703,5 +1687,6 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
   window.addEventListener('resize',function(){ clearTimeout(window.__acwR); window.__acwR=setTimeout(labelize,200); });
 })();
 </script>
+<script src="/admin-nav.js"></script>
 </body>
 </html>

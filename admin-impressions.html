@@ -68,6 +68,7 @@
   header h1{font-size:16px !important}
 }
 </style>
+  <link rel="stylesheet" href="/admin-nav.css">
 </head>
 <body>
 
@@ -81,14 +82,7 @@
   <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="120" height="120">
   <div>
     <h1>L'Atelier du Coworking</h1>
-    <nav>
-      <a href="admin-devis-dashboard.html">🏠 Menu</a>
-      <a href="admin-hub.html">✨ Hub</a>
-      <a href="admin-calendar.html">📅 Calendrier</a>
-      <a href="admin-forfaits.html">🎟️ Forfaits</a>
-      <a href="admin-impressions.html" class="active">🖨️ Impressions</a>
-      <a href="admin-clients.html">👤 Clients</a>
-    </nav>
+    <nav id="acw-nav"></nav>
   </div>
 </header>
 
@@ -247,5 +241,6 @@ document.getElementById('filter').addEventListener('input',render);
   loadRates(); load();
 })();
 </script>
+<script src="/admin-nav.js"></script>
 </body>
 </html>

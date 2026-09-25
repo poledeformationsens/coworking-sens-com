@@ -111,7 +111,8 @@
   nav a{font-size:11px !important;padding:5px 8px !important}
   header h1{font-size:16px !important}
 }
-</style></head>
+</style>  <link rel="stylesheet" href="/admin-nav.css">
+</head>
 <body>
 
 <div id="login"><div class="box">
@@ -124,16 +125,7 @@
   <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="132" height="132">
   <div>
     <h1>L'Atelier du Coworking</h1>
-    <nav>
-      <a href="admin-devis-dashboard.html">🏠 Menu</a>
-      <a href="admin-hub.html">✨ Hub</a>
-      <a href="admin-calendar.html">📅 Calendrier</a>
-      <a href="admin-evenements.html">🎉 Événements</a>
-      <a href="admin-projets.html">🗂️ Projets</a>
-      <a href="admin-communication.html" class="active">📣 Communication</a>
-      <a href="admin-clients.html">👤 Clients</a>
-      <a href="admin-stats.html">📊 Statistiques</a>
-    </nav>
+    <nav id="acw-nav"></nav>
   </div>
 </header>
 
@@ -666,5 +658,6 @@ function ouvrirSms(i){
   catch(e){ console.warn(e); }
 })();
 </script>
+<script src="/admin-nav.js"></script>
 </body>
 </html>

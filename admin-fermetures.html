@@ -92,6 +92,7 @@
 <meta name="apple-mobile-web-app-title" content="ACW Admin">
 <link rel="apple-touch-icon" href="/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="/icon-192.png">
+  <link rel="stylesheet" href="/admin-nav.css">
 </head>
 <body>
 
@@ -107,25 +108,7 @@
   <img src="https://cdn.jsdelivr.net/gh/poledeformationsens/coworking-sens-com@main/acw-logo-white.png" alt="ACW" width="132" height="132">
   <div>
     <h1>L'Atelier du Coworking</h1>
-    <nav>
-      <a href="admin-devis-dashboard.html">🏠 Menu</a>
-      <a href="admin-hub.html">✨ Hub</a>
-      <a href="admin-devis-dashboard.html">📋 Devis</a>
-      <a href="admin-calendar.html">📅 Calendrier</a>
-      <a href="admin-forfaits.html">🎟️ Forfaits</a>
-      <a href="admin-iad.html">🤝 Conseillers iad</a>
-      <a href="admin-fermetures.html" class="active">🚫 Fermetures</a>
-      <a href="admin-stats.html">📊 Statistiques</a>
-      <a href="admin-prospection.html">🎯 Prospection</a>
-      <a href="admin-evenements.html">🎉 Événements</a>
-      <a href="admin-projets.html">🗂️ Projets</a>
-      <a href="admin-communication.html">📣 Communication</a>
-      <a href="admin-clients.html">👤 Clients</a>
-        <a href="admin-societes.html">🏢 Sociétés</a>
-      <a href="admin-tarifs.html">💶 Tarifs</a>
-      <a href="admin-documents.html">📄 Documents</a>
-        <a href="admin-exports.html">📤 Exports</a>
-    </nav>
+    <nav id="acw-nav"></nav>
   </div>
 </header>
 
@@ -387,5 +370,6 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
   window.addEventListener('resize',function(){ clearTimeout(window.__acwR); window.__acwR=setTimeout(labelize,200); });
 })();
 </script>
+<script src="/admin-nav.js"></script>
 </body>
 </html>
