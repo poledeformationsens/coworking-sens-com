@@ -39,6 +39,18 @@
   .btn.share{background:#fff;color:var(--green);border:1px solid var(--light);padding:6px 12px;font-size:12.5px;margin:0}
   #share{position:fixed;inset:0;background:rgba(3,35,77,.45);display:none;align-items:center;justify-content:center;z-index:120;padding:16px}
   #share.open{display:flex}
+  #ecrire,#deplacer{position:fixed;inset:0;background:rgba(3,35,77,.45);display:none;align-items:center;justify-content:center;z-index:130;padding:16px}
+  #ecrire.open,#deplacer.open{display:flex}
+  #ecrire .box,#deplacer .box{background:#fff;border-radius:14px;padding:24px;width:min(520px,94vw);text-align:left;max-height:92vh;overflow-y:auto}
+  #ecrire h3,#deplacer h3{margin:0 0 4px}
+  .mini{font-size:12.5px;color:#5A6A85;margin:0 0 16px}
+  .champ{display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#5A6A85;margin:14px 0 6px}
+  #ecrire textarea,#deplacer textarea{width:100%;padding:10px 12px;border:1px solid #E6E8EC;border-radius:8px;font-family:inherit;font-size:13.5px;line-height:1.5;resize:vertical}
+  #deplacer input[type=date],#deplacer input[type=time]{padding:9px 10px;border:1px solid #E6E8EC;border-radius:8px;font-family:inherit;font-size:14px}
+  .coche{display:flex;align-items:flex-start;gap:8px;font-size:13.5px;margin:10px 0 0;color:#3d4a5c}
+  .coche input{margin-top:3px}
+  .pied{display:flex;gap:8px;justify-content:flex-end;margin-top:20px;flex-wrap:wrap}
+  .alerte{background:#FDECEA;border-left:3px solid #C0392B;padding:10px 12px;border-radius:6px;font-size:13px;color:#7B241C;margin:14px 0 0;display:none}
   #share .box{background:#fff;border-radius:14px;padding:24px;width:min(420px,94vw);text-align:center}
   #share h3{font-family:'Playfair Display',serif;margin:0 0 4px;font-size:19px}
   #share .ev{font-size:13px;color:var(--slate);margin-bottom:14px}
@@ -290,6 +302,51 @@
     <button class="s s-qr" onclick="downloadQR()">⬇️ Télécharger le QR</button>
   </div>
   <button class="close" onclick="closeShare()">Fermer</button>
+</div></div>
+
+<!-- Écrire à tous les inscrits d'un événement -->
+<div id="ecrire"><div class="box">
+  <h3>Écrire aux inscrits</h3>
+  <p class="mini" id="ecrire-sous"></p>
+
+  <label class="champ" for="ecrire-sujet">Objet <span style="text-transform:none;letter-spacing:0">(facultatif)</span></label>
+  <input id="ecrire-sujet" type="text" style="width:100%;padding:10px 12px;border:1px solid #E6E8EC;border-radius:8px;font-family:inherit;font-size:14px" placeholder="Laisse vide pour « Titre de l'événement — information »">
+
+  <label class="champ" for="ecrire-texte">Message</label>
+  <textarea id="ecrire-texte" rows="7" placeholder="Ce que tu veux leur dire. Le rappel du quand et du où est ajouté sous le message."></textarea>
+
+  <label class="coche"><input type="checkbox" id="ecrire-details" checked> Rappeler la date, l'horaire et la salle</label>
+  <label class="coche"><input type="checkbox" id="ecrire-code"> Joindre le code d'accès à la porte</label>
+
+  <div class="alerte" id="ecrire-erreur"></div>
+  <div class="pied">
+    <button class="btn ghost" onclick="fermerEcrire()">Annuler</button>
+    <button class="btn" id="ecrire-ok" onclick="envoyerAuxInscrits()">Envoyer</button>
+  </div>
+</div></div>
+
+<!-- Déplacer un événement et prévenir les inscrits -->
+<div id="deplacer"><div class="box">
+  <h3>Déplacer l'événement</h3>
+  <p class="mini" id="deplacer-sous"></p>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <div><label class="champ" for="dep-date">Nouvelle date</label><input type="date" id="dep-date"></div>
+    <div><label class="champ" for="dep-from">Début</label><input type="time" id="dep-from"></div>
+    <div><label class="champ" for="dep-to">Fin</label><input type="time" id="dep-to"></div>
+  </div>
+
+  <label class="champ" for="dep-mot">Mot d'explication <span style="text-transform:none;letter-spacing:0">(facultatif)</span></label>
+  <textarea id="dep-mot" rows="4" placeholder="Ex. : je ne peux pas être présent ce jeudi, je décale d'une journée."></textarea>
+
+  <label class="coche"><input type="checkbox" id="dep-prevenir" checked> Prévenir les inscrits par e-mail <span id="dep-nb" style="color:#5A6A85"></span></label>
+  <p class="mini" style="margin:8px 0 0">La salle et le code d'accès suivent le nouveau créneau, et le rappel J-2 est réarmé.</p>
+
+  <div class="alerte" id="dep-erreur"></div>
+  <div class="pied">
+    <button class="btn ghost" onclick="fermerDeplacement()">Annuler</button>
+    <button class="btn" id="dep-ok" onclick="confirmerDeplacement(false)">Déplacer</button>
+  </div>
 </div></div>
 
 <script>
@@ -585,6 +642,8 @@ function drawTable(events){
         <button class="btn share" onclick='openShare(${JSON.stringify(e).replace(/'/g,"&#39;")})'>📤 Partager</button>
         <button class="btn ghost" style="color:#0B7A4B;border-color:#A8D8BE" onclick='offrirPlace(${e.id}, ${JSON.stringify(e.title)})'>🎁 Offrir</button>
         <button class="btn ghost" onclick='showRegs(${e.id}, ${JSON.stringify(e.title)})'>Inscrits</button>
+        <button class="btn ghost" ${e.registered_count ? '' : 'disabled title="Personne n\'est inscrit"'} onclick='ecrireInscrits(${e.id}, ${JSON.stringify(e.title)}, ${e.registered_count||0})'>✉️ Écrire aux inscrits</button>
+        <button class="btn ghost" onclick='ouvrirDeplacement(${JSON.stringify(e).replace(/'/g,"&#39;")})'>📅 Déplacer</button>
         <button class="btn ghost" onclick='editEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Modifier</button>
         <button class="btn ghost" onclick='dupEvent(${JSON.stringify(e).replace(/'/g,"&#39;")})'>Dupliquer</button>
         <button class="btn ghost del" onclick="delEvent(${e.id})">Suppr.</button>
@@ -775,6 +834,114 @@ async function showRegs(id, title){
                `<td style="white-space:nowrap;text-align:right">${refundBtn} ${cancelBtn}</td></tr>`;
       }).join('')+'</tbody></table>';
   }catch(e){ list.innerHTML='<div class="empty">Erreur : '+e.message+'</div>'; }
+}
+
+// ===== Écrire aux inscrits =====
+// Déplacer une date ou changer une consigne sans prévenir ceux qui se sont
+// inscrits, c'est les envoyer devant une porte fermée. D'où ces deux boutons.
+let ecrireId = null;
+
+function ecrireInscrits(id, titre, nb){
+  if(!nb){ alert("Personne n'est inscrit à cet événement."); return; }
+  ecrireId = id;
+  document.getElementById('ecrire-sous').textContent =
+    titre + ' — ' + nb + ' inscrit' + (nb > 1 ? 's' : '');
+  document.getElementById('ecrire-sujet').value = '';
+  document.getElementById('ecrire-texte').value = '';
+  document.getElementById('ecrire-details').checked = true;
+  document.getElementById('ecrire-code').checked = false;
+  document.getElementById('ecrire-erreur').style.display = 'none';
+  document.getElementById('ecrire').classList.add('open');
+  setTimeout(()=>document.getElementById('ecrire-texte').focus(), 120);
+}
+function fermerEcrire(){ document.getElementById('ecrire').classList.remove('open'); ecrireId = null; }
+
+async function envoyerAuxInscrits(){
+  if(!ecrireId) return;
+  const err = document.getElementById('ecrire-erreur');
+  const texte = document.getElementById('ecrire-texte').value.trim();
+  err.style.display = 'none';
+  if(!texte){ err.textContent = 'Le message est vide.'; err.style.display = 'block'; return; }
+  const btn = document.getElementById('ecrire-ok'); const avant = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Envoi…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/events/${ecrireId}/message`, {
+      method:'POST', headers:HEADERS, body: JSON.stringify({
+        message: texte,
+        sujet: document.getElementById('ecrire-sujet').value.trim() || null,
+        inclure_details: document.getElementById('ecrire-details').checked,
+        inclure_code: document.getElementById('ecrire-code').checked,
+      })});
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail || ('Erreur ' + r.status));
+    fermerEcrire();
+    alert('Message envoyé à ' + d.envoyes + ' inscrit' + (d.envoyes > 1 ? 's' : '') + ' ✅'
+      + ((d.echecs && d.echecs.length) ? '\n\nNon distribué : ' + d.echecs.join(', ') : ''));
+  }catch(e){ err.textContent = e.message; err.style.display = 'block'; }
+  finally{ btn.disabled = false; btn.textContent = avant; }
+}
+
+// ===== Déplacer un événement =====
+let depEvent = null;
+
+function ouvrirDeplacement(e){
+  depEvent = e;
+  const nb = e.registered_count || 0;
+  document.getElementById('deplacer-sous').textContent =
+    e.title + ' — actuellement le ' + fmtDate(e.date)
+    + (e.hour_from ? ' de ' + e.hour_from + ' à ' + (e.hour_to || '') : '');
+  document.getElementById('dep-date').value = e.date || '';
+  document.getElementById('dep-from').value = e.hour_from || '';
+  document.getElementById('dep-to').value = e.hour_to || '';
+  document.getElementById('dep-mot').value = '';
+  document.getElementById('dep-prevenir').checked = nb > 0;
+  document.getElementById('dep-nb').textContent = nb
+    ? '(' + nb + ' personne' + (nb > 1 ? 's' : '') + ')'
+    : '(personne n\'est inscrit)';
+  document.getElementById('dep-erreur').style.display = 'none';
+  document.getElementById('dep-ok').textContent = 'Déplacer';
+  document.getElementById('deplacer').classList.add('open');
+}
+function fermerDeplacement(){ document.getElementById('deplacer').classList.remove('open'); depEvent = null; }
+
+async function confirmerDeplacement(force){
+  if(!depEvent) return;
+  const err = document.getElementById('dep-erreur');
+  const body = {
+    date: document.getElementById('dep-date').value,
+    hour_from: document.getElementById('dep-from').value,
+    hour_to: document.getElementById('dep-to').value,
+    message: document.getElementById('dep-mot').value.trim() || null,
+    prevenir: document.getElementById('dep-prevenir').checked,
+    force: !!force,
+  };
+  err.style.display = 'none';
+  if(!body.date || !body.hour_from || !body.hour_to){
+    err.textContent = 'Date et horaires requis.'; err.style.display = 'block'; return;
+  }
+  const btn = document.getElementById('dep-ok'); const avant = btn.textContent;
+  btn.disabled = true; btn.textContent = 'Déplacement…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/events/${depEvent.id}/reschedule`, {
+      method:'POST', headers:HEADERS, body: JSON.stringify(body)});
+    const d = await r.json().catch(()=>({}));
+    if(r.status === 409 && !force){
+      // La salle est prise : on laisse le choix de passer outre plutôt que de bloquer.
+      err.textContent = (d.detail || 'Créneau occupé.') + ' Clique à nouveau pour déplacer quand même.';
+      err.style.display = 'block';
+      btn.textContent = 'Déplacer quand même';
+      btn.disabled = false;
+      btn.onclick = () => confirmerDeplacement(true);
+      return;
+    }
+    if(!r.ok) throw new Error(d.detail || ('Erreur ' + r.status));
+    fermerDeplacement();
+    alert('Événement déplacé ✅\nNouveau créneau : ' + d.nouveau.date + ' ' + d.nouveau.hour_from + '–' + d.nouveau.hour_to
+      + (d.access_pin ? '\nCode d\'accès : ' + d.access_pin : '')
+      + (d.destinataires ? '\n📧 ' + d.envoyes + ' inscrit(s) prévenu(s).' : '\nAucun inscrit à prévenir.'));
+    load();
+  }catch(e){ err.textContent = e.message; err.style.display = 'block'; }
+  finally{ btn.disabled = false; if(btn.textContent === 'Déplacement…') btn.textContent = avant; }
 }
 
 // Offrir une place : inscription sans paiement, à l'initiative de l'admin.
