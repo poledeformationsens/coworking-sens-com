@@ -33,6 +33,8 @@
   .btn.cancel{background:#fff;color:var(--red);border:1px solid var(--light)}
   .btn:disabled{opacity:.5;cursor:default}
   .reg-badge{font-size:12.5px;color:var(--green);font-weight:600}
+  .agenda{display:inline-block;margin-top:6px;font-size:12.5px;color:var(--navy,#03234D);text-decoration:none;border-bottom:1px solid var(--light)}
+  .agenda:hover{border-bottom-color:var(--navy,#03234D)}
   .empty{padding:50px 20px;text-align:center;color:var(--slate)}
   #gate{max-width:420px;margin:80px auto;background:#fff;border:1px solid var(--light);border-radius:14px;padding:30px;text-align:center}
   #gate .btn{display:inline-block;text-decoration:none;margin-top:14px}
@@ -81,6 +83,28 @@ async function load(){
 }
 
 let EVENTS = [];
+// Lien « Ajouter à mon agenda » (Google Agenda). Vide si l'horaire manque :
+// un lien incomplet ouvrirait un formulaire d'agenda vide, pire que pas de lien.
+// Le code d'accès n'y figure pas : il change si l'événement est déplacé, et une
+// entrée d'agenda périmée induirait en erreur. Il reste dans l'e-mail.
+function lienAgenda(e){
+  if(!e.date || !e.hour_from || !e.hour_to) return '';
+  const j = e.date.replace(/-/g,'');
+  const h = t => t.replace(':','') + '00';
+  if(h(e.hour_to) <= h(e.hour_from)) return '';
+  const lieu = [(e.location || "L'Atelier du Coworking"), '20 rue Pasteur', '89100 Sens'].join(', ');
+  let det = e.description || '';
+  if(e.salle) det += (det ? '\n\n' : '') + 'Salle : ' + e.salle;
+  det += "\n\nLe code d'accès figure dans l'e-mail de confirmation.";
+  const u = 'https://calendar.google.com/calendar/render?action=TEMPLATE'
+    + '&text=' + encodeURIComponent(e.title || 'Événement')
+    + '&dates=' + j + 'T' + h(e.hour_from) + '/' + j + 'T' + h(e.hour_to)
+    + '&ctz=Europe/Paris'
+    + '&location=' + encodeURIComponent(lieu)
+    + '&details=' + encodeURIComponent(det);
+  return `<a class="agenda" href="${u}" target="_blank" rel="noopener">\u{1F4C5} Ajouter à mon agenda</a>`;
+}
+
 function render(events){
   EVENTS = events;
   const el = document.getElementById('list');
@@ -101,7 +125,7 @@ function render(events){
           : `<span class="spots" style="font-weight:700">${fmtEUR(prix)}</span>`)
       : '<span class="spots">Gratuit</span>';
     let action;
-    if(e.is_registered) action = `<div style="text-align:right"><div class="reg-badge">✓ Inscrit</div><button class="btn cancel" style="margin-top:6px" onclick="cancelReg(${e.id})">Se désinscrire</button></div>`;
+    if(e.is_registered) action = `<div style="text-align:right"><div class="reg-badge">✓ Inscrit</div>${lienAgenda(e)}<button class="btn cancel" style="margin-top:6px" onclick="cancelReg(${e.id})">Se désinscrire</button></div>`;
     else if(e.spots_left!==null && e.spots_left<=0) action = `<button class="btn" disabled>Complet</button>`;
     else if(offert) action = `<button class="btn" onclick="payer(${e.id})">S'inscrire — offert</button>`;
     else if(prix > 0) action = `<button class="btn" onclick="payer(${e.id})">S'inscrire — ${fmtEUR(prix)}</button>`;
@@ -111,7 +135,7 @@ function render(events){
         ${e.category?`<span class="cat">${esc(e.category)}</span>`:''}
         <h3>${esc(e.title)}</h3>
         <div class="when">📅 ${when}${e.salle?` · 🚪 ${esc(e.salle)}`:''}${e.location?` · 📍 ${esc(e.location)}`:''}</div>
-        ${(e.is_registered && e.access_pin)?`<div class="code">🔑 Code d'accès : <b>${esc(e.access_pin)}</b> <span>— sur le clavier de la porte, suivi de ✓</span></div>`:''}
+        ${(e.is_registered && e.access_pin)?`<div class="code">🔑 Code d'accès : <b>${esc(e.access_pin)}</b> <span>— sur le clavier de la porte, suivi de la touche cadenas</span></div>`:''}
         ${e.description?`<div class="desc">${esc(e.description)}</div>`:''}
       </div>
       <div class="side">${spots}${tarif}${action}</div>
