@@ -488,6 +488,19 @@
       S'affiche en tête de l'e-mail, avant le rappel du montant. Laissez vide pour l'e-mail habituel.
     </p>
 
+    <div id="envoi-facture-echeance-bloc" style="margin-top:18px">
+      <label class="label" for="envoi-facture-echeance"
+             style="display:block;font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#5A6A85;margin-bottom:6px">
+        Échéance de règlement <span style="text-transform:none;letter-spacing:0">(facultatif)</span>
+      </label>
+      <input type="date" id="envoi-facture-echeance"
+        style="padding:10px 12px;border:1px solid var(--light);border-radius:8px;font-family:inherit;font-size:13.5px">
+      <p class="muted" style="margin:6px 0 0;font-size:12.5px;color:#5A6A85">
+        Date annoncée au client dans l'e-mail et sur la facture. Sur un solde, pensez à la fixer :
+        sinon c'est l'échéance de l'acompte qui reste affichée. Laissez vide pour ne rien changer.
+      </p>
+    </div>
+
     <div class="modal-footer">
       <button class="btn btn-secondary" onclick="fermerEnvoiFacture()">Annuler</button>
       <button class="btn btn-primary" id="envoi-facture-ok" onclick="confirmerEnvoiFacture()">Envoyer la facture</button>
@@ -875,8 +888,17 @@ function enAttente(d) {
     }
     return `${quoi} attendu` + age(joursDepuis(d.devis_validated_at));
   }
-  if (d.devis_status === 'acompte_paid')
-    return `Solde ${formatMoney(resteDu(d))} attendu` + age(joursDepuis(d.acompte_received_at));
+  if (d.devis_status === 'acompte_paid') {
+    // Depuis que l'envoi de la facture de solde enregistre sa propre échéance,
+    // on compte le retard sur cette date plutôt que sur l'âge de l'acompte.
+    const reste = d.payment_due_at ? joursAvant(d.payment_due_at) : null;
+    const quoi = `Solde ${formatMoney(resteDu(d))}`;
+    if (reste === null) return `${quoi} attendu` + age(joursDepuis(d.acompte_received_at));
+    if (reste > 0)   return `${quoi} — échéance dans ${reste} jour${reste > 1 ? 's' : ''}`;
+    if (reste === 0) return `${quoi} — échéance aujourd'hui`;
+    const r = -reste;
+    return `${quoi} — en retard de ${r} jour${r > 1 ? 's' : ''}`;
+  }
   return '';
 }
 // Une prestation qui approche sans paiement complet : c'est ce qu'on relance en premier.
@@ -1060,6 +1082,11 @@ function sendFacture(id, doc) {
   const libelle = [d.devis_reference, d.name].filter(Boolean).join(' — ');
   const quoi = LIBELLE_DOC[envoiFactureDoc] || 'facture';
   document.getElementById('envoi-facture-mot').value = '';
+  // Une facture d'acompte acquittée n'a plus d'échéance à annoncer.
+  const blocEch = document.getElementById('envoi-facture-echeance-bloc');
+  const champEch = document.getElementById('envoi-facture-echeance');
+  blocEch.style.display = (envoiFactureDoc === 'acompte') ? 'none' : '';
+  champEch.value = (d.payment_due_at || '').slice(0, 10);
   document.getElementById('envoi-facture-titre').textContent = 'Envoyer la ' + quoi;
   document.getElementById('envoi-facture-ok').textContent = 'Envoyer la ' + quoi;
   document.getElementById('envoi-facture-sous-titre').textContent = libelle;
@@ -1077,13 +1104,15 @@ async function confirmerEnvoiFacture() {
   if (!envoiFactureId) return;
   const btn = document.getElementById('envoi-facture-ok');
   const message = document.getElementById('envoi-facture-mot').value.trim();
+  const echeance = envoiFactureDoc === 'acompte'
+    ? null : (document.getElementById('envoi-facture-echeance').value || null);
   const id = envoiFactureId;
   const doc = envoiFactureDoc;
   const old = btn.textContent;
   btn.disabled = true; btn.textContent = 'Envoi…';
   try {
     const url = `/devis/${id}/send-facture` + (doc ? `?doc=${doc}` : '');
-    const res = await callApi(url, 'POST', {message: message || null});
+    const res = await callApi(url, 'POST', {message: message || null, echeance});
     const quoi = LIBELLE_DOC[doc] || 'Facture';
     fermerEnvoiFacture();
     if (res) alert(quoi.charAt(0).toUpperCase() + quoi.slice(1)
