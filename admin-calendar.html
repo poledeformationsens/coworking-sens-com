@@ -694,6 +694,7 @@ function onEventClick(info) {
   document.getElementById('modal-detail').classList.add('open');
 }
 
+let _accesData = null;   // dernière réponse /access, pour les textes « tiers »
 function _escapeHtml(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 async function loadAccess(resaId){
@@ -702,6 +703,7 @@ async function loadAccess(resaId){
     const r = await fetch(`${API_BASE}/admin/reservations/${resaId}/access`, {headers: HEADERS, cache:'no-store'});
     if(!r.ok) throw new Error('Erreur '+r.status);
     const d = await r.json();
+    _accesData = d;
     const pin = d.pin_code
       ? `<b style="font-family:monospace;font-size:22px;letter-spacing:3px;color:#03234D">${_escapeHtml(d.pin_code)}</b>`
       : '<span style="color:#999">Aucun code enregistré pour cette réservation</span>';
@@ -719,8 +721,84 @@ async function loadAccess(resaId){
          <button class="btn btn-secondary" onclick="resendCodesEmail('${resaId}', this)">📧 Renvoyer la confirmation</button>
          <button class="btn btn-secondary" onclick="nouveauCode('${resaId}', this)">🔑 Nouveau code + envoi</button>
          <a class="btn btn-secondary" style="text-decoration:none" href="${waUrl}" target="_blank" rel="noopener">${waLabel}</a>
-       </div>`;
+       </div>
+       <details id="acces-tiers" style="margin-top:14px;border-top:1px solid #eee;padding-top:12px">
+         <summary style="cursor:pointer;font-weight:600;color:#03234D">👤 Envoyer les accès à quelqu'un d'autre</summary>
+         <p style="margin:8px 0 10px;font-size:12px;color:#777;line-height:1.5">
+           Pour un formateur, un intervenant ou un collaborateur que le client n'a pas prévenu.
+           Le code de porte reste le même, la réservation n'est pas modifiée.</p>
+         <div class="field"><label>Nom du destinataire</label>
+           <input id="tiers-nom" type="text" placeholder="Sophie Marchand" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px"
+                  oninput="majLiensTiers()"></div>
+         <div class="field" style="margin-top:8px"><label>E-mail</label>
+           <input id="tiers-email" type="email" autocapitalize="none" autocorrect="off" spellcheck="false" placeholder="formateur@organisme.fr"
+                  style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px"></div>
+         <div class="field" style="margin-top:8px"><label>Téléphone <span style="color:#999;font-weight:400">(pour WhatsApp ou SMS)</span></label>
+           <input id="tiers-tel" type="tel" placeholder="06 12 34 56 78" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px"
+                  oninput="majLiensTiers()"></div>
+         <div class="field" style="margin-top:8px"><label>Mot d'accompagnement <span style="color:#999;font-weight:400">(facultatif, e-mail uniquement)</span></label>
+           <textarea id="tiers-msg" rows="2" placeholder="Le café est dans la cuisine, à gauche en entrant."
+                     style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;font-family:inherit"></textarea></div>
+         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+           <button class="btn btn-secondary" onclick="envoyerAccesTiers('${resaId}', this)">📧 Envoyer par e-mail</button>
+           <button class="btn btn-secondary" onclick="ouvrirAccesTiers('whatsapp')">💬 WhatsApp</button>
+           <button class="btn btn-secondary" onclick="ouvrirAccesTiers('sms')">📱 SMS</button>
+         </div>
+         <p id="tiers-apercu" style="margin:10px 0 0;font-size:12px;color:#777;white-space:pre-wrap;line-height:1.5"></p>
+       </details>`;
+    majLiensTiers();
   }catch(e){ if(el) el.innerHTML = '<div class="field" style="color:#c0392b">Codes indisponibles : '+e.message+'</div>'; }
+}
+
+// ===== Accès transmis à un tiers (formateur, intervenant…) =====
+// Les textes WhatsApp et SMS viennent du serveur avec un marqueur __PRENOM__ :
+// on y substitue le prénom saisi, pour que la formulation reste pilotée au
+// même endroit que celle des e-mails.
+function _texteTiers(canal){
+  const tpl = (_accesData && (canal === 'sms' ? _accesData.sms_template_tiers : _accesData.whatsapp_template_tiers)) || '';
+  const nomEl = document.getElementById('tiers-nom');
+  const prenom = ((nomEl ? nomEl.value : '').trim().split(/\s+/)[0]) || '';
+  return prenom ? tpl.split('__PRENOM__').join(prenom) : tpl.split(' __PRENOM__,').join(',');
+}
+function _telTiers(){
+  const el = document.getElementById('tiers-tel');
+  let tel = (el ? el.value : '').replace(/[^0-9+]/g, '');
+  if(tel.startsWith('0')) tel = '33' + tel.slice(1);
+  return tel.replace(/^\+/, '');
+}
+function majLiensTiers(){
+  const ap = document.getElementById('tiers-apercu');
+  if(ap) ap.textContent = _texteTiers('sms');
+}
+function ouvrirAccesTiers(canal){
+  const txt = _texteTiers(canal);
+  if(!txt){ alert('Textes d\'accès indisponibles — rouvrez la réservation.'); return; }
+  const tel = _telTiers();
+  if(canal === 'sms'){
+    if(!tel){ alert('Indiquez le numéro du destinataire pour envoyer un SMS.'); return; }
+    window.location.href = `sms:+${tel}?&body=${encodeURIComponent(txt)}`;
+    return;
+  }
+  const url = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(txt)}`
+                  : `https://wa.me/?text=${encodeURIComponent(txt)}`;
+  window.open(url, '_blank', 'noopener');
+}
+async function envoyerAccesTiers(resaId, btn){
+  const email = (document.getElementById('tiers-email')||{}).value?.trim() || '';
+  const nom = (document.getElementById('tiers-nom')||{}).value?.trim() || '';
+  const message = (document.getElementById('tiers-msg')||{}).value?.trim() || '';
+  if(!email || email.indexOf('@') < 0){ alert('Indiquez l\'e-mail du destinataire.'); return; }
+  if(!confirm(`Envoyer le code d'accès, le wifi et les détails de la réservation à ${email} ?`)) return;
+  const old = btn.textContent; btn.disabled = true; btn.textContent = 'Envoi…';
+  try{
+    const r = await fetch(`${API_BASE}/admin/reservations/${resaId}/send-access`, {
+      method:'POST', headers: {...HEADERS, 'Content-Type':'application/json'},
+      body: JSON.stringify({email, nom: nom || null, message: message || null}),
+    });
+    const d = await r.json().catch(()=>({}));
+    if(!r.ok) throw new Error(d.detail || ('Erreur ' + r.status));
+    btn.textContent = '✅ Envoyé à ' + (d.email || email);
+  }catch(e){ alert('Erreur : ' + e.message); btn.disabled = false; btn.textContent = old; }
 }
 
 // Refait le code d'accès sur le créneau actuel et le renvoie au client.
