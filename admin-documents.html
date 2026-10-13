@@ -163,6 +163,16 @@ function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,c=>({'&':'&amp;'
 function eur(n){const v=Number(n||0);return v.toLocaleString('fr-FR',{style:'currency',currency:'EUR'});}
 function fmtDate(d){if(!d)return '—';try{return new Date(d+'T00:00:00').toLocaleDateString('fr-FR',{day:'2-digit',month:'short',year:'numeric'});}catch(e){return d;}}
 
+async function markPackPaid(packId,btn){
+  const jour=prompt('Date du règlement (AAAA-MM-JJ) :',new Date().toISOString().slice(0,10));
+  if(jour===null)return;
+  if(btn){btn.disabled=true;btn.textContent='…';}
+  try{
+    const r=await fetch(`${API}/admin/packs/${encodeURIComponent(packId)}/paid`,{method:'POST',headers:H,body:JSON.stringify({paid_at:jour})});
+    if(!r.ok)throw new Error((await r.text())||('Erreur '+r.status));
+    await load();
+  }catch(e){alert('Règlement non enregistré : '+e.message);if(btn){btn.disabled=false;btn.textContent='✓ Payée';}}
+}
 async function load(){
   const st=document.getElementById('status'); st.textContent='Chargement…';
   try{
@@ -213,6 +223,7 @@ function render(){
   tb.innerHTML=rows.map(d=>{
     const neg=Number(d.amount||0)<0;
     const pdf=d.pdf_url?`<a class="pdf" href="${esc(d.pdf_url)}" target="_blank" rel="noopener">PDF ↗</a>`:'<span class="muted">—</span>';
+    const paye=(d.a_regler&&d.pack_id)?`<button class="resend" onclick="markPackPaid('${esc(d.pack_id)}',this)" title="Enregistrer le règlement">✓ Payée</button>`:'';
     const resend=(d.email&&d.pdf_url)?`<button class="resend" onclick="resendDoc('${esc(d.reference)}',this)" title="Renvoyer par email à ${esc(d.email)}">✉️ Renvoyer</button>`:'';
     return `<tr class="row">
       <td class="muted">${fmtDate(d.date)}</td>
@@ -222,7 +233,7 @@ function render(){
       <td class="muted">${esc(d.espace||'—')}</td>
       <td style="text-align:right" class="amount ${neg?'neg':''}">${eur(d.amount)}</td>
       <td><span class="st">${esc(d.status||'')}</span></td>
-      <td style="text-align:right;white-space:nowrap">${resend}${pdf}</td>
+      <td style="text-align:right;white-space:nowrap">${paye}${resend}${pdf}</td>
     </tr>`;
   }).join('');
 }
